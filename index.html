@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>NAYAD v0.1</title>
+<style>
+:root{
+  --yellow:#FFC107; --yellow2:#FFB800; --black:#111111; --bg:#F7F7F5;
+  --card:#fff; --muted:#777; --red:#F04444; --green:#32B866; --line:#E9E9E5;
+}
+*{box-sizing:border-box} body{margin:0;background:#e9e9e5;font-family:'Inter','Noto Sans',Arial,sans-serif;color:var(--black)}
+.app{width:100%;max-width:430px;min-height:100vh;margin:auto;background:var(--bg);position:relative;overflow:hidden}
+header{height:72px;background:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.logo{display:flex;align-items:center;gap:9px;font-weight:850;font-size:21px;letter-spacing:-.4px}.logoMark{width:34px;height:34px;background:var(--yellow);border-radius:10px;display:grid;place-items:center;font-size:22px;font-weight:900}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--yellow);display:grid;place-items:center;font-weight:900}
+main{padding:20px 16px 92px}.hello{font-size:14px;color:#666}.name{font-size:25px;font-weight:850;margin-top:2px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:18px 0}.stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 10px;min-height:92px}.stat b{font-size:19px;display:block;margin-top:8px}.stat small{color:#666;font-size:11px}.stat.warn{border-color:#ffd65a}.stat.red{border-color:#ffb4b4}
+.sectionTitle{font-size:14px;font-weight:800;margin:22px 3px 10px}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:10px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.company{display:flex;align-items:center;gap:11px}.circle{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:900;color:#fff;background:#ef4444}.circle.orange{background:#f59e0b}.circle.green{background:#22c55e}.circle.blue{background:#3b82f6}.circle.purple{background:#8b5cf6}
+.company strong{font-size:14px}.company span{display:block;color:#777;font-size:11px;margin-top:3px}.amount{font-weight:850;font-size:14px}.redText{color:var(--red)}.greenText{color:var(--green)}
+button{border:0;border-radius:13px;padding:12px 14px;font-weight:800;font-size:13px;cursor:pointer}.primary{background:var(--yellow);color:#111}.secondary{background:#f1f1ed}.danger{background:#ffe2e2;color:#c72c2c}
+.bottom{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;height:72px;background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);z-index:10}.nav{background:none;border-radius:0;color:#777;padding:8px 3px;font-size:10px}.nav.active{color:#111}.nav span{display:block;font-size:21px;margin-bottom:3px}.nav.active span{filter:drop-shadow(0 2px 0 var(--yellow))}
+.search{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 14px;width:100%;outline:none;font-size:14px;margin-bottom:12px}
+.tabs{display:flex;background:#eee;border-radius:12px;padding:3px;margin-bottom:12px}.tab{flex:1;padding:9px;border-radius:10px;background:transparent;color:#777}.tab.active{background:#fff;color:#111;box-shadow:0 1px 4px #00000010}
+.back{background:none;padding:0 0 12px;color:#666}.bigAmount{text-align:center;font-size:31px;font-weight:900;margin:8px 0 3px}.center{text-align:center}.sub{font-size:12px;color:#777}
+.invoice{display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--line)}.invoice:last-child{border-bottom:0}.invoice small{color:#777}.invoice b{display:block;margin-top:3px}.fab{position:fixed;right:calc(50% - 195px);bottom:86px;width:52px;height:52px;border-radius:18px;background:var(--yellow);font-size:25px;box-shadow:0 8px 24px #0002}
+.field{margin:12px 0}.field label{font-size:12px;color:#666;display:block;margin-bottom:6px}.field input,.field select,.field textarea{width:100%;padding:13px;border:1px solid var(--line);border-radius:12px;background:#fff;font-size:14px;outline:none}.field textarea{min-height:90px;resize:vertical}
+.hide{display:none!important}.modal{position:fixed;inset:0;background:#0006;z-index:20;display:flex;align-items:flex-end;justify-content:center}.sheet{width:100%;max-width:430px;background:#fff;border-radius:24px 24px 0 0;padding:20px;max-height:88vh;overflow:auto}.sheet h2{margin:0 0 15px}.sheetActions{display:flex;gap:8px;margin-top:15px}.sheetActions button{flex:1}
+.reportBox{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:10px}.bar{height:10px;background:#eee;border-radius:10px;overflow:hidden;margin-top:9px}.bar i{display:block;height:100%;background:var(--yellow);border-radius:10px}
+.splash{position:fixed;inset:0;background:var(--yellow);z-index:99;display:grid;place-items:center;transition:.4s}.splash .brand{text-align:center}.splash .mark{width:84px;height:84px;background:#111;color:var(--yellow);border-radius:24px;display:grid;place-items:center;font-size:56px;font-weight:900;margin:auto}.splash h1{font-size:36px;margin:14px 0 4px}.splash p{margin:0;font-size:12px}.login{min-height:100vh;background:#fff;padding:80px 24px}.loginLogo{display:flex;align-items:center;justify-content:center;gap:10px;font-size:27px;font-weight:900;margin-bottom:45px}.loginLogo .logoMark{width:44px;height:44px}.login h1{font-size:27px;margin-bottom:5px}.login p{color:#777;margin-bottom:25px}.login .field{margin:15px 0}.full{width:100%;margin-top:8px}
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#111;color:#fff;padding:11px 16px;border-radius:12px;font-size:12px;z-index:50;display:none}
+@media(min-width:700px){.app{box-shadow:0 0 30px #0001;min-height:800px}.bottom{position:fixed}}
+</style>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#FFC107">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="NAYAD">
+<link rel="apple-touch-icon" href="icon-180.png">
+
+</head>
+<body>
+<div id="splash" class="splash"><div class="brand"><div class="mark">N</div><h1>NAYAD</h1><p>Smart Retail Platform</p></div></div>
+
+<div id="login" class="login hide">
+  <div class="loginLogo"><div class="logoMark">N</div>NAYAD</div>
+  <h1>Тавтай морил 👋</h1><p>Дэлгүүрийнхээ тооцоог нэг дор удирд.</p>
+  <div class="field"><label>Утасны дугаар</label><input id="phone" placeholder="9900 1234"></div>
+  <div class="field"><label>Нууц үг</label><input type="password" placeholder="••••••••"></div>
+  <button class="primary full" onclick="enterApp()">НЭВТРЭХ</button>
+</div>
+
+<div id="app" class="app hide">
+<header><div class="logo"><div class="logoMark">N</div>NAYAD</div><div class="avatar">N</div></header>
+<main id="content"></main>
+<div class="bottom">
+  <button class="nav active" data-page="home"><span>⌂</span>Нүүр</button>
+  <button class="nav" data-page="companies"><span>▦</span>Компани</button>
+  <button class="nav" data-page="payments"><span>✓</span>Төлбөр</button>
+  <button class="nav" data-page="reports"><span>◌</span>Тайлан</button>
+</div>
+</div>
+<div id="modal" class="modal hide"><div class="sheet" id="sheet"></div></div>
+<div id="toast" class="toast"></div>
+
+<script>
+const data={
+ companies:[
+  {id:1,name:"Хонгороо",reg:"5023456",address:"Улаанбаатар",director:"Бат",directorPhone:"99112233",sales:"Дорж",salesPhone:"88112233",orgPhone:"70001234",status:"active",debt:17330930,color:"red",invoices:[
+   {date:"2026-08-01",no:"INV-0801",amount:4250000,paid:0},
+   {date:"2026-08-03",no:"INV-0803",amount:3280930,paid:1000000},
+   {date:"2026-08-05",no:"INV-0805",amount:5400000,paid:0},
+   {date:"2026-08-08",no:"INV-0808",amount:4400000,paid:0}
+  ]},
+  {id:2,name:"MCS ундаа",reg:"5034567",address:"Улаанбаатар",director:"Болд",directorPhone:"99001122",sales:"Сүх",salesPhone:"88001122",orgPhone:"70002345",status:"active",debt:11845960,color:"orange",invoices:[
+   {date:"2026-08-02",no:"INV-0802",amount:6845960,paid:2000000},
+   {date:"2026-08-06",no:"INV-0806",amount:7000000,paid:0}
+  ]},
+  {id:3,name:"Баярхүү / Намка найз",reg:"",address:"",director:"",directorPhone:"",sales:"",salesPhone:"",orgPhone:"",status:"active",debt:9000000,color:"green",invoices:[
+   {date:"2026-07-28",no:"INV-0728",amount:9000000,paid:0}
+  ]},
+  {id:4,name:"Шаргалжуут 5420101696",reg:"",address:"",director:"",directorPhone:"",sales:"",salesPhone:"",orgPhone:"",status:"active",debt:7506500,color:"blue",invoices:[
+   {date:"2026-07-30",no:"INV-0730",amount:7506500,paid:0}
+  ]},
+  {id:5,name:"Монос Групп",reg:"",address:"",director:"",directorPhone:"",sales:"",salesPhone:"",orgPhone:"",status:"active",debt:2180000,color:"purple",invoices:[
+   {date:"2026-08-04",no:"INV-0804",amount:2180000,paid:0}
+  ]},
+  {id:6,name:"Тотал Дистрибюшин",reg:"",address:"",director:"",directorPhone:"",sales:"",salesPhone:"",orgPhone:"",status:"active",debt:1250000,color:"green",invoices:[
+   {date:"2026-08-07",no:"INV-0807",amount:1250000,paid:0}
+  ]}
+ ],
+ payments:[]
+};
+let currentPage="home", selectedCompany=null;
+
+function money(n){return new Intl.NumberFormat("mn-MN").format(Math.round(n))+" ₮"}
+function totalDebt(){return data.companies.reduce((s,c)=>s+c.invoices.reduce((a,i)=>a+i.amount-i.paid,0),0)}
+function syncDebts(){data.companies.forEach(c=>c.debt=c.invoices.reduce((s,i)=>s+i.amount-i.paid,0))}
+function initials(n){return n.replace(/[^A-Za-zА-Яа-яӨөҮү]/g,"").slice(0,1).toUpperCase()||"N"}
+function render(){
+ syncDebts();
+ const c=document.getElementById("content");
+ document.querySelectorAll(".nav").forEach(x=>x.classList.toggle("active",x.dataset.page===currentPage));
+ if(currentPage==="home") c.innerHTML=home();
+ if(currentPage==="companies") c.innerHTML=companies();
+ if(currentPage==="payments") c.innerHTML=payments();
+ if(currentPage==="reports") c.innerHTML=reports();
+}
+function home(){
+ const debt=totalDebt(), overdue=Math.round(debt*.035), today=Math.round(debt*.07);
+ const top=data.companies.filter(x=>x.debt>0).slice(0,4);
+ return `<div class="hello">Сайн байна уу,</div><div class="name">Namka 👋</div>
+ <div class="grid">
+  <div class="stat warn"><small>Өртэй компани</small><b>${data.companies.filter(x=>x.debt>0).length}</b></div>
+  <div class="stat"><small>Нийт өр</small><b>${(debt/1e6).toFixed(1)}<small> сая ₮</small></b></div>
+  <div class="stat red"><small>Өнөөдөр төлөх</small><b>${(today/1e6).toFixed(1)}<small> сая ₮</small></b></div>
+ </div>
+ <div class="sectionTitle">ЯАРАЛТАЙ ӨР</div>
+ ${top.map((x,i)=>companyCard(x,true)).join("")}
+ <button class="primary" style="width:100%;margin-top:4px" onclick="openAddCompany()">＋ Компани нэмэх</button>`;
+}
+function companyCard(x,showPay=false){
+ return `<div class="card" onclick="openCompany(${x.id})"><div class="row">
+ <div class="company"><div class="circle ${x.color}">${initials(x.name)}</div><div><strong>${x.name}</strong><span>${x.invoices.length} падаан</span></div></div>
+ <div class="amount ${x.debt>0?'redText':'greenText'}">${money(x.debt)}${showPay?`<br><button class="primary" style="padding:6px 9px;margin-top:5px" onclick="event.stopPropagation();openPayment(${x.id})">Төлөх</button>`:""}</div>
+ </div></div>`;
+}
+function companies(){
+ return `<div class="row"><div><div class="hello">Нийлүүлэгчид</div><div class="name">Компаниуд</div></div><button class="primary" onclick="openAddCompany()">＋</button></div>
+ <div style="height:12px"></div><input class="search" placeholder="⌕  Компани хайх..." oninput="filterCompanies(this.value)">
+ <div id="companyList">${data.companies.map(x=>companyCard(x)).join("")}</div>`;
+}
+function filterCompanies(q){const list=document.getElementById("companyList");const f=data.companies.filter(x=>x.name.toLowerCase().includes(q.toLowerCase()));list.innerHTML=f.map(x=>companyCard(x)).join("")||'<div class="card">Илэрц олдсонгүй.</div>'}
+function callLink(phone){
+ if(!phone) return `<span class="sub">Бүртгэлгүй</span>`;
+ return `<a href="tel:${phone}" style="text-decoration:none"><button class="secondary" style="padding:7px 9px">📞 ${phone}</button></a>`;
+}
+function openCompany(id){
+ selectedCompany=data.companies.find(x=>x.id===id);
+ document.getElementById("content").innerHTML=`
+ <button class="back" onclick="currentPage='companies';render()">← Буцах</button>
+ <div class="center"><div class="circle ${selectedCompany.color}" style="margin:auto;width:48px;height:48px">${initials(selectedCompany.name)}</div>
+ <h2 style="margin:8px 0 2px">${selectedCompany.name}</h2><div class="sub">${selectedCompany.status==="inactive"?"⚪ Идэвхгүй":"🟢 Идэвхтэй"}</div>
+ <div class="bigAmount">${money(selectedCompany.debt)}</div><div class="sub">Нийт өр</div></div>
+
+ <div class="grid" style="margin-top:16px">
+  <div class="stat"><small>Падаан</small><b>${selectedCompany.invoices.length}</b></div>
+  <div class="stat"><small>Төлсөн</small><b class="greenText">${money(selectedCompany.invoices.reduce((s,i)=>s+i.paid,0))}</b></div>
+  <div class="stat"><small>Үлдэгдэл</small><b class="redText">${money(selectedCompany.debt)}</b></div>
+ </div>
+
+ <div class="sectionTitle">Компанийн мэдээлэл</div>
+ <div class="card">
+  <div class="invoice"><div><small>Регистр</small><b>${selectedCompany.reg||"—"}</b></div></div>
+  <div class="invoice"><div><small>Хаяг</small><b>${selectedCompany.address||"—"}</b></div></div>
+  <div class="invoice"><div><small>Захирал</small><b>${selectedCompany.director||"—"}</b></div><div>${callLink(selectedCompany.directorPhone)}</div></div>
+  <div class="invoice"><div><small>Худалдааны төлөөлөгч</small><b>${selectedCompany.sales||"—"}</b></div><div>${callLink(selectedCompany.salesPhone)}</div></div>
+  <div class="invoice"><div><small>Байгууллагын утас</small></div><div>${callLink(selectedCompany.orgPhone)}</div></div>
+ </div>
+
+ <div class="tabs" style="margin-top:18px"><button class="tab active">Падаанууд</button><button class="tab">Төлбөрүүд</button></div>
+ <div class="card">${selectedCompany.invoices.map(i=>`<div class="invoice"><div><small>${i.date} · ${i.no}</small><b>${money(i.amount)}</b></div><div class="${i.amount-i.paid>0?'redText':'greenText'}">${i.amount-i.paid>0?money(i.amount-i.paid):"Төлөгдсөн"}</div></div>`).join("")}</div>
+ <button class="primary" style="width:100%" onclick="openAddInvoice(${id})">＋ Падаан нэмэх</button>
+ <button class="secondary" style="width:100%;margin-top:8px" onclick="openPayment(${id})">Төлбөр бүртгэх</button>
+ <button class="secondary" style="width:100%;margin-top:8px" onclick="openEditCompany(${id})">✎ Нийлүүлэгчийн мэдээлэл засах</button>`;
+}
+function openEditCompany(id){
+ selectedCompany=data.companies.find(x=>x.id===id);
+ const c=selectedCompany;
+ openSheet(`<h2>Нийлүүлэгч засах</h2>
+ <div class="field"><label>Компанийн нэр *</label><input id="editCompany" value="${c.name}"></div>
+ <div class="field"><label>Регистрийн дугаар</label><input id="editReg" value="${c.reg||""}"></div>
+ <div class="field"><label>Хаяг</label><input id="editAddress" value="${c.address||""}"></div>
+ <div class="field"><label>Захирлын нэр</label><input id="editDirector" value="${c.director||""}"></div>
+ <div class="field"><label>Захирлын утас</label><input id="editDirectorPhone" type="tel" value="${c.directorPhone||""}"></div>
+ <div class="field"><label>Худалдааны төлөөлөгчийн нэр</label><input id="editSales" value="${c.sales||""}"></div>
+ <div class="field"><label>ХТ-ийн утас</label><input id="editSalesPhone" type="tel" value="${c.salesPhone||""}"></div>
+ <div class="field"><label>Байгууллагын утас</label><input id="editOrgPhone" type="tel" value="${c.orgPhone||""}"></div>
+ <div class="field"><label>Төлөв</label><select id="editStatus"><option value="active" ${c.status!=="inactive"?"selected":""}>Идэвхтэй</option><option value="inactive" ${c.status==="inactive"?"selected":""}>Идэвхгүй</option></select></div>
+ <div class="sheetActions"><button class="secondary" onclick="closeSheet()">Болих</button><button class="primary" onclick="saveEditCompany()">Хадгалах</button></div>`);
+}
+function saveEditCompany(){
+ const c=selectedCompany;
+ c.name=document.getElementById("editCompany").value.trim()||c.name;
+ c.reg=document.getElementById("editReg").value;c.address=document.getElementById("editAddress").value;
+ c.director=document.getElementById("editDirector").value;c.directorPhone=document.getElementById("editDirectorPhone").value;
+ c.sales=document.getElementById("editSales").value;c.salesPhone=document.getElementById("editSalesPhone").value;
+ c.orgPhone=document.getElementById("editOrgPhone").value;c.status=document.getElementById("editStatus").value;
+ closeSheet();openCompany(c.id);toast("Мэдээлэл шинэчлэгдлээ.");
+}
+function payments(){
+ return `<div class="row"><div><div class="hello">Гүйлгээ</div><div class="name">Төлбөрүүд</div></div><button class="primary" onclick="openPayment()">＋</button></div>
+ <div style="height:14px"></div>
+ ${data.payments.length?data.payments.slice().reverse().map(p=>`<div class="card"><div class="row"><div><strong>${p.company}</strong><span>${p.date} · ${p.method}</span></div><div class="amount greenText">+ ${money(p.amount)}</div></div></div>`).join(""):`<div class="card center" style="padding:35px 15px"><div style="font-size:35px">✓</div><b>Төлбөр одоогоор бүртгэгдээгүй</b><div class="sub" style="margin-top:5px">Энд бүх төлөлтийн түүх харагдана.</div></div>`}`;
+}
+function reports(){
+ const debt=totalDebt(), paid=data.payments.reduce((s,p)=>s+p.amount,0);
+ const max=Math.max(...data.companies.map(c=>c.debt),1);
+ return `<div class="hello">Тойм</div><div class="name">Тайлан</div>
+ <div style="height:15px"></div>
+ <div class="reportBox"><div class="row"><span>Нийт өглөг</span><b>${money(debt)}</b></div><div class="row" style="margin-top:12px"><span>Нийт төлсөн</span><b class="greenText">${money(paid)}</b></div><div class="row" style="margin-top:12px"><span>Өртэй компани</span><b>${data.companies.filter(c=>c.debt>0).length}</b></div></div>
+ <div class="sectionTitle">Компанийн өрийн бүтэц</div>
+ ${data.companies.slice().sort((a,b)=>b.debt-a.debt).map(c=>`<div class="reportBox"><div class="row"><b>${c.name}</b><b>${money(c.debt)}</b></div><div class="bar"><i style="width:${Math.max(2,c.debt/max*100)}%"></i></div></div>`).join("")}`;
+}
+function openAddCompany(){
+ openSheet(`<h2>Нийлүүлэгч бүртгэх</h2>
+ <div class="field"><label>Компанийн нэр *</label><input id="newCompany" placeholder="Жишээ: MCS ундаа"></div>
+ <div class="field"><label>Регистрийн дугаар</label><input id="newReg" placeholder="5023456"></div>
+ <div class="field"><label>Хаяг</label><input id="newAddress" placeholder="Улаанбаатар, ..."></div>
+ <div class="sectionTitle">Холбоо барих</div>
+ <div class="field"><label>Захирлын нэр</label><input id="newDirector" placeholder="Нэр"></div>
+ <div class="field"><label>Захирлын утас</label><input id="newDirectorPhone" type="tel" placeholder="99112233"></div>
+ <div class="field"><label>Худалдааны төлөөлөгчийн нэр</label><input id="newSales" placeholder="Нэр"></div>
+ <div class="field"><label>ХТ-ийн утас</label><input id="newSalesPhone" type="tel" placeholder="88112233"></div>
+ <div class="field"><label>Байгууллагын утас</label><input id="newOrgPhone" type="tel" placeholder="70001234"></div>
+ <div class="field"><label>Төлөв</label><select id="newStatus"><option value="active">Идэвхтэй</option><option value="inactive">Идэвхгүй</option></select></div>
+ <div class="field"><label>Тэмдэглэл</label><textarea id="newNote" placeholder="Нэмэлт мэдээлэл"></textarea></div>
+ <div class="sheetActions"><button class="secondary" onclick="closeSheet()">Болих</button><button class="primary" onclick="saveCompany()">Хадгалах</button></div>`);
+}
+function saveCompany(){
+ const n=document.getElementById("newCompany").value.trim(); if(!n)return toast("Компанийн нэр оруулна уу.");
+ data.companies.push({
+  id:Date.now(),name:n,reg:document.getElementById("newReg").value,address:document.getElementById("newAddress").value,
+  director:document.getElementById("newDirector").value,directorPhone:document.getElementById("newDirectorPhone").value,
+  sales:document.getElementById("newSales").value,salesPhone:document.getElementById("newSalesPhone").value,
+  orgPhone:document.getElementById("newOrgPhone").value,status:document.getElementById("newStatus").value,
+  note:document.getElementById("newNote").value,debt:0,color:"green",invoices:[]
+ });
+ closeSheet();render();toast("Нийлүүлэгч бүртгэгдлээ.");
+}
+function openAddInvoice(id){
+ selectedCompany=data.companies.find(x=>x.id===id);
+ openSheet(`<h2>Падаан нэмэх</h2><div class="card"><b>${selectedCompany.name}</b><div class="sub">Шинэ өр үүснэ</div></div>
+ <div class="field"><label>Огноо</label><input id="invDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+ <div class="field"><label>Падааны дугаар</label><input id="invNo" placeholder="INV-0001"></div>
+ <div class="field"><label>Нийт дүн</label><input id="invAmount" type="number" placeholder="0"></div>
+ <div class="field"><label>Тайлбар</label><textarea id="invNote" placeholder="Заавал биш"></textarea></div>
+ <div class="sheetActions"><button class="secondary" onclick="closeSheet()">Болих</button><button class="primary" onclick="saveInvoice()">Падаан нэмэх</button></div>`);
+}
+function saveInvoice(){
+ const amount=Number(document.getElementById("invAmount").value);if(!amount)return toast("Дүн оруулна уу.");
+ selectedCompany.invoices.push({date:document.getElementById("invDate").value,no:document.getElementById("invNo").value||"INV-"+Date.now().toString().slice(-4),amount,paid:0});
+ closeSheet();openCompany(selectedCompany.id);toast("Падаан нэмэгдлээ.");
+}
+function openPayment(id){
+ const options=data.companies.map(c=>`<option value="${c.id}" ${id===c.id?"selected":""}>${c.name} — ${money(c.debt)}</option>`).join("");
+ openSheet(`<h2>Төлбөр нэмэх</h2><div class="field"><label>Нийлүүлэгч</label><select id="payCompany">${options}</select></div>
+ <div class="field"><label>Төлсөн дүн</label><input id="payAmount" type="number" placeholder="0"></div>
+ <div class="field"><label>Төлбөрийн арга</label><select id="payMethod"><option>Банк</option><option>Бэлэн мөнгө</option><option>QPay</option><option>Карт</option><option>Бусад</option></select></div>
+ <div class="field"><label>Огноо</label><input id="payDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+ <div class="field"><label>Хуваарилалт</label><select id="allocation"><option value="oldest">Хамгийн хуучин падаанаас эхэлж хаах</option><option value="manual">Гараар сонгох (дараагийн хувилбар)</option></select></div>
+ <div class="sheetActions"><button class="secondary" onclick="closeSheet()">Болих</button><button class="primary" onclick="savePayment()">Төлөх</button></div>`);
+}
+function savePayment(){
+ const cid=Number(document.getElementById("payCompany").value), amount=Number(document.getElementById("payAmount").value);
+ if(!amount)return toast("Төлөх дүн оруулна уу.");
+ const c=data.companies.find(x=>x.id===cid), debt=c.invoices.reduce((s,i)=>s+i.amount-i.paid,0);
+ if(amount>debt)return toast("Төлөх дүн үлдэгдлээс их байна.");
+ let remaining=amount;
+ c.invoices.sort((a,b)=>a.date.localeCompare(b.date));
+ for(const i of c.invoices){const bal=i.amount-i.paid;if(bal<=0)continue;const x=Math.min(bal,remaining);i.paid+=x;remaining-=x;if(remaining<=0)break;}
+ data.payments.push({company:c.name,amount,date:document.getElementById("payDate").value,method:document.getElementById("payMethod").value});
+ closeSheet();render();toast("Төлбөр амжилттай бүртгэгдлээ.");
+}
+function openSheet(s){document.getElementById("sheet").innerHTML=s;document.getElementById("modal").classList.remove("hide")}
+function closeSheet(){document.getElementById("modal").classList.add("hide")}
+function toast(t){const x=document.getElementById("toast");x.textContent=t;x.style.display="block";setTimeout(()=>x.style.display="none",2200)}
+function enterApp(){document.getElementById("login").classList.add("hide");document.getElementById("app").classList.remove("hide");render()}
+document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{currentPage=b.dataset.page;render()});
+setTimeout(()=>{document.getElementById("splash").classList.add("hide");document.getElementById("login").classList.remove("hide")},1000);
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+}
+</script>
+
+</body>
+</html>
