@@ -278,6 +278,57 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(()=>{}));
 }
 </script>
+<!-- NAYAD UPDATE BUTTON -->
+<button id="updateBtn" onclick="updateNayad()" style="
+position:fixed;
+right:16px;
+bottom:95px;
+z-index:99999;
+border:0;
+border-radius:14px;
+padding:13px 18px;
+background:#FFC107;
+color:#111;
+font-size:14px;
+font-weight:800;
+box-shadow:0 4px 15px rgba(0,0,0,.25);
+">
+↻ UPDATE
+</button>
 
+<script>
+async function updateNayad(){
+  const btn=document.getElementById("updateBtn");
+  btn.disabled=true;
+  btn.innerText="Шинэчилж байна...";
+
+  try{
+    // Service Worker-уудыг зогсооно
+    if("serviceWorker" in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations();
+      for(const reg of regs){
+        await reg.unregister();
+      }
+    }
+
+    // Хуучин cache-уудыг устгана
+    if("caches" in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.map(key=>caches.delete(key)));
+    }
+
+    // Шинэ хувилбарыг cache-гүйгээр дахин ачаална
+    window.location.replace(
+      window.location.pathname+"?update="+Date.now()
+    );
+
+  }catch(e){
+    console.error(e);
+    btn.disabled=false;
+    btn.innerText="↻ UPDATE";
+    alert("Шинэчлэх үед алдаа гарлаа. Дахин оролдоно уу.");
+  }
+}
+</script>
 </body>
 </html>
