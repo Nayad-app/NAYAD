@@ -107,5 +107,19 @@ document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{page=b.dataset.page;
 async function updateNayad(){let b=document.getElementById("update");b.disabled=true;b.textContent="Шинэчилж байна...";localStorage.setItem(LOGIN,"1");try{if("serviceWorker"in navigator){for(let r of await navigator.serviceWorker.getRegistrations())await r.unregister()}if("caches"in window){for(let k of await caches.keys())await caches.delete(k)}location.replace(location.pathname+"?update="+Date.now())}catch(e){b.disabled=false;b.textContent="↻ UPDATE";location.reload(true)}}
 window.addEventListener("load",()=>setTimeout(()=>{document.getElementById("splash").classList.add("hide");if(localStorage.getItem(LOGIN)==="1"){document.getElementById("app").classList.remove("hide");render()}else document.getElementById("login").classList.remove("hide")},700));
 if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.log));
+<script>
+document.addEventListener("click", function(e){
+  const btn = e.target.closest("button");
+
+  if(!btn) return;
+
+  if(btn.textContent.includes("Мэдээлэл засах")){
+    e.preventDefault();
+
+    if(typeof selected !== "undefined" && selected){
+      editCompany(selected.id);
+    }
+  }
+});
 </script>
 </body></html>
