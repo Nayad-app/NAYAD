@@ -85,7 +85,75 @@ sync();
 let active=data.companies.filter(c=>c.status!=="inactive"), inactive=data.companies.filter(c=>c.status==="inactive");
 return `<div class="row"><div><div class="hello">Нийлүүлэгчид</div><div class="name">Компаниуд</div></div><button class="primary" onclick="addCompany()">＋</button></div><input class="search" placeholder="⌕ Компани хайх..." oninput="filter(this.value)"><div class="title">ИДЭВХТЭЙ</div><div id="list">${active.map(c=>card(c)).join("")||`<div class="card sub">Идэвхтэй нийлүүлэгч алга.</div>`}</div><div class="title">ИДЭВХГҮЙ</div><div id="inactiveList">${inactive.map(c=>card(c)).join("")||`<div class="card sub">Идэвхгүй нийлүүлэгч алга.</div>`}</div>`}
 function filter(q){let a=data.companies.filter(c=>c.name.toLowerCase().includes(q.toLowerCase())),active=a.filter(c=>c.status!=="inactive"),inactive=a.filter(c=>c.status==="inactive");document.getElementById("list").innerHTML=active.map(c=>card(c)).join("")||`<div class="card">Илэрц олдсонгүй.</div>`;document.getElementById("inactiveList").innerHTML=inactive.map(c=>card(c)).join("")||`<div class="card sub">Илэрц олдсонгүй.</div>`}
-function company(id){selected=data.companies.find(c=>c.id===id);sync();document.getElementById("content").innerHTML=`<button class="back" onclick="page='companies';render()">← Буцах</button><div class="center"><div class="circle ${selected.color}" style="margin:auto;width:50px;height:50px">${init(selected.name)}</div><h2>${selected.name}</h2><div class="sub">🟢 ${selected.status==="active"?"Идэвхтэй":"Идэвхгүй"}</div><div class="big">${money(selected.debt)}</div><div class="sub">Нийт өр</div></div><div class="grid"><div class="stat"><small>Падаан</small><b>${selected.invoices.length}</b></div><div class="stat"><small>Төлсөн</small><b class="greenText">${money(selected.invoices.reduce((s,i)=>s+i.paid,0))}</b></div><div class="stat"><small>Үлдэгдэл</small><b class="redText">${money(selected.debt)}</b></div></div><div class="title">Компанийн мэдээлэл</div><div class="card"><div class="invoice"><div><small>Регистр</small><b>${selected.reg||"—"}</b></div></div><div class="invoice"><div><small>Хаяг</small><b>${selected.address||"—"}</b></div></div><div class="invoice"><div><small>Захирал</small><b>${selected.director||"—"}</b></div><div>${tel(selected.directorPhone)}</div></div><div class="invoice"><div><small>Худалдааны төлөөлөгч</small><b>${selected.sales||"—"}</b></div><div>${tel(selected.salesPhone)}</div></div><div class="invoice"><div><small>Байгууллагын утас</small></div><div>${tel(selected.orgPhone)}</div></div></div><div class="title">Падаанууд</div><div class="card">${selected.invoices.map(i=>`<div class="invoice"><div><small>${i.date} · ${i.no}</small><b>${money(i.amount)}</b></div><div class="${i.amount-i.paid?'redText':'greenText'}">${i.amount-i.paid?money(i.amount-i.paid):"Төлөгдсөн"}</div></div>`).join("")||"<div class='sub'>Падаан байхгүй</div>"}</div><button class="primary full" onclick="invoice(${id})">＋ Падаан нэмэх</button><button class="secondary full" style="margin-top:8px" onclick="payment(${id})">Төлбөр бүртгэх</button><button class="secondary full" style="margin-top:8px" onclick="editCompany(${id})">✎ Мэдээлэл засах</button>`}
+function company(id){
+selected=data.companies.find(c=>c.id===id);
+if(!selected)return;
+sync();
+document.getElementById("content").innerHTML=`
+<button class="back" onclick="page='companies';render()">← Буцах</button>
+
+<div class="center">
+<div class="circle ${selected.color}" style="margin:auto;width:48px;height:48px">${init(selected.name)}</div>
+<h2 style="margin:8px 0 2px">${selected.name}</h2>
+<div class="sub">${selected.status==="inactive"?"⚪ Идэвхгүй":"🟢 Идэвхтэй"}</div>
+<div class="bigAmount">${money(selected.debt)}</div>
+<div class="sub">Нийт өр</div>
+</div>
+
+<div class="sectionTitle">Компанийн мэдээлэл</div>
+
+<div class="card">
+<div class="invoice">
+<div><small>Регистр</small><b>${selected.reg||"—"}</b></div>
+</div>
+
+<div class="invoice">
+<div><small>Хаяг</small><b>${selected.address||"—"}</b></div>
+</div>
+
+<div class="invoice">
+<div><small>Захирал</small><b>${selected.director||"—"}</b></div>
+<div>${tel(selected.directorPhone)}</div>
+</div>
+
+<div class="invoice">
+<div><small>Худалдааны төлөөлөгч</small><b>${selected.sales||"—"}</b></div>
+<div>${tel(selected.salesPhone)}</div>
+</div>
+
+<div class="invoice">
+<div><small>Байгууллагын утас</small></div>
+<div>${tel(selected.orgPhone)}</div>
+</div>
+</div>
+
+<div class="sectionTitle">Падаанууд</div>
+
+<div class="card">
+${selected.invoices.map(i=>`
+<div class="invoice">
+<div>
+<small>${i.date} · ${i.no}</small>
+<b>${money(i.amount)}</b>
+</div>
+<div class="${i.amount-i.paid>0?'redText':'greenText'}">
+${i.amount-i.paid>0?money(i.amount-i.paid):"Төлөгдсөн"}
+</div>
+</div>
+`).join("")}
+</div>
+
+<button class="primary full" onclick="invoice(${selected.id})">＋ Падаан нэмэх</button>
+
+<button class="secondary full" onclick="payment(${selected.id})">
+Төлбөр бүртгэх
+</button>
+
+<button class="secondary full" onclick="editCompany(${selected.id})">
+✎ Мэдээлэл засах
+</button>
+`;
+}
 function tel(p){return p?`<a href="tel:${p}" style="text-decoration:none"><button class="secondary" style="padding:6px 8px">📞 ${p}</button></a>`:`<span class="sub">—</span>`}
 function payments(){return `<div class="row"><div><div class="hello">Гүйлгээ</div><div class="name">Төлбөрүүд</div></div><button class="primary" onclick="payment()">＋</button></div><div style="height:14px"></div>${data.payments.length?data.payments.slice().reverse().map(p=>`<div class="card"><div class="row"><div><b>${p.company}</b><span>${p.date} · ${p.method}</span></div><b class="greenText">+ ${money(p.amount)}</b></div></div>`).join(""):`<div class="card center" style="padding:35px"><div style="font-size:35px">✓</div><b>Төлбөр одоогоор бүртгэгдээгүй</b></div>`}`}
 function reports(){let d=total(),p=data.payments.reduce((s,x)=>s+x.amount,0),m=Math.max(...data.companies.map(c=>c.debt),1);return `<div class="hello">Тойм</div><div class="name">Тайлан</div><div style="height:15px"></div><div class="report"><div class="row"><span>Нийт өглөг</span><b>${money(d)}</b></div><div class="row" style="margin-top:12px"><span>Нийт төлсөн</span><b class="greenText">${money(p)}</b></div><div class="row" style="margin-top:12px"><span>Өртэй компани</span><b>${data.companies.filter(c=>c.debt>0).length}</b></div></div><div class="title">Компанийн өрийн бүтэц</div>${data.companies.slice().sort((a,b)=>b.debt-a.debt).map(c=>`<div class="report"><div class="row"><b>${c.name}</b><b>${money(c.debt)}</b></div><div style="height:9px;background:#eee;border-radius:9px;margin-top:9px"><div style="height:100%;width:${Math.max(2,c.debt/m*100)}%;background:var(--y);border-radius:9px"></div></div></div>`).join("")}`}
