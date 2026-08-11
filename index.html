@@ -176,18 +176,4 @@ async function updateNayad(){let b=document.getElementById("update");b.disabled=
 window.addEventListener("load",()=>setTimeout(()=>{document.getElementById("splash").classList.add("hide");if(localStorage.getItem(LOGIN)==="1"){document.getElementById("app").classList.remove("hide");render()}else document.getElementById("login").classList.remove("hide")},700));
 if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.log));
 <script>
-document.addEventListener("click", function(e){
-  const btn = e.target.closest("button");
-
-  if(!btn) return;
-
-  if(btn.textContent.includes("Мэдээлэл засах")){
-    e.preventDefault();
-
-    if(typeof selected !== "undefined" && selected){
-      editCompany(selected.id);
-    }
-  }
-});
-</script>
 </body></html>
