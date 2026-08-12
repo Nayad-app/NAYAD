@@ -56,9 +56,16 @@ button{border:0;border-radius:13px;padding:12px 14px;font-weight:900;font-size:1
 </div></div>
 <div id="modal" class="modal hide"><div id="sheet" class="sheet"></div></div>
 <div id="toast" class="toast hide"></div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const KEY="NAYAD_DATA_V2",LOGIN="NAYAD_LOGIN";
+const SUPABASE_URL="https://kjgtmxcxchjevzoxwqzr.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_LvUZL-t63VWkI6kKeCYmYw_7krIb5S3";
+
+const sb = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_PUBLISHABLE_KEY
+);
 const base={companies:[
 {id:1,name:"Хонгороо",reg:"5023456",address:"Улаанбаатар",director:"Бат",directorPhone:"99112233",sales:"Дорж",salesPhone:"88112233",orgPhone:"70001234",color:"red",status:"active",invoices:[
 {date:"2026-08-01",no:"INV-0801",amount:4250000,paid:0},{date:"2026-08-03",no:"INV-0803",amount:3280930,paid:1000000},{date:"2026-08-05",no:"INV-0805",amount:5400000,paid:0},{date:"2026-08-08",no:"INV-0808",amount:4400000,paid:0}]},
