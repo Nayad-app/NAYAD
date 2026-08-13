@@ -589,7 +589,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <div id="toast" class="toast hide"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const KEY="NAYAD_DATA_V2",LOGIN="NAYAD_LOGIN";
+const KEY="NAYAD_DATA_V2";
 const SUPABASE_URL="https://kjgtmxcxchjevzoxwqzr.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqZ3RteGN4Y2hqZXZ6b3h3cXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MDUzMjMsImV4cCI6MjEwMjA4MTMyM30.pjRFSeGzu9KqEDheNHfL6bYcfPZyjfUdVPSsielEs48";
 
@@ -1033,7 +1033,7 @@ async function emailLogin(){
     const {data,error}=await sb.auth.signInWithPassword({email,password});
     if(error)throw error;
     if(!data.session)throw new Error("Нэвтрэх session үүссэнгүй.");
-    localStorage.setItem(LOGIN,"1");
+    
     document.getElementById("login").classList.add("hide");
     document.getElementById("app").classList.remove("hide");
     render();
@@ -1059,7 +1059,7 @@ async function emailRegister(){
     });
     if(error)throw error;
     if(data.session){
-      localStorage.setItem(LOGIN,"1");
+      
       document.getElementById("login").classList.add("hide");
       document.getElementById("app").classList.remove("hide");
       render();
@@ -1095,16 +1095,28 @@ async function forgotPassword(){
     authMessage("loginMsg","Нууц үг сэргээх холбоосыг и-мэйл рүү тань илгээлээ.","success");
   }catch(e){authMessage("loginMsg",e?.message||"Нууц үг сэргээхэд алдаа гарлаа.")}
 }
-function enterApp(){emailLogin()}
+async function enterApp(){
+  const email=(v("loginEmail")||v("phone")||"").trim();
+  const password=v("loginPass")||v("pass")||"";
+  if(!email || !password)return toast("Нэвтрэх нэр, нууц үгээ оруулна уу.");
+  try{
+    const {error}=await sb.auth.signInWithPassword({email,password});
+    if(error)throw error;
+    await showAuthenticatedApp();
+  }catch(e){
+    console.error(e);
+    toast(e.message||"Нэвтрэхэд алдаа гарлаа.");
+  }
+}
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});
-async function updateNayad(){let b=document.getElementById("update");b.disabled=true;b.textContent="Шинэчилж байна...";localStorage.setItem(LOGIN,"1");try{if("serviceWorker"in navigator){for(let r of await navigator.serviceWorker.getRegistrations())await r.unregister()}if("caches"in window){for(let k of await caches.keys())await caches.delete(k)}location.replace(location.pathname+"?update="+Date.now())}catch(e){b.disabled=false;b.textContent="↻ UPDATE";location.reload(true)}}
+async function updateNayad(){let b=document.getElementById("update");b.disabled=true;b.textContent="Шинэчилж байна...";try{if("serviceWorker"in navigator){for(let r of await navigator.serviceWorker.getRegistrations())await r.unregister()}if("caches"in window){for(let k of await caches.keys())await caches.delete(k)}location.replace(location.pathname+"?update="+Date.now())}catch(e){b.disabled=false;b.textContent="↻ UPDATE";location.reload(true)}}
 window.addEventListener("load",async()=>{
   setTimeout(async()=>{
     document.getElementById("splash").classList.add("hide");
     try{
       const {data}=await sb.auth.getSession();
       if(data?.session){
-        localStorage.setItem(LOGIN,"1");
+        
         document.getElementById("app").classList.remove("hide");
         render();
       }else{
@@ -1121,7 +1133,7 @@ window.addEventListener("load",async()=>{
 });
 sb.auth.onAuthStateChange((event,session)=>{
   if(event==="SIGNED_IN"&&session){
-    localStorage.setItem(LOGIN,"1");
+    
     document.getElementById("login").classList.add("hide");
     document.getElementById("app").classList.remove("hide");
     render();
