@@ -495,7 +495,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 <body>
 <div id="splash" class="splash"><div><div class="bigmark">N</div><h1>NAYAD</h1><p>Smart Retail Platform</p></div></div>
 
-<div id="login" class="login hide">
+<div id="login" class="login">
   <div class="authWrap">
     <div class="authCard">
       <div class="authBrand"><div class="mark">N</div>NAYAD</div>
@@ -577,7 +577,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 </div>
 
 <div id="app" class="app hide">
-<header><div class="logo"><div class="mark">N</div>NAYAD</div><button id="update" class="update" onclick="updateNayad()">↻ UPDATE</button></header>
+<header><div class="logo"><div class="mark">N</div>NAYAD</div><div style="display:flex;gap:7px;align-items:center"><button id="logout" class="secondary" style="padding:9px 10px;font-size:11px" onclick="logoutNayad()">Гарах</button><button id="update" class="update" onclick="updateNayad()">↻ UPDATE</button></div></header>
 <main id="content"></main>
 <div class="bottom">
  <button class="nav active" data-page="home"><span>⌂</span>Нүүр</button>
@@ -1110,46 +1110,48 @@ async function enterApp(){
 }
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});
 async function updateNayad(){let b=document.getElementById("update");b.disabled=true;b.textContent="Шинэчилж байна...";try{if("serviceWorker"in navigator){for(let r of await navigator.serviceWorker.getRegistrations())await r.unregister()}if("caches"in window){for(let k of await caches.keys())await caches.delete(k)}location.replace(location.pathname+"?update="+Date.now())}catch(e){b.disabled=false;b.textContent="↻ UPDATE";location.reload(true)}}
+async function showAuthenticatedApp(){
+  document.getElementById("login").classList.add("hide");
+  document.getElementById("app").classList.remove("hide");
+  render();
+}
+
+async function showLoginScreen(){
+  document.getElementById("app").classList.add("hide");
+  document.getElementById("login").classList.remove("hide");
+  showAuthMode("login");
+}
+
+async function forceLogoutForTesting(){
+  try{ await sb.auth.signOut(); }catch(e){ console.warn("signOut:",e); }
+  await showLoginScreen();
+}
+
 window.addEventListener("load",async()=>{
   setTimeout(async()=>{
     document.getElementById("splash").classList.add("hide");
+    const params=new URLSearchParams(location.search);
+    if(params.get("logout")==="1"){
+      await forceLogoutForTesting();
+      history.replaceState({},document.title,location.pathname);
+      return;
+    }
     try{
-      const {data}=await sb.auth.getSession();
-      if(data?.session){
-        
-        document.getElementById("app").classList.remove("hide");
-        render();
-      }else{
-        localStorage.removeItem(LOGIN);
-        document.getElementById("login").classList.remove("hide");
-        showAuthMode("login");
-      }
+      const {data:{session}}=await sb.auth.getSession();
+      if(session) await showAuthenticatedApp();
+      else await showLoginScreen();
     }catch(e){
-      console.error(e);
-      document.getElementById("login").classList.remove("hide");
-      showAuthMode("login");
+      console.error("Auth session check:",e);
+      await showLoginScreen();
     }
   },700);
 });
+
 sb.auth.onAuthStateChange((event,session)=>{
-  if(event==="SIGNED_IN"&&session){
-    
-    document.getElementById("login").classList.add("hide");
-    document.getElementById("app").classList.remove("hide");
-    render();
-  }
-  if(event==="SIGNED_OUT"){
-    localStorage.removeItem(LOGIN);
-    document.getElementById("app").classList.add("hide");
-    document.getElementById("login").classList.remove("hide");
-    showAuthMode("login");
-  }
+  if(session) showAuthenticatedApp();
+  else showLoginScreen();
 });
-
-async function logoutNayad(){
-  try{await sb.auth.signOut()}catch(e){console.error(e)}
-}
-
 if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.log));
+async function logoutNayad(){await sb.auth.signOut();}
 </script>
 </body></html>
