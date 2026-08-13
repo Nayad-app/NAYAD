@@ -284,6 +284,22 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .imageItem .meta b{display:block;font-size:12px;font-weight:850}
 .imageItem .meta span{display:block;color:var(--muted);font-size:10px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .imageItem button{padding:6px 9px;background:#FFE9E9;color:#C33}
+
+.imageTools button{border:1px solid #E1E1DA;background:#fff;min-height:50px;box-shadow:var(--shadow-sm)}
+.imageCount{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:11px;padding:10px 12px;background:#F8F8F5;border:1px solid var(--line);border-radius:13px;font-size:11px;color:var(--muted);font-weight:700}
+.imageCount b{color:#111;font-size:12px}
+.imageItem{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
+.imageItem .drag{width:28px;height:40px;display:grid;place-items:center;color:#999;font-size:21px;flex:0 0 auto;border-radius:9px;background:#ECECE7}
+.imageItem:active{cursor:grabbing}
+.viewerThumbs{display:flex;gap:8px;overflow-x:auto;padding:3px 2px 8px;margin-top:12px;scrollbar-width:none}
+.viewerThumbs::-webkit-scrollbar{display:none}
+.viewerThumb{flex:0 0 58px;height:70px;padding:3px;border:2px solid transparent;border-radius:10px;background:#F3F3EF;overflow:hidden;cursor:pointer}
+.viewerThumb.active{border-color:var(--yellow);background:#FFF8D9}
+.viewerThumb img{width:100%;height:100%;object-fit:cover;border-radius:7px}
+.viewerMain{position:relative;background:#F6F6F2;border:1px solid var(--line);border-radius:16px;padding:7px;text-align:center}
+.viewerMain img{width:100%;height:min(58vh,560px);object-fit:contain;border-radius:11px;display:block;background:#eee}
+.viewerPage{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.72);color:#fff;border-radius:8px;padding:5px 8px;font-size:10px;font-weight:800}
+
 .pageBadge{
   display:inline-block!important;
   width:max-content;
@@ -558,8 +574,9 @@ function invoice(id){
       <input id="cameraInput" type="file" accept="image/*" capture="environment" class="hide">
 
       <div id="imageHelp" class="sub" style="margin-top:7px">
-        Олон зураг сонгож болно. Доорхыг чирж байрлалыг солино.
+        Галерейгаас олон зураг сонгож болно. Камераар бол нэг нэг хуудсыг дараад нэмнэ. Доорх хуудсыг чирж байрлалыг солино.
       </div>
+      <div id="imageCount" class="imageCount"><span>Нийт зураг</span><b>0 хуудас</b></div>
       <div id="imageList" class="imageList"></div>
     </div>
 
@@ -582,50 +599,114 @@ function invoice(id){
   renderPendingInvoiceImages();
 }
 
-function addInvoiceImageFiles(files){
+async function addInvoiceImageFiles(files){
   for(const file of files){
-    if(!file.type.startsWith("image/")){
-      toast("Зөвхөн зураг сонгоно уу.");
-      continue;
+    if(!file.type.startsWith("image/")){toast("Зөвхөн зураг сонгоно уу.");continue}
+    try{
+      const optimized=await optimizeInvoiceImage(file);
+      pendingInvoiceImages.push({file:optimized,preview:URL.createObjectURL(optimized),name:file.name});
+    }catch(e){
+      console.warn(e);
+      pendingInvoiceImages.push({file,preview:URL.createObjectURL(file),name:file.name});
     }
-    pendingInvoiceImages.push({file,preview:URL.createObjectURL(file),name:file.name});
   }
   renderPendingInvoiceImages();
 }
-
+function optimizeInvoiceImage(file){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    const src=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(src);
+      const max=1800;
+      const scale=Math.min(1,max/Math.max(img.width,img.height));
+      const w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
+      const c=document.createElement("canvas");c.width=w;c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      c.toBlob(blob=>{
+        if(!blob)return reject(new Error("Зураг боловсруулах боломжгүй"));
+        resolve(new File([blob],file.name.replace(/\.[^.]+$/,".jpg"),{type:"image/jpeg",lastModified:Date.now()}));
+      },"image/jpeg",.86);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(src);reject(new Error("Зураг уншигдсангүй"))};
+    img.src=src;
+  });
+}
 function renderPendingInvoiceImages(){
   const box=document.getElementById("imageList");
+  const countBox=document.getElementById("imageCount");
   if(!box)return;
+  if(countBox)countBox.innerHTML=`<span>Нийт зураг</span><b>${pendingInvoiceImages.length} хуудас</b>`;
 
   box.innerHTML=pendingInvoiceImages.map((x,idx)=>`
-    <div class="imageItem" draggable="true" data-index="${idx}">
-      <div class="drag">☷</div>
+    <div class="imageItem" data-index="${idx}">
+      <div class="drag" title="Чирж байр солих">☷</div>
       <img src="${x.preview}" alt="page ${idx+1}">
       <div class="meta">
         <b>${idx+1}-р хуудас</b>
-        <span>${x.name}</span>
+        <span>${x.name||"Камераар авсан зураг"}</span>
         <span class="pageBadge">Хуудас ${idx+1}</span>
       </div>
       <button type="button" onclick="removePendingInvoiceImage(${idx})">✕</button>
     </div>
   `).join("");
 
+  // Desktop drag + mobile touch/pointer reorder.
   let dragIndex=null;
-  box.querySelectorAll(".imageItem").forEach(el=>{
+  let pointerId=null;
+  let moved=false;
+  let longPressTimer=null;
+  const items=[...box.querySelectorAll(".imageItem")];
+
+  const moveTo=function(to){
+    if(dragIndex===null || to===dragIndex || to<0 || to>=pendingInvoiceImages.length)return;
+    const movedItem=pendingInvoiceImages.splice(dragIndex,1)[0];
+    pendingInvoiceImages.splice(to,0,movedItem);
+    dragIndex=to;
+    renderPendingInvoiceImages();
+  };
+
+  items.forEach(el=>{
+    el.setAttribute("draggable","true");
     el.addEventListener("dragstart",()=>{dragIndex=Number(el.dataset.index);el.classList.add("dragging")});
     el.addEventListener("dragend",()=>{el.classList.remove("dragging");dragIndex=null});
     el.addEventListener("dragover",e=>e.preventDefault());
     el.addEventListener("drop",e=>{
       e.preventDefault();
       const to=Number(el.dataset.index);
-      if(dragIndex===null || dragIndex===to)return;
-      const moved=pendingInvoiceImages.splice(dragIndex,1)[0];
-      pendingInvoiceImages.splice(to,0,moved);
-      renderPendingInvoiceImages();
+      moveTo(to);
     });
+
+    const handle=el.querySelector(".drag");
+    if(!handle)return;
+    handle.addEventListener("pointerdown",e=>{
+      e.preventDefault();
+      pointerId=e.pointerId;
+      dragIndex=Number(el.dataset.index);
+      moved=false;
+      el.classList.add("dragging");
+      handle.setPointerCapture?.(pointerId);
+      longPressTimer=setTimeout(()=>{moved=true;},180);
+    });
+    handle.addEventListener("pointermove",e=>{
+      if(pointerId!==e.pointerId || dragIndex===null)return;
+      if(Math.abs(e.movementX)+Math.abs(e.movementY)>1)moved=true;
+      const target=document.elementFromPoint(e.clientX,e.clientY)?.closest(".imageItem");
+      if(!target || !box.contains(target))return;
+      const to=Number(target.dataset.index);
+      if(to!==dragIndex)moveTo(to);
+    });
+    const finish=e=>{
+      if(pointerId!==e.pointerId)return;
+      clearTimeout(longPressTimer);
+      pointerId=null;
+      dragIndex=null;
+      box.querySelectorAll(".imageItem").forEach(x=>x.classList.remove("dragging"));
+    };
+    handle.addEventListener("pointerup",finish);
+    handle.addEventListener("pointercancel",finish);
   });
 }
-
 function removePendingInvoiceImage(idx){
   const item=pendingInvoiceImages[idx];
   if(item?.preview)URL.revokeObjectURL(item.preview);
@@ -714,22 +795,17 @@ async function viewInvoiceImages(invoiceId){
   let urls=Array.isArray(inv.image_urls)?inv.image_urls.filter(Boolean):[];
   if(!urls.length && inv.image_url)urls=[inv.image_url];
 
-  // If the invoice was created by the newer DB flow but localStorage has only
-  // the first image, fetch all pages from invoice_images.
   try{
     const {data:rows,error}=await sb.from("invoice_images")
       .select("image_url,image_path,page_number")
       .eq("invoice_id",String(inv.id))
       .order("page_number",{ascending:true});
     if(!error && rows?.length)urls=rows.map(r=>r.image_url).filter(Boolean);
-  }catch(e){
-    console.warn("invoice_images read:",e);
-  }
+  }catch(e){console.warn("invoice_images read:",e)}
 
   if(!urls.length)return toast("Энэ падаанд зураг оруулаагүй байна.");
 
   let current=0;
-
   function draw(){
     const url=urls[current];
     document.getElementById("sheet").innerHTML=`
@@ -737,34 +813,33 @@ async function viewInvoiceImages(invoiceId){
         <h2 style="margin:0">Падааны зураг</h2>
         <button class="secondary" onclick="closeSheet()">✕</button>
       </div>
-
-      <div style="margin-top:15px;text-align:center">
-        <div class="sub" style="margin-bottom:8px">${inv.no||""}</div>
-        <div style="font-weight:900;margin-bottom:8px">${current+1} / ${urls.length}-р хуудас</div>
-        <img src="${url}"
-          style="width:100%;max-height:65vh;object-fit:contain;
-          border-radius:14px;border:1px solid #eee;background:#f7f7f5">
+      <div style="margin-top:8px;text-align:center">
+        <div class="sub">${inv.no||""}</div>
+        <div style="font-weight:900;margin:5px 0 10px">${current+1} / ${urls.length}-р хуудас</div>
       </div>
-
+      <div class="viewerMain">
+        <div class="viewerPage">${current+1}-р хуудас</div>
+        <img src="${url}" alt="${inv.no||"invoice"} page ${current+1}">
+      </div>
+      <div class="viewerThumbs" id="viewerThumbs">
+        ${urls.map((u,i)=>`<button type="button" class="viewerThumb ${i===current?'active':''}" onclick="window.__invoiceGo(${i})"><img src="${u}" alt="${i+1}"></button>`).join("")}
+      </div>
       <div class="viewerNav">
-        <button class="secondary" ${current===0?"disabled":""} onclick="window.__invoicePrev()">←</button>
-        <span class="sub">Хуудсууд</span>
-        <button class="secondary" ${current===urls.length-1?"disabled":""} onclick="window.__invoiceNext()">→</button>
+        <button class="secondary" ${current===0?"disabled":""} onclick="window.__invoicePrev()">← Өмнөх</button>
+        <span class="sub">Хуудас солих</span>
+        <button class="secondary" ${current===urls.length-1?"disabled":""} onclick="window.__invoiceNext()">Дараах →</button>
       </div>
-
-      <button class="primary full" style="margin-top:12px"
-        onclick="window.open('${url}','_blank')">
-        Зургийг бүтэн дэлгэцээр нээх
-      </button>
+      <button class="primary full" style="margin-top:12px" onclick="window.open('${url}','_blank')">Зургийг бүтэн дэлгэцээр нээх</button>
     `;
+    const active=document.querySelector('.viewerThumb.active');
+    active?.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
   }
-
+  window.__invoiceGo=i=>{if(i>=0&&i<urls.length){current=i;draw()}};
   window.__invoicePrev=()=>{if(current>0){current--;draw()}};
   window.__invoiceNext=()=>{if(current<urls.length-1){current++;draw()}};
   sheet("");
   draw();
 }
-
 function viewInvoiceImage(url,no){
   if(url)viewInvoiceImagesByUrls([url],no);
   else toast("Энэ падаанд зураг оруулаагүй байна.");
