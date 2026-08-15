@@ -1,4 +1,4 @@
-const CACHE = "nayad-v07";
+const CACHE = "nayad-v08";
 
 const ASSETS = [
   "./",
@@ -20,9 +20,8 @@ self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys => Promise.all(
       keys.filter(key => key !== CACHE).map(key => caches.delete(key))
-    ))
+    )).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener("fetch", event => {
@@ -43,6 +42,28 @@ self.addEventListener("fetch", event => {
           if (!patched.includes("render.js")) {
             patched = patched.replace(/<\/body>/i, '<script src="./render.js"></script></body>');
           }
+
+          // iPhone/iPad: keep the invoice image list vertically scrollable.
+          // HTML5 draggable items can capture the touch gesture on iOS, so
+          // disable dragging on coarse-pointer devices while preserving drag
+          // reorder on desktop.
+          const mobileInvoiceFix = `<style>
+.sheet{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.imageList{touch-action:pan-y;-webkit-overflow-scrolling:touch}
+.imageItem{touch-action:pan-y;-webkit-user-select:none;user-select:none}
+.imageItem img{pointer-events:none}
+</style><script>
+(function(){
+  if(!window.matchMedia || !window.matchMedia('(pointer:coarse)').matches)return;
+  function disableInvoiceDrag(){
+    document.querySelectorAll('.imageItem[draggable="true"]').forEach(function(el){el.setAttribute('draggable','false')});
+  }
+  disableInvoiceDrag();
+  new MutationObserver(disableInvoiceDrag).observe(document.documentElement,{childList:true,subtree:true});
+})();
+</script>`;
+          patched = patched.replace(/<\/head>/i, mobileInvoiceFix + '</head>');
+
           return new Response(patched, {
             status: response.status,
             statusText: response.statusText,
