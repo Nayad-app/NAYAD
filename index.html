@@ -647,6 +647,14 @@ body{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const KEY="NAYAD_DATA_V2";
+// IMPORTANT: capture the recovery URL BEFORE Supabase processes/removes the hash.
+// Supabase may clean the URL after creating the recovery session.
+const INITIAL_RECOVERY_FLOW = (() => {
+  const hash = window.location.hash || "";
+  const query = window.location.search || "";
+  return /(?:^|[&#])type=recovery(?:&|$)/i.test(hash) || /(?:^|[?&])type=recovery(?:&|$)/i.test(query);
+})();
+
 const SUPABASE_URL="https://kjgtmxcxchjevzoxwqzr.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqZ3RteGN4Y2hqZXZ6b3h3cXpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY1MDUzMjMsImV4cCI6MjEwMjA4MTMyM30.pjRFSeGzu9KqEDheNHfL6bYcfPZyjfUdVPSsielEs48";
 
@@ -1161,6 +1169,7 @@ async function forgotPassword(){
   }catch(e){authMessage("loginMsg",e?.message||"Нууц үг сэргээхэд алдаа гарлаа.")}
 }
 function isPasswordRecovery(){
+  if(INITIAL_RECOVERY_FLOW)return true;
   const hash=window.location.hash||"";
   const params=new URLSearchParams(hash.replace(/^#/,""));
   return params.get("type")==="recovery";
@@ -1240,7 +1249,7 @@ window.addEventListener("load",async()=>{
 
     // Supabase recovery links arrive with #type=recovery.
     // Do NOT open the dashboard in this case: show the password form first.
-    if(isPasswordRecovery()){
+    if(INITIAL_RECOVERY_FLOW || isPasswordRecovery()){
       showPasswordResetScreen();
       try{ await sb.auth.getSession(); }catch(e){ console.error("Recovery session:",e); }
       return;
@@ -1258,8 +1267,9 @@ window.addEventListener("load",async()=>{
 });
 
 sb.auth.onAuthStateChange((event,session)=>{
-  // PASSWORD_RECOVERY must stay on the reset screen.
-  if(event==="PASSWORD_RECOVERY" || isPasswordRecovery()){
+  // A recovery session is NOT a normal login. Keep the user on the
+  // password-reset screen even if Supabase fires SIGNED_IN first.
+  if(INITIAL_RECOVERY_FLOW || event==="PASSWORD_RECOVERY" || isPasswordRecovery()){
     showPasswordResetScreen();
     return;
   }
