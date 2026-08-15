@@ -603,26 +603,30 @@ body{
       </div>
 
       <div id="authReset" class="hide">
-        <div style="margin-bottom:12px">
-          <button class="authLink" type="button" onclick="showAuthMode('login')">← Нэвтрэх рүү буцах</button>
-        </div>
         <h1>Нууц үг шинэчлэх</h1>
-        <p class="authSub">Шинэ нууц үгээ оруулна уу.</p>
+        <p class="authSub">Шинэ нууц үгээ оруулаад дахин баталгаажуулна уу.</p>
         <div id="resetMsg"></div>
+
         <div class="field">
           <label>Шинэ нууц үг</label>
           <div class="passwordWrap">
             <input id="resetPassword" type="password" autocomplete="new-password" placeholder="Доод тал нь 6 тэмдэгт">
-            <button class="passwordToggle" type="button" aria-label="Нууц үг харах" onclick="togglePassword('resetPassword',this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg></button>
+            <button class="passwordToggle" type="button" aria-label="Нууц үг харах" onclick="togglePassword('resetPassword',this)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+            </button>
           </div>
         </div>
+
         <div class="field">
-          <label>Нууц үг давтах</label>
+          <label>Шинэ нууц үг давтах</label>
           <div class="passwordWrap">
             <input id="resetPassword2" type="password" autocomplete="new-password" placeholder="Нууц үгээ дахин оруулна уу">
-            <button class="passwordToggle" type="button" aria-label="Нууц үг харах" onclick="togglePassword('resetPassword2',this)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg></button>
+            <button class="passwordToggle" type="button" aria-label="Нууц үг харах" onclick="togglePassword('resetPassword2',this)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+            </button>
           </div>
         </div>
+
         <button id="resetBtn" class="primary full" type="button" onclick="updatePassword()">НУУЦ ҮГ ШИНЭЧЛЭХ</button>
       </div>
     </div>
@@ -1052,19 +1056,16 @@ function savePayment(){let c=data.companies.find(x=>x.id===Number(v("pCompany"))
 function v(id){return document.getElementById(id)?.value||""}
 function showAuthMode(mode){
   const isLogin=mode==="login";
-  const isRegister=mode==="register";
-  const isReset=mode==="reset";
   document.getElementById("authLogin").classList.toggle("hide",!isLogin);
-  document.getElementById("authRegister").classList.toggle("hide",!isRegister);
-  document.getElementById("authReset").classList.toggle("hide",!isReset);
+  document.getElementById("authRegister").classList.toggle("hide",isLogin);
+  document.getElementById("authReset").classList.add("hide");
   const loginTab=document.getElementById("loginTab");
   const registerTab=document.getElementById("registerTab");
   if(loginTab)loginTab.classList.toggle("active",isLogin);
-  if(registerTab)registerTab.classList.toggle("active",isRegister);
+  if(registerTab)registerTab.classList.toggle("active",!isLogin);
   document.getElementById("loginMsg").innerHTML="";
   document.getElementById("registerMsg").innerHTML="";
-  const resetMsg=document.getElementById("resetMsg");
-  if(resetMsg && !isReset)resetMsg.innerHTML="";
+  document.getElementById("resetMsg").innerHTML="";
 }
 function authMessage(id,msg,type="error"){
   const el=document.getElementById(id);
@@ -1156,39 +1157,44 @@ async function forgotPassword(){
       redirectTo:window.location.origin+window.location.pathname
     });
     if(error)throw error;
-    authMessage("loginMsg","Нууц үг сэргээх холбоосыг и-мэйл рүү тань илгээлээ. И-мэйл доторх “Reset password” дээр дарна уу.","success");
+    authMessage("loginMsg","Нууц үг сэргээх холбоосыг и-мэйл рүү тань илгээлээ.","success");
   }catch(e){authMessage("loginMsg",e?.message||"Нууц үг сэргээхэд алдаа гарлаа.")}
+}
+function isPasswordRecovery(){
+  const hash=window.location.hash||"";
+  const params=new URLSearchParams(hash.replace(/^#/,""));
+  return params.get("type")==="recovery";
+}
+
+function showPasswordResetScreen(){
+  document.getElementById("app").classList.add("hide");
+  document.getElementById("login").classList.remove("hide");
+  document.getElementById("authLogin").classList.add("hide");
+  document.getElementById("authRegister").classList.add("hide");
+  document.getElementById("authReset").classList.remove("hide");
+  document.getElementById("resetMsg").innerHTML="";
 }
 
 async function updatePassword(){
-  const password=document.getElementById("resetPassword")?.value||"";
-  const password2=document.getElementById("resetPassword2")?.value||"";
-  if(password.length<6){authMessage("resetMsg","Нууц үг хамгийн багадаа 6 тэмдэгт байна.");return}
-  if(password!==password2){authMessage("resetMsg","Нууц үгүүд хоорондоо таарахгүй байна.");return}
+  const p1=document.getElementById("resetPassword")?.value||"";
+  const p2=document.getElementById("resetPassword2")?.value||"";
+  if(p1.length<6){authMessage("resetMsg","Нууц үг хамгийн багадаа 6 тэмдэгт байна.");return}
+  if(p1!==p2){authMessage("resetMsg","Нууц үгүүд хоорондоо таарахгүй байна.");return}
   setAuthBusy("resetBtn",true,"Шинэчилж байна...");
   try{
-    const {error}=await sb.auth.updateUser({password});
+    const {error}=await sb.auth.updateUser({password:p1});
     if(error)throw error;
     authMessage("resetMsg","Нууц үг амжилттай шинэчлэгдлээ. Одоо шинэ нууц үгээрээ нэвтэрнэ үү.","success");
-    document.getElementById("resetPassword").value="";
-    document.getElementById("resetPassword2").value="";
-    setTimeout(async()=>{
-      try{await sb.auth.signOut()}catch(e){}
-      history.replaceState({},document.title,window.location.pathname);
-      showAuthMode("login");
-    },900);
+    await sb.auth.signOut();
+    setTimeout(()=>{
+      window.location.replace(window.location.pathname);
+    },1200);
   }catch(e){
-    console.error(e);
+    console.error("Password reset:",e);
     authMessage("resetMsg",e?.message||"Нууц үг шинэчлэхэд алдаа гарлаа.");
   }finally{
     setAuthBusy("resetBtn",false);
   }
-}
-
-function isRecoveryFlow(){
-  const hash=window.location.hash||"";
-  const search=window.location.search||"";
-  return /(^|[&#])type=recovery(&|#|$)/i.test(hash) || /(^|[?&])type=recovery(&|$)/i.test(search);
 }
 async function enterApp(){
   const email=(v("loginEmail")||v("phone")||"").trim();
@@ -1231,13 +1237,16 @@ window.addEventListener("load",async()=>{
       history.replaceState({},document.title,location.pathname);
       return;
     }
+
+    // Supabase recovery links arrive with #type=recovery.
+    // Do NOT open the dashboard in this case: show the password form first.
+    if(isPasswordRecovery()){
+      showPasswordResetScreen();
+      try{ await sb.auth.getSession(); }catch(e){ console.error("Recovery session:",e); }
+      return;
+    }
+
     try{
-      if(isRecoveryFlow()){
-        document.getElementById("app").classList.add("hide");
-        document.getElementById("login").classList.remove("hide");
-        showAuthMode("reset");
-        return;
-      }
       const {data:{session}}=await sb.auth.getSession();
       if(session) await showAuthenticatedApp();
       else await showLoginScreen();
@@ -1249,10 +1258,9 @@ window.addEventListener("load",async()=>{
 });
 
 sb.auth.onAuthStateChange((event,session)=>{
-  if(event==="PASSWORD_RECOVERY" || isRecoveryFlow()){
-    document.getElementById("app").classList.add("hide");
-    document.getElementById("login").classList.remove("hide");
-    showAuthMode("reset");
+  // PASSWORD_RECOVERY must stay on the reset screen.
+  if(event==="PASSWORD_RECOVERY" || isPasswordRecovery()){
+    showPasswordResetScreen();
     return;
   }
   if(session) showAuthenticatedApp();
