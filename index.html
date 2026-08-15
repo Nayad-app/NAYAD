@@ -458,6 +458,17 @@ body{
   border:0;background:transparent;color:#111;text-decoration:underline;
   padding:2px 0;font-size:11px;font-weight:800;
 }
+.authBack{
+  border:0;background:transparent;color:#111;
+  padding:0;margin:0 0 14px;
+  width:28px;height:28px;
+  display:grid;place-items:center;
+  font-size:22px;line-height:1;
+  font-weight:700;
+  cursor:pointer;
+  border-radius:50%;
+}
+.authBack:hover{background:#FFF4CC;color:#111}
 .authRegisterPrompt{
   text-align:center;
   margin-top:18px;
@@ -563,7 +574,7 @@ body{
 
       <div id="authRegister" class="hide">
         <div style="margin-bottom:12px">
-          <button class="authLink" type="button" onclick="showAuthMode('login')">← Нэвтрэх рүү буцах</button>
+          <button class="authBack" type="button" onclick="showAuthMode('login')" aria-label="Нэвтрэх рүү буцах" title="Нэвтрэх рүү буцах">←</button>
         </div>
         <h1>Бүртгэл үүсгэх</h1>
         <p class="authSub">NAYAD ашиглаж эхлэхийн тулд шинэ хэрэглэгчийн бүртгэл үүсгэнэ.</p>
