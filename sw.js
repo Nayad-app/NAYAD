@@ -1,4 +1,4 @@
-const CACHE = "nayad-v08";
+const CACHE = "nayad-v09";
 
 const ASSETS = [
   "./",
@@ -8,7 +8,8 @@ const ASSETS = [
   "./icon-512.png",
   "./oauth-fix.js",
   "./render.js",
-  "./user-scope.js"
+  "./user-scope.js",
+  "./share.js"
 ];
 
 self.addEventListener("install", event => {
@@ -41,6 +42,9 @@ self.addEventListener("fetch", event => {
           }
           if (!patched.includes("render.js")) {
             patched = patched.replace(/<\/body>/i, '<script src="./render.js"></script></body>');
+          }
+          if (!patched.includes("share.js")) {
+            patched = patched.replace(/<\/body>/i, '<script src="./share.js"></script></body>');
           }
 
           // iPhone/iPad: keep the invoice image list vertically scrollable.
