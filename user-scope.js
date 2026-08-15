@@ -64,7 +64,7 @@
     get() { return window.__nayadUserValue || null; },
     set(user) {
       const nextId = user?.id || null;
-      const changed = !!activeUserId && !!nextId && activeUserId !== nextId;
+      const changed = !!nextId && activeUserId !== nextId;
       window.__nayadUserValue = user || null;
       if (nextId) {
         migrateLegacyIfNeeded(nextId);
@@ -79,8 +79,6 @@
     }
   });
 
-  // OAuth redirect can establish the Supabase session after this script runs.
-  // The main app's assignment to window.__nayadUser activates the correct scope.
   initialized = true;
   window.nayadUserScope = {
     getUserId: () => activeUserId,
