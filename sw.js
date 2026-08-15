@@ -1,4 +1,4 @@
-const CACHE = "nayad-v06";
+const CACHE = "nayad-v07";
 
 const ASSETS = [
   "./",
@@ -7,7 +7,8 @@ const ASSETS = [
   "./icon-192.png",
   "./icon-512.png",
   "./oauth-fix.js",
-  "./render.js"
+  "./render.js",
+  "./user-scope.js"
 ];
 
 self.addEventListener("install", event => {
@@ -33,6 +34,9 @@ self.addEventListener("fetch", event => {
         try {
           const html = await response.clone().text();
           let patched = html;
+          if (!patched.includes("user-scope.js")) {
+            patched = patched.replace(/<\/head>/i, '<script src="./user-scope.js"></script></head>');
+          }
           if (!patched.includes("oauth-fix.js")) {
             patched = patched.replace(/<\/body>/i, '<script src="./oauth-fix.js"></script></body>');
           }
