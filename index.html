@@ -323,23 +323,31 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .splash{
   position:fixed;
   inset:0;
-  background:var(--yellow);
+  background:#000;
+  color:#fff;
   z-index:99;
   display:grid;
   place-items:center;
 }
-.splash div{text-align:center}
-.splash .splashLogo{
-  display:inline-flex;
+.splashInner{text-align:center}
+.splashWord{
+  display:flex;
   align-items:center;
   justify-content:center;
-  font-size:46px;
+  gap:0;
+  font-size:52px;
   line-height:1;
   font-weight:900;
-  letter-spacing:-1.8px;
+  letter-spacing:-2px;
+  color:#fff;
 }
-.splash .splashLogo .y{color:var(--yellow)}
-.splash h1{font-size:0;margin:0}
+.splashWord .y{color:var(--yellow)}
+.splashInner p{
+  margin:14px 0 0;
+  color:var(--yellow);
+  font-size:16px;
+  font-weight:600;
+}
 .login{
   min-height:100vh;
   background:#fff;
@@ -524,7 +532,8 @@ body{
 
 </style>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#FFC107">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="icon-180.png">
 </head>
 <body>
