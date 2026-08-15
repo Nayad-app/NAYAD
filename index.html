@@ -1098,6 +1098,16 @@ function setAuthBusy(id,busy,text){
   if(busy){b.dataset.oldText=b.textContent;b.textContent=text}
   else b.textContent=b.dataset.oldText||b.textContent;
 }
+function authFriendlyError(e){
+  const msg=(e?.message||"").toLowerCase();
+  if(msg.includes("invalid login credentials") || msg.includes("invalid credentials")){
+    return "Нууц үг буруу байна. Нууц үгээ шалгаад дахин нэвтэрнэ үү.";
+  }
+  if(msg.includes("email not confirmed")){
+    return "И-мэйл хаягаа баталгаажуулсны дараа нэвтэрнэ үү.";
+  }
+  return e?.message||"Нэвтрэхэд алдаа гарлаа.";
+}
 async function emailLogin(){
   const email=(document.getElementById("loginEmail")?.value||"").trim();
   const password=document.getElementById("loginPassword")?.value||"";
@@ -1114,7 +1124,7 @@ async function emailLogin(){
     toast("Амжилттай нэвтэрлээ.");
   }catch(e){
     console.error(e);
-    authMessage("loginMsg",e?.message||"Нэвтрэхэд алдаа гарлаа.");
+    authMessage("loginMsg",authFriendlyError(e));
   }finally{setAuthBusy("loginBtn",false)}
 }
 async function emailRegister(){
@@ -1221,7 +1231,7 @@ async function enterApp(){
     await showAuthenticatedApp();
   }catch(e){
     console.error(e);
-    toast(e.message||"Нэвтрэхэд алдаа гарлаа.");
+    toast(authFriendlyError(e));
   }
 }
 document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});
