@@ -652,7 +652,8 @@ const KEY="NAYAD_DATA_V2";
 const INITIAL_RECOVERY_FLOW = (() => {
   const hash = window.location.hash || "";
   const query = window.location.search || "";
-  return /(?:^|[&#])type=recovery(?:&|$)/i.test(hash) || /(?:^|[?&])type=recovery(?:&|$)/i.test(query);
+  const recoveryFlag = sessionStorage.getItem("NAYAD_PASSWORD_RECOVERY") === "1";
+  return recoveryFlag || /(?:^|[&#])type=recovery(?:&|$)/i.test(hash) || /(?:^|[?&])type=recovery(?:&|$)/i.test(query) || /(?:^|[?&])recovery=1(?:&|$)/i.test(query);
 })();
 
 const SUPABASE_URL="https://kjgtmxcxchjevzoxwqzr.supabase.co";
@@ -1161,8 +1162,9 @@ async function forgotPassword(){
   const email=(document.getElementById("loginEmail")?.value||"").trim();
   if(!email){authMessage("loginMsg","Эхлээд и-мэйл хаягаа оруулна уу.");return}
   try{
+    sessionStorage.setItem("NAYAD_PASSWORD_RECOVERY","1");
     const {error}=await sb.auth.resetPasswordForEmail(email,{
-      redirectTo:window.location.origin+window.location.pathname
+      redirectTo:window.location.origin+window.location.pathname+"?recovery=1"
     });
     if(error)throw error;
     authMessage("loginMsg","Нууц үг сэргээх холбоосыг и-мэйл рүү тань илгээлээ.","success");
@@ -1170,6 +1172,9 @@ async function forgotPassword(){
 }
 function isPasswordRecovery(){
   if(INITIAL_RECOVERY_FLOW)return true;
+  if(sessionStorage.getItem("NAYAD_PASSWORD_RECOVERY")==="1")return true;
+  const query=window.location.search||"";
+  if(/(?:^|[?&])recovery=1(?:&|$)/i.test(query))return true;
   const hash=window.location.hash||"";
   const params=new URLSearchParams(hash.replace(/^#/,""));
   return params.get("type")==="recovery";
@@ -1193,6 +1198,7 @@ async function updatePassword(){
   try{
     const {error}=await sb.auth.updateUser({password:p1});
     if(error)throw error;
+    sessionStorage.removeItem("NAYAD_PASSWORD_RECOVERY");
     authMessage("resetMsg","Нууц үг амжилттай шинэчлэгдлээ. Одоо шинэ нууц үгээрээ нэвтэрнэ үү.","success");
     await sb.auth.signOut();
     setTimeout(()=>{
