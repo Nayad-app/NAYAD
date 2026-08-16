@@ -3,6 +3,11 @@
   const KEY = "NAYAD_DATA_V2";
   let cloudCompanyId = null;
   let pending = [];
+  let touchReorderBound = false;
+  let touchTimer = null;
+  let touchDragging = false;
+  let touchIndex = -1;
+  let touchStartY = 0;
 
   function client(){ return window.nayadSupabase || window.sb || null; }
   function readLocal(){ try{return JSON.parse(localStorage.getItem(KEY))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}} }
@@ -45,10 +50,77 @@
     return created;
   }
 
-  function clearPending(){ pending.forEach(x=>{try{if(x.preview)URL.revokeObjectURL(x.preview)}catch(_){}}); pending=[]; }
+  function clearPending(){
+    pending.forEach(x=>{try{if(x.preview)URL.revokeObjectURL(x.preview)}catch(_){} });
+    pending=[];
+    touchDragging=false; touchIndex=-1; clearTimeout(touchTimer); touchTimer=null;
+  }
+
+  function bindTouchReorder(){
+    const box=document.getElementById('cloudImageList'); if(!box || touchReorderBound)return;
+    touchReorderBound=true;
+
+    box.addEventListener('touchstart',function(e){
+      if(!e.touches?.[0])return;
+      const item=e.target.closest('.imageItem');
+      if(!item || !box.contains(item))return;
+      touchStartY=e.touches[0].clientY;
+      touchIndex=Number(item.dataset.index);
+      touchDragging=false;
+      clearTimeout(touchTimer);
+      touchTimer=setTimeout(function(){
+        touchDragging=true;
+        item.classList.add('dragging');
+        if(navigator.vibrate)try{navigator.vibrate(20)}catch(_){}
+      },320);
+    },{passive:true});
+
+    box.addEventListener('touchmove',function(e){
+      if(!e.touches?.[0])return;
+      const y=e.touches[0].clientY;
+      if(!touchDragging){
+        if(Math.abs(y-touchStartY)>10){clearTimeout(touchTimer);touchTimer=null;}
+        return;
+      }
+      e.preventDefault();
+      const point=e.touches[0];
+      const target=document.elementFromPoint(point.clientX,point.clientY)?.closest('.imageItem');
+      if(!target || !box.contains(target))return;
+      const targetIndex=Number(target.dataset.index);
+      if(!Number.isInteger(targetIndex) || targetIndex===touchIndex)return;
+      const rect=target.getBoundingClientRect();
+      const insertAfter=point.clientY>rect.top+rect.height/2;
+      let newIndex=targetIndex+(insertAfter?1:0);
+      if(touchIndex<newIndex)newIndex--;
+      newIndex=Math.max(0,Math.min(pending.length-1,newIndex));
+      if(newIndex===touchIndex)return;
+      const moved=pending.splice(touchIndex,1)[0];
+      pending.splice(newIndex,0,moved);
+      touchIndex=newIndex;
+      renderPending();
+      const active=box.querySelector(`.imageItem[data-index="${newIndex}"]`);
+      active?.classList.add('dragging');
+    },{passive:false});
+
+    box.addEventListener('touchend',function(){
+      clearTimeout(touchTimer);touchTimer=null;
+      if(touchDragging){
+        touchDragging=false;
+        box.querySelectorAll('.imageItem.dragging').forEach(el=>el.classList.remove('dragging'));
+      }
+      touchIndex=-1;
+    },{passive:true});
+
+    box.addEventListener('touchcancel',function(){
+      clearTimeout(touchTimer);touchTimer=null;touchDragging=false;touchIndex=-1;
+      box.querySelectorAll('.imageItem.dragging').forEach(el=>el.classList.remove('dragging'));
+    },{passive:true});
+  }
+
   function renderPending(){
     const box=document.getElementById('cloudImageList'); if(!box)return;
     box.innerHTML=pending.map((x,i)=>`<div class="imageItem" data-index="${i}"><div class="drag">☷</div><img src="${x.preview}" alt="page ${i+1}"><div class="meta"><b>${i+1}-р хуудас</b><span>${esc(x.name)}</span><span class="pageBadge">Хуудас ${i+1}</span></div><button type="button" onclick="window.__removeCloudInvoiceImage(${i})">✕</button></div>`).join('');
+    bindTouchReorder();
   }
   window.__removeCloudInvoiceImage=function(i){ const x=pending[i]; if(x?.preview)URL.revokeObjectURL(x.preview); pending.splice(i,1); renderPending(); };
   function addFiles(files){
@@ -65,6 +137,7 @@
     const company=(data.companies||[]).find(c=>String(c.id)===String(id));
     if(!company){notify('Нийлүүлэгч олдсонгүй.');return;}
     clearPending();
+    touchReorderBound=false;
     openSheet(`<h2>Падаан нэмэх</h2><div class="card"><b>${esc(company.name)}</b></div>
       <div class="field"><label>Огноо</label><input id="cloudIDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
       <div class="field"><label>Падааны дугаар</label><input id="cloudINo" placeholder="INV-0001"></div>
