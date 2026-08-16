@@ -23,7 +23,19 @@
       window.__nayadFacebookBlocked=true;
     }
   }
+  function unlockSplash(){
+    setTimeout(function(){
+      var splash=document.getElementById('splash');
+      if(splash && !splash.classList.contains('hide')){
+        splash.classList.add('hide');
+        var app=document.getElementById('app');
+        var login=document.getElementById('login');
+        if(app && login && app.classList.contains('hide')) login.classList.remove('hide');
+      }
+    },1800);
+  }
   function apply(){ removeFacebookUI(); blockFacebookOAuth(); }
+  unlockSplash();
   apply();
   window.addEventListener('DOMContentLoaded',apply,{once:true});
   window.addEventListener('load',apply,{once:true});
