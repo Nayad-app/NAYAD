@@ -148,7 +148,9 @@
     const r=await c.from('suppliers').select('id,name,reg_no,address,director,director_phone,sales_rep,sales_phone,org_phone,is_active').eq('store_id',store.id).order('created_at',{ascending:true});
     if(r.error)throw r.error;
     const d=readLocal(); d.companies=d.companies||[]; let changed=false;
-    for(const s of r.data||[]){
+    const remote=r.data||[];
+
+    for(const s of remote){
       let local=d.companies.find(x=>sameSupplier(x,s));
       if(!local){
         local={id:Date.now()+Math.floor(Math.random()*1000000),name:s.name,color:'green',status:s.is_active===false?'inactive':'active',invoices:[]};
@@ -158,6 +160,19 @@
       for(const [k,v] of Object.entries(next)){if(local[k]!==v){local[k]=v;changed=true;}}
       local.invoices=local.invoices||[];
     }
+
+    /* First owner migration: push legacy/local suppliers that are not in cloud yet.
+       Remote rows are applied first, so a second store member will not overwrite cloud data with stale defaults. */
+    for(const local of d.companies){
+      if(local.supabase_supplier_id || !String(local.name||'').trim())continue;
+      const already=remote.find(s=>sameSupplier(local,s));
+      if(already){local.supabase_supplier_id=already.id;changed=true;continue;}
+      try{
+        const created=await ensureCloudSupplier(local);
+        if(created?.id){local.supabase_supplier_id=created.id;changed=true;}
+      }catch(e){console.warn('legacy supplier bootstrap:',local.name,e);}
+    }
+
     if(changed){
       writeLocal(d);
       if(sessionStorage.getItem(SYNC_FLAG)!=='1'){sessionStorage.setItem(SYNC_FLAG,'1');location.reload();}
