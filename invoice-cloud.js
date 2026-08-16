@@ -62,10 +62,7 @@
 
   function reorderByPointer(e){
     if(!dragState || e.pointerId!==dragState.pointerId)return;
-    if(!dragState.active){
-      if(Math.abs(e.clientY-dragState.startY)>10){clearTimeout(dragState.timer);dragState.timer=null;}
-      return;
-    }
+    if(!dragState.active)return;
     e.preventDefault();
     const box=dragState.box;
     const point=document.elementFromPoint(e.clientX,e.clientY);
@@ -91,7 +88,7 @@
     }else{
       box.insertBefore(dragState.item,target);
     }
-    items.forEach((el,i)=>el.dataset.index=String(i));
+    [...box.querySelectorAll('.imageItem')].forEach((el,i)=>el.dataset.index=String(i));
   }
 
   function bindReorder(){
@@ -107,35 +104,26 @@
       if(!item || !box.contains(item))return;
       const index=Number(item.dataset.index);
       if(!Number.isInteger(index))return;
-      clearTimeout(dragState?.timer);
-      dragState={box,item,pointerId:e.pointerId,startY:e.clientY,active:false,timer:null};
+      dragState={box,item,pointerId:e.pointerId,active:true};
+      item.classList.add('dragging');
+      document.body.style.overflow='hidden';
+      document.documentElement.style.overflow='hidden';
       try{handle.setPointerCapture(e.pointerId)}catch(_){ }
-      dragState.timer=setTimeout(()=>{
-        if(!dragState)return;
-        dragState.active=true;
-        item.classList.add('dragging');
-        document.body.style.overflow='hidden';
-        document.documentElement.style.overflow='hidden';
-        if(navigator.vibrate)try{navigator.vibrate(20)}catch(_){ }
-      },220);
-    });
+      if(navigator.vibrate)try{navigator.vibrate(15)}catch(_){ }
+      e.preventDefault();
+    },{passive:false});
 
     box.addEventListener('pointermove',reorderByPointer,{passive:false});
 
     box.addEventListener('pointerup',function(e){
       if(!dragState || e.pointerId!==dragState.pointerId)return;
-      clearTimeout(dragState.timer);
-      if(dragState.active){
-        const item=dragState.item;
-        item.classList.remove('dragging');
-        renderPending();
-      }
+      e.preventDefault();
+      renderPending();
       cleanupDrag();
-    });
+    },{passive:false});
 
     box.addEventListener('pointercancel',function(e){
       if(!dragState || e.pointerId!==dragState.pointerId)return;
-      clearTimeout(dragState.timer);
       cleanupDrag();
       renderPending();
     });
@@ -169,7 +157,7 @@
       <div class="field"><label>Падааны зураг — олон хуудас нэмэх боломжтой</label>
         <div class="imageTools"><button type="button" class="secondary" onclick="document.getElementById('cloudGalleryInput').click()">🖼️ Зураг сонгох</button><button type="button" class="secondary" onclick="document.getElementById('cloudCameraInput').click()">📷 Камераар авах</button></div>
         <input id="cloudGalleryInput" type="file" accept="image/*" multiple class="hide"><input id="cloudCameraInput" type="file" accept="image/*" capture="environment" class="hide">
-        <div class="sub" style="margin-top:7px">Олон зураг сонгож болно. Зүүн талын ☷ тэмдэг дээр удаан дараад дээш/доош чирж дарааллыг солино.</div><div id="cloudImageList" class="imageList"></div>
+        <div class="sub" style="margin-top:7px">Зүүн талын ☷ тэмдэг дээр дараад шууд дээш/доош чирж дарааллыг солино.</div><div id="cloudImageList" class="imageList"></div>
       </div>
       <div class="actions"><button class="secondary" onclick="window.__cancelCloudInvoice()">Болих</button><button id="cloudSaveInvoiceBtn" class="primary" onclick="window.__saveCloudInvoice()">Падаан нэмэх</button></div>`);
     document.getElementById('cloudGalleryInput').onchange=function(){addFiles([...this.files]);this.value=''};
