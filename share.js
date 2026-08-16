@@ -18,9 +18,9 @@
 
   async function getStore(){
     const client=sb(); if(!client)return null;
-    const {data,error}=await client.from('stores').select('id,name').limit(1).maybeSingle();
+    const {data,error}=await client.rpc('get_my_store');
     if(error){console.warn('NAYAD store:',error.message);return null}
-    currentStore=data||null; return currentStore;
+    currentStore=data?.[0]||null; return currentStore;
   }
 
   async function getMembers(storeId){
@@ -55,7 +55,6 @@
       const token=data?.token;
       if(!token)throw new Error('Урих холбоос үүссэнгүй.');
       const link=location.origin+location.pathname+'?invite='+encodeURIComponent(token);
-      const msg=`NAYAD — ${store.name} дэлгүүрт нэгдээрэй.\n\n${link}`;
       if(navigator.share){try{await navigator.share({title:'NAYAD дэлгүүрийн урилга',text:`${store.name} дэлгүүрт нэгдээрэй.`,url:link})}catch(_){}}
       sheetSafe(`<h2>Урилга бэлэн боллоо</h2><div class="authSuccess">${esc(email)} хаягт зориулсан урилга үүслээ.</div><div class="shareLinkBox">${esc(link)}</div><div class="actions"><button class="secondary" onclick="copyStoreInvite('${encodeURIComponent(link)}')">Холбоос хуулах</button><button class="primary" onclick="closeSheet()">Дуусгах</button></div><div class="sub" style="margin-top:10px">Уригдсан хүн энэ холбоосоор орж, ижил и-мэйлээр NAYAD-д нэвтрээд зөвшөөрнө.</div>`);
     }catch(e){console.error('Store invite:',e);toastSafe(e?.message||'Урилга үүсгэхэд алдаа гарлаа.');}
