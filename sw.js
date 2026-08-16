@@ -1,4 +1,4 @@
-const CACHE = "nayad-v09";
+const CACHE = "nayad-v10";
 
 const ASSETS = [
   "./",
@@ -9,7 +9,8 @@ const ASSETS = [
   "./oauth-fix.js",
   "./render.js",
   "./user-scope.js",
-  "./share.js"
+  "./share.js",
+  "./invoice-cloud.js"
 ];
 
 self.addEventListener("install", event => {
@@ -46,11 +47,11 @@ self.addEventListener("fetch", event => {
           if (!patched.includes("share.js")) {
             patched = patched.replace(/<\/body>/i, '<script src="./share.js"></script></body>');
           }
+          if (!patched.includes("invoice-cloud.js")) {
+            patched = patched.replace(/<\/body>/i, '<script src="./invoice-cloud.js"></script></body>');
+          }
 
           // iPhone/iPad: keep the invoice image list vertically scrollable.
-          // HTML5 draggable items can capture the touch gesture on iOS, so
-          // disable dragging on coarse-pointer devices while preserving drag
-          // reorder on desktop.
           const mobileInvoiceFix = `<style>
 .sheet{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .imageList{touch-action:pan-y;-webkit-overflow-scrolling:touch}
