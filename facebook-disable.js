@@ -3,9 +3,14 @@
   function removeFacebookUI(){
     document.querySelectorAll('button[onclick*="facebook" i], .oauth.facebook').forEach(function(el){ el.remove(); });
     document.querySelectorAll('.oauthGrid').forEach(function(grid){
-      if(!grid.querySelector('.oauth.facebook')) grid.style.gridTemplateColumns='1fr';
+      if(!grid.querySelector('.oauth.facebook') && grid.dataset.facebookRemoved!=='1'){
+        grid.dataset.facebookRemoved='1';
+        grid.style.gridTemplateColumns='1fr';
+      }
     });
     document.querySelectorAll('.authHint').forEach(function(el){
+      if(el.dataset.facebookRemoved==='1') return;
+      el.dataset.facebookRemoved='1';
       el.textContent = el.textContent.replace(/Google\s*\/\s*Facebook/gi,'Google').replace(/Facebook\s*\/\s*Google/gi,'Google').replace(/Facebook/gi,'');
     });
   }
@@ -24,7 +29,14 @@
   }
   function apply(){ removeFacebookUI(); blockFacebookOAuth(); }
   apply();
-  window.addEventListener('DOMContentLoaded',apply);
-  window.addEventListener('load',apply);
-  new MutationObserver(apply).observe(document.documentElement,{childList:true,subtree:true});
+  window.addEventListener('DOMContentLoaded',apply,{once:true});
+  window.addEventListener('load',apply,{once:true});
+  var observer=new MutationObserver(function(mutations){
+    var needs=false;
+    for(var i=0;i<mutations.length;i++){
+      if(mutations[i].addedNodes && mutations[i].addedNodes.length){ needs=true; break; }
+    }
+    if(needs) apply();
+  });
+  observer.observe(document.documentElement,{childList:true,subtree:true});
 })();
