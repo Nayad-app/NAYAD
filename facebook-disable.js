@@ -8,11 +8,7 @@
         grid.style.gridTemplateColumns='1fr';
       }
     });
-    document.querySelectorAll('.authHint').forEach(function(el){
-      if(el.dataset.facebookRemoved==='1') return;
-      el.dataset.facebookRemoved='1';
-      el.textContent = el.textContent.replace(/Google\s*\/\s*Facebook/gi,'Google').replace(/Facebook\s*\/\s*Google/gi,'Google').replace(/Facebook/gi,'');
-    });
+    document.querySelectorAll('.authHint').forEach(function(el){ el.remove(); });
   }
   function blockFacebookOAuth(){
     if(typeof window.signInWithOAuth === 'function' && !window.__nayadFacebookBlocked){
