@@ -1,4 +1,4 @@
-const CACHE = "nayad-v10";
+const CACHE = "nayad-v11";
 
 const ASSETS = [
   "./",
@@ -51,20 +51,51 @@ self.addEventListener("fetch", event => {
             patched = patched.replace(/<\/body>/i, '<script src="./invoice-cloud.js"></script></body>');
           }
 
-          // iPhone/iPad: keep the invoice image list vertically scrollable.
+          // Mobile invoice image fixes: keep sheets and image lists vertically scrollable,
+          // and make the opened invoice image itself vertically scrollable instead of
+          // forcing a tall receipt into a 65vh box. Up/down swipes also change pages.
           const mobileInvoiceFix = `<style>
 .sheet{touch-action:pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .imageList{touch-action:pan-y;-webkit-overflow-scrolling:touch}
 .imageItem{touch-action:pan-y;-webkit-user-select:none;user-select:none}
 .imageItem img{pointer-events:none}
+.invoiceViewerScroll{max-height:65vh;overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;border-radius:14px;border:1px solid #eee;background:#f7f7f5;text-align:center}
+.invoiceViewerScroll img{display:block;width:100%;height:auto;max-height:none!important;object-fit:contain;border:0!important;border-radius:0!important;pointer-events:none;user-select:none;-webkit-user-drag:none}
 </style><script>
 (function(){
-  if(!window.matchMedia || !window.matchMedia('(pointer:coarse)').matches)return;
   function disableInvoiceDrag(){
     document.querySelectorAll('.imageItem[draggable="true"]').forEach(function(el){el.setAttribute('draggable','false')});
   }
-  disableInvoiceDrag();
-  new MutationObserver(disableInvoiceDrag).observe(document.documentElement,{childList:true,subtree:true});
+
+  function enhanceViewer(){
+    disableInvoiceDrag();
+    document.querySelectorAll('.sheet img').forEach(function(img){
+      if(img.dataset.invoiceViewerEnhanced==='1') return;
+      var parent=img.parentElement;
+      if(!parent) return;
+      var text=(img.getAttribute('src')||'');
+      if(!text) return;
+      // Only target the full-size invoice viewer image, not thumbnails or profile images.
+      if(!parent.querySelector('.viewerNav') && !parent.parentElement?.querySelector('.viewerNav')) return;
+      var wrap=document.createElement('div');
+      wrap.className='invoiceViewerScroll';
+      parent.insertBefore(wrap,img);
+      wrap.appendChild(img);
+      img.dataset.invoiceViewerEnhanced='1';
+      var startY=0;
+      wrap.addEventListener('touchstart',function(e){startY=e.touches[0]?.clientY||0},{passive:true});
+      wrap.addEventListener('touchend',function(e){
+        var endY=e.changedTouches[0]?.clientY||0;
+        var dy=endY-startY;
+        if(Math.abs(dy)<70) return;
+        if(dy<0 && typeof window.__invoiceNext==='function') window.__invoiceNext();
+        if(dy>0 && typeof window.__invoicePrev==='function') window.__invoicePrev();
+      },{passive:true});
+    });
+  }
+
+  enhanceViewer();
+  new MutationObserver(enhanceViewer).observe(document.documentElement,{childList:true,subtree:true});
 })();
 </script>`;
           patched = patched.replace(/<\/head>/i, mobileInvoiceFix + '</head>');
