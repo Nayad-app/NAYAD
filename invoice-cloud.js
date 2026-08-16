@@ -3,11 +3,8 @@
   const KEY = "NAYAD_DATA_V2";
   let cloudCompanyId = null;
   let pending = [];
-  let touchReorderBound = false;
-  let touchTimer = null;
-  let touchDragging = false;
-  let touchIndex = -1;
-  let touchStartY = 0;
+  let reorderBound = false;
+  let dragState = null;
 
   function client(){ return window.nayadSupabase || window.sb || null; }
   function readLocal(){ try{return JSON.parse(localStorage.getItem(KEY))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}} }
@@ -53,74 +50,101 @@
   function clearPending(){
     pending.forEach(x=>{try{if(x.preview)URL.revokeObjectURL(x.preview)}catch(_){} });
     pending=[];
-    touchDragging=false; touchIndex=-1; clearTimeout(touchTimer); touchTimer=null;
+    cleanupDrag();
   }
 
-  function bindTouchReorder(){
-    const box=document.getElementById('cloudImageList'); if(!box || touchReorderBound)return;
-    touchReorderBound=true;
+  function cleanupDrag(){
+    if(dragState?.item) dragState.item.classList.remove('dragging');
+    document.body.style.overflow='';
+    document.documentElement.style.overflow='';
+    dragState=null;
+  }
 
-    box.addEventListener('touchstart',function(e){
-      if(!e.touches?.[0])return;
-      const item=e.target.closest('.imageItem');
+  function reorderByPointer(e){
+    if(!dragState || e.pointerId!==dragState.pointerId)return;
+    if(!dragState.active){
+      if(Math.abs(e.clientY-dragState.startY)>10){clearTimeout(dragState.timer);dragState.timer=null;}
+      return;
+    }
+    e.preventDefault();
+    const box=dragState.box;
+    const point=document.elementFromPoint(e.clientX,e.clientY);
+    const target=point?.closest?.('.imageItem');
+    if(!target || !box.contains(target) || target===dragState.item)return;
+    const items=[...box.querySelectorAll('.imageItem')];
+    const from=items.indexOf(dragState.item);
+    const to=items.indexOf(target);
+    if(from<0 || to<0 || from===to)return;
+    const rect=target.getBoundingClientRect();
+    const after=e.clientY>rect.top+rect.height/2;
+    let insertAt=to+(after?1:0);
+    if(from<insertAt)insertAt--;
+    insertAt=Math.max(0,Math.min(items.length-1,insertAt));
+    if(insertAt===from)return;
+
+    const moved=pending.splice(from,1)[0];
+    pending.splice(insertAt,0,moved);
+
+    if(insertAt>from){
+      const next=target.nextSibling;
+      box.insertBefore(dragState.item,next);
+    }else{
+      box.insertBefore(dragState.item,target);
+    }
+    items.forEach((el,i)=>el.dataset.index=String(i));
+  }
+
+  function bindReorder(){
+    const box=document.getElementById('cloudImageList'); if(!box || reorderBound)return;
+    reorderBound=true;
+    box.style.webkitUserSelect='none';
+
+    box.addEventListener('pointerdown',function(e){
+      if(e.pointerType==='mouse' && e.button!==0)return;
+      const handle=e.target.closest('.drag');
+      if(!handle)return;
+      const item=handle.closest('.imageItem');
       if(!item || !box.contains(item))return;
-      touchStartY=e.touches[0].clientY;
-      touchIndex=Number(item.dataset.index);
-      touchDragging=false;
-      clearTimeout(touchTimer);
-      touchTimer=setTimeout(function(){
-        touchDragging=true;
+      const index=Number(item.dataset.index);
+      if(!Number.isInteger(index))return;
+      clearTimeout(dragState?.timer);
+      dragState={box,item,pointerId:e.pointerId,startY:e.clientY,active:false,timer:null};
+      try{handle.setPointerCapture(e.pointerId)}catch(_){ }
+      dragState.timer=setTimeout(()=>{
+        if(!dragState)return;
+        dragState.active=true;
         item.classList.add('dragging');
-        if(navigator.vibrate)try{navigator.vibrate(20)}catch(_){}
-      },320);
-    },{passive:true});
+        document.body.style.overflow='hidden';
+        document.documentElement.style.overflow='hidden';
+        if(navigator.vibrate)try{navigator.vibrate(20)}catch(_){ }
+      },220);
+    });
 
-    box.addEventListener('touchmove',function(e){
-      if(!e.touches?.[0])return;
-      const y=e.touches[0].clientY;
-      if(!touchDragging){
-        if(Math.abs(y-touchStartY)>10){clearTimeout(touchTimer);touchTimer=null;}
-        return;
+    box.addEventListener('pointermove',reorderByPointer,{passive:false});
+
+    box.addEventListener('pointerup',function(e){
+      if(!dragState || e.pointerId!==dragState.pointerId)return;
+      clearTimeout(dragState.timer);
+      if(dragState.active){
+        const item=dragState.item;
+        item.classList.remove('dragging');
+        renderPending();
       }
-      e.preventDefault();
-      const point=e.touches[0];
-      const target=document.elementFromPoint(point.clientX,point.clientY)?.closest('.imageItem');
-      if(!target || !box.contains(target))return;
-      const targetIndex=Number(target.dataset.index);
-      if(!Number.isInteger(targetIndex) || targetIndex===touchIndex)return;
-      const rect=target.getBoundingClientRect();
-      const insertAfter=point.clientY>rect.top+rect.height/2;
-      let newIndex=targetIndex+(insertAfter?1:0);
-      if(touchIndex<newIndex)newIndex--;
-      newIndex=Math.max(0,Math.min(pending.length-1,newIndex));
-      if(newIndex===touchIndex)return;
-      const moved=pending.splice(touchIndex,1)[0];
-      pending.splice(newIndex,0,moved);
-      touchIndex=newIndex;
+      cleanupDrag();
+    });
+
+    box.addEventListener('pointercancel',function(e){
+      if(!dragState || e.pointerId!==dragState.pointerId)return;
+      clearTimeout(dragState.timer);
+      cleanupDrag();
       renderPending();
-      const active=box.querySelector(`.imageItem[data-index="${newIndex}"]`);
-      active?.classList.add('dragging');
-    },{passive:false});
-
-    box.addEventListener('touchend',function(){
-      clearTimeout(touchTimer);touchTimer=null;
-      if(touchDragging){
-        touchDragging=false;
-        box.querySelectorAll('.imageItem.dragging').forEach(el=>el.classList.remove('dragging'));
-      }
-      touchIndex=-1;
-    },{passive:true});
-
-    box.addEventListener('touchcancel',function(){
-      clearTimeout(touchTimer);touchTimer=null;touchDragging=false;touchIndex=-1;
-      box.querySelectorAll('.imageItem.dragging').forEach(el=>el.classList.remove('dragging'));
-    },{passive:true});
+    });
   }
 
   function renderPending(){
     const box=document.getElementById('cloudImageList'); if(!box)return;
-    box.innerHTML=pending.map((x,i)=>`<div class="imageItem" data-index="${i}"><div class="drag">☷</div><img src="${x.preview}" alt="page ${i+1}"><div class="meta"><b>${i+1}-р хуудас</b><span>${esc(x.name)}</span><span class="pageBadge">Хуудас ${i+1}</span></div><button type="button" onclick="window.__removeCloudInvoiceImage(${i})">✕</button></div>`).join('');
-    bindTouchReorder();
+    box.innerHTML=pending.map((x,i)=>`<div class="imageItem" data-index="${i}"><div class="drag" style="touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none">☷</div><img src="${x.preview}" alt="page ${i+1}"><div class="meta"><b>${i+1}-р хуудас</b><span>${esc(x.name)}</span><span class="pageBadge">Хуудас ${i+1}</span></div><button type="button" onclick="window.__removeCloudInvoiceImage(${i})">✕</button></div>`).join('');
+    bindReorder();
   }
   window.__removeCloudInvoiceImage=function(i){ const x=pending[i]; if(x?.preview)URL.revokeObjectURL(x.preview); pending.splice(i,1); renderPending(); };
   function addFiles(files){
@@ -137,7 +161,7 @@
     const company=(data.companies||[]).find(c=>String(c.id)===String(id));
     if(!company){notify('Нийлүүлэгч олдсонгүй.');return;}
     clearPending();
-    touchReorderBound=false;
+    reorderBound=false;
     openSheet(`<h2>Падаан нэмэх</h2><div class="card"><b>${esc(company.name)}</b></div>
       <div class="field"><label>Огноо</label><input id="cloudIDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
       <div class="field"><label>Падааны дугаар</label><input id="cloudINo" placeholder="INV-0001"></div>
@@ -145,7 +169,7 @@
       <div class="field"><label>Падааны зураг — олон хуудас нэмэх боломжтой</label>
         <div class="imageTools"><button type="button" class="secondary" onclick="document.getElementById('cloudGalleryInput').click()">🖼️ Зураг сонгох</button><button type="button" class="secondary" onclick="document.getElementById('cloudCameraInput').click()">📷 Камераар авах</button></div>
         <input id="cloudGalleryInput" type="file" accept="image/*" multiple class="hide"><input id="cloudCameraInput" type="file" accept="image/*" capture="environment" class="hide">
-        <div class="sub" style="margin-top:7px">Олон зураг сонгож болно.</div><div id="cloudImageList" class="imageList"></div>
+        <div class="sub" style="margin-top:7px">Олон зураг сонгож болно. Зүүн талын ☷ тэмдэг дээр удаан дараад дээш/доош чирж дарааллыг солино.</div><div id="cloudImageList" class="imageList"></div>
       </div>
       <div class="actions"><button class="secondary" onclick="window.__cancelCloudInvoice()">Болих</button><button id="cloudSaveInvoiceBtn" class="primary" onclick="window.__saveCloudInvoice()">Падаан нэмэх</button></div>`);
     document.getElementById('cloudGalleryInput').onchange=function(){addFiles([...this.files]);this.value=''};
