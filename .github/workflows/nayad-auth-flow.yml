@@ -1,0 +1,81 @@
+name: NAYAD auth flow update
+
+on:
+  push:
+    paths:
+      - '.github/workflows/nayad-auth-flow.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-auth:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update login and email confirmation flow
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+
+          old = '.profileHeaderButton{display:flex;align-items:center;gap:6px;background:var(--surface-2);color:#222;border:0;border-radius:12px;padding:7px 9px;font-size:11px;font-weight:800}'
+          new = old + '.rememberRow{display:flex;align-items:center;gap:9px;margin:4px 0 14px;color:#555;font-size:12px;font-weight:700}.rememberRow input{width:18px;height:18px;accent-color:var(--yellow);cursor:pointer}.rememberRow label{cursor:pointer}'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = '<button id="loginBtn" class="primary full" type="button" onclick="emailLogin()">НЭВТРЭХ</button>'
+          new = '<div class="rememberRow"><input id="rememberMe" type="checkbox" checked><label for="rememberMe">Намайг сана</label></div><button id="loginBtn" class="primary full" type="button" onclick="emailLogin()">НЭВТРЭХ</button>'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = 'const INITIAL_RECOVERY_FLOW=(()=>{const hash=window.location.hash||"",query=window.location.search||"",flag=sessionStorage.getItem("NAYAD_PASSWORD_RECOVERY")==="1";return flag||/(?:^|[&#])type=recovery(?:&|$)/i.test(hash)||/(?:^|[?&])type=recovery(?:&|$)/i.test(query)||/(?:^|[?&])recovery=1(?:&|$)/i.test(query)})();'
+          new = old + '\nconst INITIAL_EMAIL_CONFIRM_FLOW=(()=>{const hash=window.location.hash||"",query=window.location.search||"";return /(?:^|[?&])confirmed=1(?:&|$)/i.test(query)||/(?:^|[&#])type=(signup|email_change)(?:&|$)/i.test(hash)||/(?:^|[?&])type=(signup|email_change)(?:&|$)/i.test(query)})();\nconst REMEMBER_KEY="NAYAD_REMEMBER_SESSION";let emailConfirmationHandled=false;'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = 'async function emailLogin(){const email=(document.getElementById("loginEmail")?.value||"").trim(),password=document.getElementById("loginPassword")?.value||"";if(!email||!password){authMessage("loginMsg","И-мэйл болон нууц үгээ оруулна уу.");return}setAuthBusy("loginBtn",true,"Нэвтэрч байна...");try{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;if(!data.session)throw new Error("Нэвтрэх session үүссэнгүй.");window.__nayadUser=data.user;updateProfileUI();document.getElementById("login").classList.add("hide");document.getElementById("app").classList.remove("hide");render();toast("Амжилттай нэвтэрлээ.")}catch(e){console.error(e);authMessage("loginMsg",authFriendlyError(e))}finally{setAuthBusy("loginBtn",false)}}'
+          new = 'async function emailLogin(){const email=(document.getElementById("loginEmail")?.value||"").trim(),password=document.getElementById("loginPassword")?.value||"",remember=document.getElementById("rememberMe")?.checked!==false;if(!email||!password){authMessage("loginMsg","И-мэйл болон нууц үгээ оруулна уу.");return}setAuthBusy("loginBtn",true,"Нэвтэрч байна...");try{const {data,error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;if(!data.session)throw new Error("Нэвтрэх session үүссэнгүй.");localStorage.setItem(REMEMBER_KEY,remember?"1":"0");if(!remember)sessionStorage.setItem("NAYAD_SESSION_ONLY","1");else sessionStorage.removeItem("NAYAD_SESSION_ONLY");window.__nayadUser=data.user;updateProfileUI();document.getElementById("login").classList.add("hide");document.getElementById("app").classList.remove("hide");render();toast(remember?"Амжилттай нэвтэрлээ. Энэ төхөөрөмж таныг санана.":"Амжилттай нэвтэрлээ.")}catch(e){console.error(e);authMessage("loginMsg",authFriendlyError(e))}finally{setAuthBusy("loginBtn",false)}}'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = 'const {data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:name}}});'
+          new = 'const {data,error}=await sb.auth.signUp({email,password,options:{data:{full_name:name},emailRedirectTo:window.location.origin+window.location.pathname+"?confirmed=1"}});'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = 'async function showLoginScreen(){document.getElementById("app").classList.add("hide");document.getElementById("login").classList.remove("hide");showAuthMode("login")}'
+          new = old + '\nasync function handleEmailConfirmation(){if(emailConfirmationHandled)return;emailConfirmationHandled=true;try{await sb.auth.signOut()}catch(e){console.warn("Confirmation signOut:",e)}window.__nayadUser=null;history.replaceState({},document.title,location.pathname);await showLoginScreen();authMessage("loginMsg","И-мэйл амжилттай баталгаажлаа ✅ Одоо и-мэйл, нууц үгээрээ нэвтэрнэ үү.","success")}'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = 'if(INITIAL_RECOVERY_FLOW||isPasswordRecovery()){showPasswordResetScreen();try{await sb.auth.getSession()}catch(e){console.error("Recovery session:",e)}return}try{const {data:{session}}=await sb.auth.getSession();if(session){profileFromUser(session.user);await showAuthenticatedApp()}else await showLoginScreen()}'
+          new = 'if(INITIAL_RECOVERY_FLOW||isPasswordRecovery()){showPasswordResetScreen();try{await sb.auth.getSession()}catch(e){console.error("Recovery session:",e)}return}if(INITIAL_EMAIL_CONFIRM_FLOW){await handleEmailConfirmation();return}try{const {data:{session}}=await sb.auth.getSession();if(session&&localStorage.getItem(REMEMBER_KEY)==="0"&&sessionStorage.getItem("NAYAD_SESSION_ONLY")!=="1"){await sb.auth.signOut();await showLoginScreen()}else if(session){profileFromUser(session.user);await showAuthenticatedApp()}else await showLoginScreen()}'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = 'sb.auth.onAuthStateChange((event,session)=>{if(INITIAL_RECOVERY_FLOW||event==="PASSWORD_RECOVERY"||isPasswordRecovery()){showPasswordResetScreen();return}if(session){profileFromUser(session.user);showAuthenticatedApp()}else{window.__nayadUser=null;showLoginScreen()}});'
+          new = 'sb.auth.onAuthStateChange((event,session)=>{if(INITIAL_RECOVERY_FLOW||event==="PASSWORD_RECOVERY"||isPasswordRecovery()){showPasswordResetScreen();return}if(INITIAL_EMAIL_CONFIRM_FLOW){setTimeout(()=>handleEmailConfirmation(),0);return}if(session){profileFromUser(session.user);showAuthenticatedApp()}else{window.__nayadUser=null;showLoginScreen()}});'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = 'async function logoutNayad(){await sb.auth.signOut()}'
+          new = 'async function logoutNayad(){localStorage.removeItem(REMEMBER_KEY);sessionStorage.removeItem("NAYAD_SESSION_ONLY");await sb.auth.signOut()}'
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          p.write_text(s)
+          PY
+      - name: Commit changes
+        run: |
+          if git diff --quiet; then
+            echo "No changes needed"
+            exit 0
+          fi
+          git config user.name "NAYAD Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Improve email confirmation and remember login"
+          git push
