@@ -15,7 +15,7 @@
     }catch(e){
       console.error('NAYAD render error:',e);
       const content=document.getElementById('content');
-      if(content)content.innerHTML='<div class="card" style="margin-top:20px"><b>NAYAD ачаалахад алдаа гарлаа.</b><div class="sub">UPDATE товчийг дарж дахин оролдоно уу.</div></div>';
+      if(content)content.innerHTML='<div class="card" style="margin-top:20px"><b>NAYAD ачаалахад алдаа гарлаа.</b><div class="sub">Аппыг хаагаад дахин нээнэ үү.</div></div>';
     }
   }
   window.render=render;

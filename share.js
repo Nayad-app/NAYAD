@@ -81,6 +81,7 @@
   function sheetSafe(s){if(typeof sheet==='function')sheet(s);else console.warn('NAYAD sheet not ready')}
 
   function addShareButton(){
+    if(typeof page!=='undefined'&&page==='home')return;
     if(document.querySelector('.storeShareBtn'))return;
     const content=document.getElementById('content'); if(!content||document.getElementById('app')?.classList.contains('hide'))return;
     const b=document.createElement('button');b.className='secondary storeShareBtn';b.innerHTML='👥 Дэлгүүрээ хуваалцах';b.onclick=showShare;
