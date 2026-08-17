@@ -1,4 +1,4 @@
-const CACHE = "nayad-v19";
+const CACHE = "nayad-v20";
 
 const ASSETS = ["./","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./oauth-fix.js","./render.js","./user-scope.js","./share.js","./invoice-cloud.js","./supplier-cloud.js","./company-label.js"];
 
