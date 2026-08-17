@@ -1,6 +1,6 @@
-const CACHE = "nayad-v17";
+const CACHE = "nayad-v18";
 
-const ASSETS = ["./","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./oauth-fix.js","./render.js","./user-scope.js","./share.js","./invoice-cloud.js","./supplier-cloud.js","./company-label.js","./facebook-disable.js"];
+const ASSETS = ["./","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./oauth-fix.js","./render.js","./user-scope.js","./share.js","./invoice-cloud.js","./supplier-cloud.js","./company-label.js"];
 
 self.addEventListener("install", event => { event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener("activate", event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); });
@@ -18,7 +18,6 @@ self.addEventListener("fetch", event => {
         if(!patched.includes("invoice-cloud.js")) patched=patched.replace(/<\/body>/i,'<script src="./invoice-cloud.js"></script></body>');
         if(!patched.includes("supplier-cloud.js")) patched=patched.replace(/<\/body>/i,'<script src="./supplier-cloud.js"></script></body>');
         if(!patched.includes("company-label.js")) patched=patched.replace(/<\/body>/i,'<script src="./company-label.js"></script></body>');
-        if(!patched.includes("facebook-disable.js")) patched=patched.replace(/<\/body>/i,'<script src="./facebook-disable.js"></script></body>');
 
         const mobileInvoiceFix=`<style>
 .imageList{touch-action:pan-y;-webkit-user-select:none;user-select:none}
