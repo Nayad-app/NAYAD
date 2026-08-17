@@ -18,8 +18,21 @@
   async function myStore(){
     const c=sb(); if(!c)throw new Error('Supabase холболт олдсонгүй.');
     const {data,error}=await c.rpc('get_my_store'); if(error)throw error;
-    const row=Array.isArray(data)?data[0]:data; if(!row?.id)throw new Error('Таны дэлгүүр олдсонгүй.');
-    return row;
+    const row=Array.isArray(data)?data[0]:data;
+    if(row?.id)return row;
+
+    const session=(await c.auth.getSession()).data?.session;
+    const user=session?.user;
+    if(!user?.id)throw new Error('Хэрэглэгчийн session олдсонгүй.');
+
+    const storeId=crypto.randomUUID();
+    const storeName=(user.user_metadata?.full_name||user.email?.split('@')[0]||'NAYAD')+' store';
+    const insStore=await c.from('stores').insert({id:storeId,name:storeName});
+    if(insStore.error)throw insStore.error;
+    const insMember=await c.from('store_members').insert({store_id:storeId,user_id:user.id,role:'owner'});
+    if(insMember.error)throw insMember.error;
+
+    return {id:storeId,name:storeName,__new:true};
   }
   function payload(storeId,x){
     return {
@@ -145,6 +158,14 @@
     const c=sb(); if(!c)return;
     const session=(await c.auth.getSession()).data?.session; if(!session)return;
     const store=await myStore();
+
+    if(store.__new){
+      writeLocal({companies:[],payments:[]});
+      sessionStorage.removeItem(SYNC_FLAG);
+      location.reload();
+      return;
+    }
+
     const r=await c.from('suppliers').select('id,name,reg_no,address,director,director_phone,sales_rep,sales_phone,org_phone,is_active').eq('store_id',store.id).order('created_at',{ascending:true});
     if(r.error)throw r.error;
     const d=readLocal(); d.companies=d.companies||[]; let changed=false;
