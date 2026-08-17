@@ -4,6 +4,16 @@
   const USER_DATA_PREFIX='NAYAD_DATA_V3:';
   const SYNC_FLAG='NAYAD_SUPPLIER_SYNC_RELOAD';
 
+  if(typeof window.__nayadQueueCloudSync!=='function'){
+    window.__nayadCloudSyncQueue=Promise.resolve();
+    window.__nayadQueueCloudSync=function(task){
+      const run=(window.__nayadCloudSyncQueue||Promise.resolve()).catch(()=>{}).then(task);
+      window.__nayadCloudSyncQueue=run.catch(()=>{});
+      return run;
+    };
+  }
+  function queueCloudSync(task){return window.__nayadQueueCloudSync(task);}
+
   function sb(){ return window.nayadSupabase || window.sb || null; }
   function dataKey(){ return window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY; }
   function readLocal(){ try{return JSON.parse(localStorage.getItem(dataKey()))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}} }
@@ -188,5 +198,5 @@
     }else sessionStorage.removeItem(SYNC_FLAG);
   }
 
-  window.addEventListener('load',()=>setTimeout(()=>syncSuppliers().catch(e=>console.warn('supplier cloud sync:',e)),1400));
+  window.addEventListener('load',()=>setTimeout(()=>queueCloudSync(()=>syncSuppliers()).catch(e=>console.warn('supplier cloud sync:',e)),1400));
 })();

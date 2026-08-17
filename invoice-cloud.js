@@ -7,6 +7,16 @@
   let reorderBound = false;
   let dragState = null;
 
+  if(typeof window.__nayadQueueCloudSync!=='function'){
+    window.__nayadCloudSyncQueue=Promise.resolve();
+    window.__nayadQueueCloudSync=function(task){
+      const run=(window.__nayadCloudSyncQueue||Promise.resolve()).catch(()=>{}).then(task);
+      window.__nayadCloudSyncQueue=run.catch(()=>{});
+      return run;
+    };
+  }
+  function queueCloudSync(task){return window.__nayadQueueCloudSync(task);}
+
   function client(){ return window.nayadSupabase || window.sb || null; }
   function dataKey(){ return window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY; }
   function readLocal(){ try{return JSON.parse(localStorage.getItem(dataKey()))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}} }
@@ -107,7 +117,7 @@
       await recordCloudPayment(sb,supplier.id,payment);
       const local=readLocal();local.payments=local.payments||[];local.payments.push(payment);writeLocal(local);
       close();notify('Төлбөр cloud-д амжилттай бүртгэгдлээ.');
-      await syncCloud();setTimeout(()=>location.reload(),350);
+      await queueCloudSync(()=>syncCloud());setTimeout(()=>location.reload(),350);
     }catch(e){
       console.error('cloud payment:',e);
       const msg=String(e?.message||'');
@@ -324,5 +334,5 @@
     if(changed){writeLocal(local);if(sessionStorage.getItem('NAYAD_CLOUD_SYNC_RELOAD')!=='1'){sessionStorage.setItem('NAYAD_CLOUD_SYNC_RELOAD','1');location.reload();}}else sessionStorage.removeItem('NAYAD_CLOUD_SYNC_RELOAD');
   }
 
-  window.addEventListener('load',()=>setTimeout(()=>syncCloud().catch(e=>console.warn('cloud invoice sync:',e)),1000));
+  window.addEventListener('load',()=>setTimeout(()=>queueCloudSync(()=>syncCloud()).catch(e=>console.warn('cloud invoice sync:',e)),1000));
 })();
