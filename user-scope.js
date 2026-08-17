@@ -3,6 +3,7 @@
 (function () {
   const KEY = "NAYAD_DATA_V2";
   const OWNER_KEY = "NAYAD_DATA_V2_MIGRATED_OWNER";
+  const EMPTY_DATA = JSON.stringify({ companies: [], payments: [] });
   const rawGet = Storage.prototype.getItem;
   const rawSet = Storage.prototype.setItem;
   const rawRemove = Storage.prototype.removeItem;
@@ -45,7 +46,10 @@
   migrateLegacyIfNeeded(activeUserId);
 
   Storage.prototype.getItem = function (key) {
-    if (key === KEY && activeUserId) return rawGet.call(this, scopedKey());
+    if (key === KEY && activeUserId) {
+      const scoped = rawGet.call(this, scopedKey());
+      return scoped || EMPTY_DATA;
+    }
     return rawGet.call(this, key);
   };
 
