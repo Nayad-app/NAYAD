@@ -57,6 +57,65 @@
     return created;
   }
 
+  async function recordCloudPayment(sb,supplierId,payment){
+    const paymentId=payment.id||crypto.randomUUID();
+    const {data,error}=await sb.rpc('record_supplier_payment',{
+      p_payment_id:paymentId,
+      p_supplier_id:supplierId,
+      p_amount:Number(payment.amount),
+      p_payment_date:payment.date||new Date().toISOString().slice(0,10),
+      p_method:payment.method||'Бусад',
+      p_note:payment.note||null
+    });
+    if(error)throw error;
+    return {id:paymentId,result:Array.isArray(data)?data[0]:data};
+  }
+
+  async function pushPendingPayments(storeRow,local){
+    const sb=client(); if(!sb)return false;
+    let changed=false;
+    for(const payment of (local.payments||[]).filter(p=>!p.supabase_synced)){
+      const company=(local.companies||[]).find(c=>String(c.id)===String(payment.companyId)||String(c.name||'').trim().toLowerCase()===String(payment.company||'').trim().toLowerCase());
+      if(!company)continue;
+      try{
+        if(!payment.id||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(payment.id)))payment.id=crypto.randomUUID();
+        writeLocal(local);
+        const supplier=await ensureSupplier(storeRow,company);
+        await recordCloudPayment(sb,supplier.id,payment);
+        payment.companyId=company.id;payment.company=company.name;payment.supabase_supplier_id=supplier.id;payment.supabase_synced=true;changed=true;
+        writeLocal(local);
+      }catch(e){console.warn('pending payment sync:',payment,e);}
+    }
+    return changed;
+  }
+
+  window.savePayment=async function(){
+    const company=currentCompany(val('pCompany'));
+    const amount=Number(val('pAmount'));
+    const date=val('pDate')||new Date().toISOString().slice(0,10);
+    const method=val('pMethod')||'Бусад';
+    if(!company){notify('Нийлүүлэгч олдсонгүй.');return;}
+    if(!amount||amount<=0){notify('Төлөх дүн оруулна уу.');return;}
+    if(typeof sync==='function')sync();
+    if(amount>Number(company.debt||0)){notify('Үлдэгдлээс их байна.');return;}
+    const btn=document.querySelector('#sheet .actions .primary');if(btn){btn.disabled=true;btn.textContent='Хадгалж байна...';}
+    try{
+      const sb=client();if(!sb)throw new Error('Supabase холболт олдсонгүй.');
+      const session=(await sb.auth.getSession()).data?.session;if(!session)throw new Error('Эхлээд NAYAD-д нэвтэрнэ үү.');
+      const storeRow=await store(),supplier=await ensureSupplier(storeRow,company);
+      const payment={id:crypto.randomUUID(),companyId:company.id,company:company.name,supabase_supplier_id:supplier.id,amount,date,method,supabase_synced:true};
+      await recordCloudPayment(sb,supplier.id,payment);
+      const local=readLocal();local.payments=local.payments||[];local.payments.push(payment);writeLocal(local);
+      close();notify('Төлбөр cloud-д амжилттай бүртгэгдлээ.');
+      await syncCloud();setTimeout(()=>location.reload(),350);
+    }catch(e){
+      console.error('cloud payment:',e);
+      const msg=String(e?.message||'');
+      notify(msg.includes('exceeds outstanding')?'Үлдэгдлээс их байна.':'Төлбөр хадгалахад алдаа: '+msg);
+      if(btn){btn.disabled=false;btn.textContent='Төлөх';}
+    }
+  };
+
   function clearPending(){
     pending.forEach(x=>{try{if(x.preview)URL.revokeObjectURL(x.preview)}catch(_){} });
     pending=[];
@@ -227,13 +286,16 @@
     const sb=client(); if(!sb)return;
     const session=(await sb.auth.getSession()).data?.session; if(!session)return;
     let storeRow; try{storeRow=await store()}catch(_){return;}
+    const local=readLocal();local.companies=local.companies||[];local.payments=local.payments||[];
+    await pushPendingPayments(storeRow,local);
     const {data:invoices,error}=await sb.from('invoices').select('id,supplier_id,invoice_no,invoice_date,amount,paid,image_url').eq('store_id',storeRow.id).order('invoice_date',{ascending:true});
     if(error||!invoices)return;
-    const supplierIds=[...new Set(invoices.map(x=>x.supplier_id).filter(Boolean))];
+    const {data:cloudPayments,error:paymentsError}=await sb.from('payments').select('id,supplier_id,payment_date,amount,method,note,created_at').eq('store_id',storeRow.id).order('created_at',{ascending:true});
+    if(paymentsError)return;
+    const supplierIds=[...new Set([...invoices.map(x=>x.supplier_id),...(cloudPayments||[]).map(x=>x.supplier_id)].filter(Boolean))];
     let suppliers=[];
     if(supplierIds.length){const r=await sb.from('suppliers').select('id,name,reg_no,address,director,director_phone,sales_phone,is_active').in('id',supplierIds);if(!r.error)suppliers=r.data||[];}
-    const {data:images}=supplierIds.length?await sb.from('invoice_images').select('invoice_id,image_url,image_path,page_number').in('invoice_id',invoices.map(x=>x.id)).order('page_number',{ascending:true}):{data:[]};
-    const local=readLocal(); local.companies=local.companies||[]; local.payments=local.payments||[];
+    const {data:images}=invoices.length?await sb.from('invoice_images').select('invoice_id,image_url,image_path,page_number').in('invoice_id',invoices.map(x=>x.id)).order('page_number',{ascending:true}):{data:[]};
     let changed=false;
     for(const s of suppliers){
       let c=local.companies.find(x=>x.supabase_supplier_id===s.id||x.name===s.name);
@@ -251,6 +313,14 @@
         }
       }
     }
+    const pendingLocal=local.payments.filter(p=>!p.supabase_synced);
+    const syncedPayments=(cloudPayments||[]).map(p=>{
+      const supplier=suppliers.find(s=>String(s.id)===String(p.supplier_id));
+      const company=local.companies.find(c=>String(c.supabase_supplier_id)===String(p.supplier_id)||c.name===supplier?.name);
+      return {id:p.id,companyId:company?.id,company:supplier?.name||company?.name||'Нийлүүлэгч',supabase_supplier_id:p.supplier_id,amount:Number(p.amount)||0,date:p.payment_date,method:p.method||'Бусад',note:p.note||'',supabase_synced:true};
+    });
+    const nextPayments=[...syncedPayments,...pendingLocal];
+    if(JSON.stringify(local.payments)!==JSON.stringify(nextPayments)){local.payments=nextPayments;changed=true;}
     if(changed){writeLocal(local);if(sessionStorage.getItem('NAYAD_CLOUD_SYNC_RELOAD')!=='1'){sessionStorage.setItem('NAYAD_CLOUD_SYNC_RELOAD','1');location.reload();}}else sessionStorage.removeItem('NAYAD_CLOUD_SYNC_RELOAD');
   }
 
