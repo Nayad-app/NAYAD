@@ -1,14 +1,16 @@
 /* NAYAD cloud invoice layer — keeps the existing UI, but persists invoices and images in Supabase. */
 (function(){
   const KEY = "NAYAD_DATA_V2";
+  const USER_DATA_PREFIX = "NAYAD_DATA_V3:";
   let cloudCompanyId = null;
   let pending = [];
   let reorderBound = false;
   let dragState = null;
 
   function client(){ return window.nayadSupabase || window.sb || null; }
-  function readLocal(){ try{return JSON.parse(localStorage.getItem(KEY))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}} }
-  function writeLocal(data){ localStorage.setItem(KEY, JSON.stringify(data)); }
+  function dataKey(){ return window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY; }
+  function readLocal(){ try{return JSON.parse(localStorage.getItem(dataKey()))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}} }
+  function writeLocal(data){ localStorage.setItem(dataKey(), JSON.stringify(data)); }
   function val(id){ return document.getElementById(id)?.value || ""; }
   function esc(s){ return String(s??"").replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
   function notify(msg){ if(typeof window.toast==='function') window.toast(msg); else { const el=document.getElementById('toast'); if(el){el.textContent=msg;el.classList.remove('hide');setTimeout(()=>el.classList.add('hide'),2200)} } }
