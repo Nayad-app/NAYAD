@@ -87,4 +87,11 @@ async function forceLogoutForTesting(){try{await sb.auth.signOut()}catch(e){cons
 window.addEventListener("load",async()=>{setTimeout(async()=>{document.getElementById("splash").classList.add("hide");const params=new URLSearchParams(location.search);if(params.get("logout")==="1"){await forceLogoutForTesting();history.replaceState({},document.title,location.pathname);return}if(INITIAL_RECOVERY_FLOW||isPasswordRecovery()){showPasswordResetScreen();try{await sb.auth.getSession()}catch(e){console.error("Recovery session:",e)}return}if(INITIAL_EMAIL_CONFIRM_FLOW){await handleEmailConfirmation();return}try{const {data:{session}}=await sb.auth.getSession();if(session&&localStorage.getItem(REMEMBER_KEY)==="0"&&sessionStorage.getItem("NAYAD_SESSION_ONLY")!=="1"){await sb.auth.signOut();await showLoginScreen()}else if(session){profileFromUser(session.user);await showAuthenticatedApp()}else await showLoginScreen()}catch(e){console.error("Auth session check:",e);await showLoginScreen()}},700)});
 sb.auth.onAuthStateChange((event,session)=>{if(INITIAL_RECOVERY_FLOW||event==="PASSWORD_RECOVERY"||isPasswordRecovery()){showPasswordResetScreen();return}if(INITIAL_EMAIL_CONFIRM_FLOW){setTimeout(()=>handleEmailConfirmation(),0);return}if(session){profileFromUser(session.user);showAuthenticatedApp()}else{window.__nayadUser=null;switchUserData(null);showLoginScreen()}});if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(console.log));async function logoutNayad(){localStorage.removeItem(REMEMBER_KEY);sessionStorage.removeItem("NAYAD_SESSION_ONLY");await sb.auth.signOut()}
 bankLogo=function(bank){const logoUrl=BANK_LOGOS[bank]||"",fallback=escapeHtml(init(bank||"Б"));return `<span class="bankLogo">${logoUrl?`<img src="${logoUrl}" alt="" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='grid'">`:""}<span class="bankLogoFallback" style="${logoUrl?"display:none":""}">${fallback}</span></span>`};
-</script></body></html>
+</script>
+<script src="./oauth-fix.js"></script>
+<script src="./render.js"></script>
+<script src="./share.js"></script>
+<script src="./invoice-cloud.js"></script>
+<script src="./supplier-cloud.js"></script>
+<script src="./company-label.js"></script>
+</body></html>
