@@ -1,11 +1,13 @@
 /* NAYAD supplier cloud layer — syncs supplier CRUD and totals across store members. */
 (function(){
   const KEY='NAYAD_DATA_V2';
+  const USER_DATA_PREFIX='NAYAD_DATA_V3:';
   const SYNC_FLAG='NAYAD_SUPPLIER_SYNC_RELOAD';
 
   function sb(){ return window.nayadSupabase || window.sb || null; }
-  function readLocal(){ try{return JSON.parse(localStorage.getItem(KEY))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}} }
-  function writeLocal(x){ localStorage.setItem(KEY,JSON.stringify(x)); }
+  function dataKey(){ return window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY; }
+  function readLocal(){ try{return JSON.parse(localStorage.getItem(dataKey()))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}} }
+  function writeLocal(x){ localStorage.setItem(dataKey(),JSON.stringify(x)); }
   function val(id){ return document.getElementById(id)?.value?.trim?.() || document.getElementById(id)?.value || ''; }
   function toastMsg(msg){ if(typeof window.toast==='function')window.toast(msg); }
   function norm(s){ return String(s||'').trim().toLowerCase(); }
@@ -17,22 +19,10 @@
   }
   async function myStore(){
     const c=sb(); if(!c)throw new Error('Supabase холболт олдсонгүй.');
-    const {data,error}=await c.rpc('get_my_store'); if(error)throw error;
+    const {data,error}=await c.rpc('ensure_my_store'); if(error)throw error;
     const row=Array.isArray(data)?data[0]:data;
     if(row?.id)return row;
-
-    const session=(await c.auth.getSession()).data?.session;
-    const user=session?.user;
-    if(!user?.id)throw new Error('Хэрэглэгчийн session олдсонгүй.');
-
-    const storeId=crypto.randomUUID();
-    const storeName=(user.user_metadata?.full_name||user.email?.split('@')[0]||'NAYAD')+' store';
-    const insStore=await c.from('stores').insert({id:storeId,name:storeName});
-    if(insStore.error)throw insStore.error;
-    const insMember=await c.from('store_members').insert({store_id:storeId,user_id:user.id,role:'owner'});
-    if(insMember.error)throw insMember.error;
-
-    return {id:storeId,name:storeName,__new:true};
+    throw new Error('Таны дэлгүүр үүссэнгүй.');
   }
   function payload(storeId,x){
     return {
@@ -45,6 +35,8 @@
       sales_rep:String(x.sales||'').trim()||null,
       sales_phone:String(x.salesPhone||'').trim()||null,
       org_phone:String(x.orgPhone||'').trim()||null,
+      bank_name:String(x.bank||'').trim()||null,
+      bank_account:String(x.bankAccount||'').trim()||null,
       is_active:x.status!=='inactive'
     };
   }
@@ -83,7 +75,9 @@
   if(typeof originalSaveCompany==='function'){
     window.saveCompany=async function(){
       const name=val('newName'); if(!name){toastMsg('Компанийн нэр оруулна уу.');return;}
-      const draft={name,reg:val('newReg'),address:val('newAddress'),director:val('newDirector'),directorPhone:val('newDirectorPhone'),sales:val('newSales'),salesPhone:val('newSalesPhone'),orgPhone:val('newOrgPhone'),status:'active'};
+      const bank=val('newBank'),bankAccount=val('newBankAccount').toUpperCase();
+      if((bank&&!bankAccount)||(!bank&&bankAccount)){toastMsg('Банк болон дансны дугаарыг хоёуланг нь оруулна уу.');return;}
+      const draft={name,reg:val('newReg'),address:val('newAddress'),director:val('newDirector'),directorPhone:val('newDirectorPhone'),sales:val('newSales'),salesPhone:val('newSalesPhone'),orgPhone:val('newOrgPhone'),bank,bankAccount,status:'active'};
       try{
         const cloud=await ensureCloudSupplier(draft);
         originalSaveCompany();
@@ -101,7 +95,8 @@
       try{
         const target=(typeof selected!=='undefined'&&selected)?selected:null;
         if(!target){originalSaveEdit();return;}
-        const draft={...target,name:val('eName')||target.name,reg:val('eReg'),address:val('eAddress'),director:val('eDirector'),directorPhone:val('eDirectorPhone'),sales:val('eSales'),salesPhone:val('eSalesPhone'),orgPhone:val('eOrgPhone'),status:val('eStatus')||'active'};
+        const draft={...target,name:val('eName')||target.name,reg:val('eReg'),address:val('eAddress'),director:val('eDirector'),directorPhone:val('eDirectorPhone'),sales:val('eSales'),salesPhone:val('eSalesPhone'),orgPhone:val('eOrgPhone'),bank:val('eBank'),bankAccount:val('eBankAccount').toUpperCase(),status:val('eStatus')||'active'};
+        if((draft.bank&&!draft.bankAccount)||(!draft.bank&&draft.bankAccount)){toastMsg('Банк болон дансны дугаарыг хоёуланг нь оруулна уу.');return;}
         const cloud=await ensureCloudSupplier(draft);
         target.supabase_supplier_id=cloud.id;
         originalSaveEdit();
@@ -159,14 +154,7 @@
     const session=(await c.auth.getSession()).data?.session; if(!session)return;
     const store=await myStore();
 
-    if(store.__new){
-      writeLocal({companies:[],payments:[]});
-      sessionStorage.removeItem(SYNC_FLAG);
-      location.reload();
-      return;
-    }
-
-    const r=await c.from('suppliers').select('id,name,reg_no,address,director,director_phone,sales_rep,sales_phone,org_phone,is_active').eq('store_id',store.id).order('created_at',{ascending:true});
+    const r=await c.from('suppliers').select('id,name,reg_no,address,director,director_phone,sales_rep,sales_phone,org_phone,bank_name,bank_account,is_active').eq('store_id',store.id).order('created_at',{ascending:true});
     if(r.error)throw r.error;
     const d=readLocal(); d.companies=d.companies||[]; let changed=false;
     const remote=r.data||[];
@@ -177,7 +165,7 @@
         local={id:Date.now()+Math.floor(Math.random()*1000000),name:s.name,color:'green',status:s.is_active===false?'inactive':'active',invoices:[]};
         d.companies.push(local); changed=true;
       }
-      const next={supabase_supplier_id:s.id,name:s.name,reg:s.reg_no||'',address:s.address||'',director:s.director||'',directorPhone:s.director_phone||'',sales:s.sales_rep||'',salesPhone:s.sales_phone||'',orgPhone:s.org_phone||'',status:s.is_active===false?'inactive':'active'};
+      const next={supabase_supplier_id:s.id,name:s.name,reg:s.reg_no||'',address:s.address||'',director:s.director||'',directorPhone:s.director_phone||'',sales:s.sales_rep||'',salesPhone:s.sales_phone||'',orgPhone:s.org_phone||'',bank:s.bank_name||'',bankAccount:s.bank_account||'',status:s.is_active===false?'inactive':'active'};
       for(const [k,v] of Object.entries(next)){if(local[k]!==v){local[k]=v;changed=true;}}
       local.invoices=local.invoices||[];
     }
