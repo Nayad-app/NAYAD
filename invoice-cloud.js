@@ -11,6 +11,14 @@
   function dataKey(){ return window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY; }
   function readLocal(){ try{return JSON.parse(localStorage.getItem(dataKey()))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}} }
   function writeLocal(data){ localStorage.setItem(dataKey(), JSON.stringify(data)); }
+  function currentCompany(id){
+    const same=x=>x&&String(x.id)===String(id);
+    if(typeof selected!=='undefined'&&same(selected))return selected;
+    if(typeof data!=='undefined'&&Array.isArray(data?.companies)){
+      const live=data.companies.find(same); if(live)return live;
+    }
+    return (readLocal().companies||[]).find(same)||null;
+  }
   function val(id){ return document.getElementById(id)?.value || ""; }
   function esc(s){ return String(s??"").replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
   function notify(msg){ if(typeof window.toast==='function') window.toast(msg); else { const el=document.getElementById('toast'); if(el){el.textContent=msg;el.classList.remove('hide');setTimeout(()=>el.classList.add('hide'),2200)} } }
@@ -147,8 +155,7 @@
 
   window.invoice=function(id){
     cloudCompanyId=id;
-    const data=readLocal();
-    const company=(data.companies||[]).find(c=>String(c.id)===String(id));
+    const company=currentCompany(id);
     if(!company){notify('Нийлүүлэгч олдсонгүй.');return;}
     clearPending();
     reorderBound=false;
@@ -180,7 +187,7 @@
       const sb=client(); if(!sb)throw new Error('Supabase холболт олдсонгүй.');
       const session=(await sb.auth.getSession()).data?.session; if(!session)throw new Error('Эхлээд NAYAD-д нэвтэрнэ үү.');
       const storeRow=await store(); storeId=storeRow.id;
-      const local=readLocal(); const company=(local.companies||[]).find(c=>String(c.id)===String(cloudCompanyId));
+      const local=readLocal(); const company=currentCompany(cloudCompanyId);
       if(!company)throw new Error('Нийлүүлэгч олдсонгүй.');
       const supplier=await ensureSupplier(storeRow,company); supplierId=supplier.id;
       invoiceId=crypto.randomUUID();
@@ -204,6 +211,7 @@
       const cidx=(local.companies||[]).findIndex(c=>String(c.id)===String(company.id));
       const inv={id:invoiceId,date,no,amount,paid:0,image_url:imageUrls[0]||'',image_urls:imageUrls,image_paths:uploaded,image_count:imageUrls.length,supabase_synced:true};
       if(cidx>=0){local.companies[cidx].supabase_supplier_id=supplierId;local.companies[cidx].invoices=local.companies[cidx].invoices||[];local.companies[cidx].invoices.push(inv);}
+      else{local.companies=local.companies||[];local.companies.push({...company,supabase_supplier_id:supplierId,invoices:[...(company.invoices||[]),inv]});}
       writeLocal(local);
       clearPending();close();notify(`Падаан болон ${imageUrls.length} зураг cloud-д хадгалагдлаа.`);setTimeout(()=>location.reload(),500);
     }catch(e){
