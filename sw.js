@@ -1,6 +1,6 @@
-const CACHE = "nayad-v23";
+const CACHE = "nayad-v24";
 
-const ASSETS = ["./","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./oauth-fix.js","./render.js","./user-scope.js","./share.js","./invoice-cloud.js","./supplier-cloud.js","./company-label.js"];
+const ASSETS = ["./","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./oauth-fix.js","./render.js","./share.js","./invoice-cloud.js","./supplier-cloud.js","./company-label.js"];
 
 self.addEventListener("install", event => { event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener("activate", event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); });
@@ -11,7 +11,6 @@ self.addEventListener("fetch", event => {
     event.respondWith(fetch(request,{cache:"no-store"}).then(async response => {
       try {
         const html=await response.clone().text(); let patched=html;
-        if(!patched.includes("user-scope.js")) patched=patched.replace(/<\/head>/i,'<script src="./user-scope.js"></script></head>');
         if(!patched.includes("oauth-fix.js")) patched=patched.replace(/<\/body>/i,'<script src="./oauth-fix.js"></script></body>');
         if(!patched.includes("render.js")) patched=patched.replace(/<\/body>/i,'<script src="./render.js"></script></body>');
         if(!patched.includes("share.js")) patched=patched.replace(/<\/body>/i,'<script src="./share.js"></script></body>');
