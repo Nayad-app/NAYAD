@@ -193,7 +193,18 @@
     }
 
     if(changed){
-      writeLocal(d);
+      /* Supplier metadata may finish syncing after a payment. Merge it into the
+         newest local snapshot so a stale supplier request can never overwrite
+         updated invoice paid amounts or newly recorded payments. */
+      const fresh=readLocal();fresh.companies=fresh.companies||[];
+      for(const synced of d.companies){
+        let target=fresh.companies.find(x=>(x.supabase_supplier_id&&synced.supabase_supplier_id&&String(x.supabase_supplier_id)===String(synced.supabase_supplier_id))||String(x.id)===String(synced.id)||norm(x.name)===norm(synced.name));
+        if(!target){fresh.companies.push(synced);continue;}
+        const newestInvoices=target.invoices||[];
+        Object.assign(target,synced);
+        target.invoices=newestInvoices;
+      }
+      writeLocal(fresh);
       if(sessionStorage.getItem(SYNC_FLAG)!=='1'){sessionStorage.setItem(SYNC_FLAG,'1');location.reload();}
     }else sessionStorage.removeItem(SYNC_FLAG);
   }

@@ -129,22 +129,24 @@
     if(amount>Number(company.debt||0)){notify('Үлдэгдлээс их байна.');return;}
     const btn=document.querySelector('#sheet .actions .primary');if(btn){btn.disabled=true;btn.textContent='Хадгалж байна...';}
     try{
-      const sb=client();if(!sb)throw new Error('Supabase холболт олдсонгүй.');
-      const session=(await sb.auth.getSession()).data?.session;if(!session)throw new Error('Эхлээд NAYAD-д нэвтэрнэ үү.');
-      const storeRow=await store(),supplier=await ensureSupplier(storeRow,company);
-      const payment={id:crypto.randomUUID(),companyId:company.id,company:company.name,supabase_supplier_id:supplier.id,amount,date,method,supabase_synced:true};
-      const cloudResult=await recordCloudPayment(sb,supplier.id,payment);
-      const local=readLocal();local.payments=local.payments||[];
-      const localCompany=(local.companies||[]).find(c=>String(c.supabase_supplier_id)===String(supplier.id)||String(c.id)===String(company.id));
-      if(localCompany)applyPaymentToInvoices(localCompany,amount);
-      if(!local.payments.some(p=>String(p.id)===String(payment.id)))local.payments.push(payment);
-      applyLocalData(local,false);
-      close();
-      if(typeof sync==='function')sync();
-      if(typeof render==='function')render();
-      const remaining=Number(cloudResult?.result?.remaining_balance);
-      notify(Number.isFinite(remaining)?`Төлбөр бүртгэгдлээ. Үлдэгдэл: ${new Intl.NumberFormat('mn-MN').format(remaining)} ₮`:'Төлбөр cloud-д амжилттай бүртгэгдлээ.');
-      queueCloudSync(()=>syncCloud()).catch(e=>console.warn('payment refresh:',e));
+      await queueCloudSync(async()=>{
+        const sb=client();if(!sb)throw new Error('Supabase холболт олдсонгүй.');
+        const session=(await sb.auth.getSession()).data?.session;if(!session)throw new Error('Эхлээд NAYAD-д нэвтэрнэ үү.');
+        const storeRow=await store(),supplier=await ensureSupplier(storeRow,company);
+        const payment={id:crypto.randomUUID(),companyId:company.id,company:company.name,supabase_supplier_id:supplier.id,amount,date,method,supabase_synced:true};
+        const cloudResult=await recordCloudPayment(sb,supplier.id,payment);
+        const local=readLocal();local.payments=local.payments||[];
+        const localCompany=(local.companies||[]).find(c=>String(c.supabase_supplier_id)===String(supplier.id)||String(c.id)===String(company.id));
+        if(localCompany)applyPaymentToInvoices(localCompany,amount);
+        if(!local.payments.some(p=>String(p.id)===String(payment.id)))local.payments.push(payment);
+        applyLocalData(local,false);
+        close();
+        if(typeof sync==='function')sync();
+        if(typeof render==='function')render();
+        const remaining=Number(cloudResult?.result?.remaining_balance);
+        notify(Number.isFinite(remaining)?`Төлбөр бүртгэгдлээ. Үлдэгдэл: ${new Intl.NumberFormat('mn-MN').format(remaining)} ₮`:'Төлбөр cloud-д амжилттай бүртгэгдлээ.');
+        await syncCloud();
+      });
     }catch(e){
       console.error('cloud payment:',e);
       const msg=String(e?.message||'');
