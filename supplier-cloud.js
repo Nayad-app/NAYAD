@@ -16,8 +16,14 @@
 
   function sb(){ return window.nayadSupabase || window.sb || null; }
   function dataKey(){ return window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY; }
-  function readLocal(){ try{return JSON.parse(localStorage.getItem(dataKey()))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}} }
-  function writeLocal(x){ localStorage.setItem(dataKey(),JSON.stringify(x)); }
+  function readLocal(){
+    if(window.__nayadState)return window.__nayadState.read();
+    try{return JSON.parse(localStorage.getItem(dataKey()))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}}
+  }
+  function writeLocal(x){
+    if(window.__nayadState)return window.__nayadState.commit(x,{render:false});
+    localStorage.setItem(dataKey(),JSON.stringify(x));return x;
+  }
   function val(id){ return document.getElementById(id)?.value?.trim?.() || document.getElementById(id)?.value || ''; }
   function toastMsg(msg){ if(typeof window.toast==='function')window.toast(msg); }
   function norm(s){ return String(s||'').trim().toLowerCase(); }
@@ -204,10 +210,17 @@
         Object.assign(target,synced);
         target.invoices=newestInvoices;
       }
-      writeLocal(fresh);
-      if(sessionStorage.getItem(SYNC_FLAG)!=='1'){sessionStorage.setItem(SYNC_FLAG,'1');location.reload();}
+      if(window.__nayadState)window.__nayadState.commit(fresh,{render:true});
+      else writeLocal(fresh);
+      sessionStorage.removeItem(SYNC_FLAG);
     }else sessionStorage.removeItem(SYNC_FLAG);
   }
 
-  window.addEventListener('load',()=>setTimeout(()=>queueCloudSync(()=>syncSuppliers()).catch(e=>console.warn('supplier cloud sync:',e)),1400));
+  function requestSupplierSync(){return queueCloudSync(()=>syncSuppliers()).catch(e=>console.warn('supplier cloud sync:',e));}
+  window.__nayadSyncSuppliers=requestSupplierSync;
+  window.addEventListener('load',()=>setTimeout(requestSupplierSync,1400));
+  const authClient=sb();
+  if(typeof authClient?.auth?.onAuthStateChange==='function'){
+    authClient.auth.onAuthStateChange((_event,session)=>{if(session)setTimeout(requestSupplierSync,0);});
+  }
 })();

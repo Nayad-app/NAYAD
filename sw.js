@@ -1,6 +1,6 @@
-const CACHE = "nayad-v33";
+const CACHE = "nayad-v35";
 
-const ASSETS = ["./","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./oauth-fix.js","./render.js","./share.js","./invoice-cloud.js?v=33","./supplier-cloud.js?v=33","./company-label.js"];
+const ASSETS = ["./","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./oauth-fix.js","./render.js","./share.js","./app-state.js?v=35","./invoice-cloud.js?v=35","./supplier-cloud.js?v=35","./company-label.js"];
 
 self.addEventListener("install", event => { event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener("activate", event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); });
@@ -14,6 +14,7 @@ self.addEventListener("fetch", event => {
         if(!patched.includes("oauth-fix.js")) patched=patched.replace(/<\/body>/i,'<script src="./oauth-fix.js"></script></body>');
         if(!patched.includes("render.js")) patched=patched.replace(/<\/body>/i,'<script src="./render.js"></script></body>');
         if(!patched.includes("share.js")) patched=patched.replace(/<\/body>/i,'<script src="./share.js"></script></body>');
+        if(!patched.includes("app-state.js")) patched=patched.replace(/<\/body>/i,'<script src="./app-state.js?v=35"></script></body>');
         if(!patched.includes("invoice-cloud.js")) patched=patched.replace(/<\/body>/i,'<script src="./invoice-cloud.js"></script></body>');
         if(!patched.includes("supplier-cloud.js")) patched=patched.replace(/<\/body>/i,'<script src="./supplier-cloud.js"></script></body>');
         if(!patched.includes("company-label.js")) patched=patched.replace(/<\/body>/i,'<script src="./company-label.js"></script></body>');
@@ -111,7 +112,7 @@ self.addEventListener("fetch", event => {
         patched=patched.replace(/<\/head>/i,mobileInvoiceFix+'</head>');
         return new Response(patched,{status:response.status,statusText:response.statusText,headers:response.headers});
       }catch(e){return response}
-    }).catch(()=>caches.match("./index.html")));
+    }).catch(()=>caches.match("./")));
     return;
   }
   event.respondWith(caches.match(request).then(cached=>cached||fetch(request).then(response=>{const copy=response.clone();caches.open(CACHE).then(cache=>cache.put(request,copy));return response;})));

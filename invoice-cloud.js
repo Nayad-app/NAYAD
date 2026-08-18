@@ -19,9 +19,16 @@
 
   function client(){ return window.nayadSupabase || window.sb || null; }
   function dataKey(){ return window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY; }
-  function readLocal(){ try{return JSON.parse(localStorage.getItem(dataKey()))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}} }
-  function writeLocal(data){ localStorage.setItem(dataKey(), JSON.stringify(data)); }
+  function readLocal(){
+    if(window.__nayadState)return window.__nayadState.read();
+    try{return JSON.parse(localStorage.getItem(dataKey()))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}}
+  }
+  function writeLocal(next){
+    if(window.__nayadState)return window.__nayadState.persist(next);
+    localStorage.setItem(dataKey(),JSON.stringify(next));return next;
+  }
   function applyLocalData(next,renderNow=true){
+    if(window.__nayadState)return window.__nayadState.commit(next,{render:renderNow});
     writeLocal(next);
     try{
       const selectedId=typeof selected!=='undefined'&&selected?selected.id:null;
@@ -39,6 +46,17 @@
       if(balance<=0)continue;
       const take=Math.min(balance,left);invoice.paid=(Number(invoice.paid)||0)+take;left-=take;
     }
+  }
+  function setCompanyRemainingBalance(company,remaining){
+    if(!company||!Number.isFinite(Number(remaining)))return;
+    const invoices=[...(company.invoices||[])].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    const total=invoices.reduce((sum,i)=>sum+(Number(i.amount)||0),0);
+    let paidTotal=Math.max(total-Number(remaining),0);
+    for(const invoice of invoices){
+      const amount=Math.max(Number(invoice.amount)||0,0);
+      const paid=Math.min(amount,paidTotal);invoice.paid=paid;paidTotal-=paid;
+    }
+    company.debt=Number(remaining);
   }
   function currentCompany(id){
     const same=x=>x&&String(x.id)===String(id);
@@ -135,17 +153,16 @@
         const storeRow=await store(),supplier=await ensureSupplier(storeRow,company);
         const payment={id:crypto.randomUUID(),companyId:company.id,company:company.name,supabase_supplier_id:supplier.id,amount,date,method,supabase_synced:true};
         const cloudResult=await recordCloudPayment(sb,supplier.id,payment);
-        const local=readLocal();local.payments=local.payments||[];
-        const localCompany=(local.companies||[]).find(c=>String(c.supabase_supplier_id)===String(supplier.id)||String(c.id)===String(company.id));
-        if(localCompany)applyPaymentToInvoices(localCompany,amount);
-        if(!local.payments.some(p=>String(p.id)===String(payment.id)))local.payments.push(payment);
-        applyLocalData(local,false);
-        close();
-        if(typeof sync==='function')sync();
-        if(typeof render==='function')render();
         const remaining=Number(cloudResult?.result?.remaining_balance);
+        const local=readLocal();local.payments=local.payments||[];
+        const localCompany=(local.companies||[]).find(c=>String(c.supabase_supplier_id)===String(supplier.id)||String(c.id)===String(company.id)||String(c.name||'').trim().toLowerCase()===String(company.name||'').trim().toLowerCase());
+        if(!localCompany)throw new Error('Төлбөрийн нийлүүлэгч дотоод төлөвт олдсонгүй.');
+        if(Number.isFinite(remaining))setCompanyRemainingBalance(localCompany,remaining);else applyPaymentToInvoices(localCompany,amount);
+        if(!local.payments.some(p=>String(p.id)===String(payment.id)))local.payments.push(payment);
+        close();
+        applyLocalData(local,true);
         notify(Number.isFinite(remaining)?`Төлбөр бүртгэгдлээ. Үлдэгдэл: ${new Intl.NumberFormat('mn-MN').format(remaining)} ₮`:'Төлбөр cloud-д амжилттай бүртгэгдлээ.');
-        await syncCloud();
+        await syncCloud(Number.isFinite(remaining)?{supplierId:supplier.id,remaining}:null);
       });
     }catch(e){
       console.error('cloud payment:',e);
@@ -321,7 +338,7 @@
     }
   };
 
-  async function syncCloud(){
+  async function syncCloud(paymentGuard=null){
     const sb=client(); if(!sb)return;
     const session=(await sb.auth.getSession()).data?.session; if(!session)return;
     let storeRow; try{storeRow=await store()}catch(_){return;}
@@ -351,6 +368,9 @@
           if(!same){c.invoices[idx]={...old,...next};changed=true;}
         }
       }
+      if(paymentGuard&&String(paymentGuard.supplierId)===String(s.id)){
+        setCompanyRemainingBalance(c,paymentGuard.remaining);
+      }
     }
     const pendingLocal=local.payments.filter(p=>!p.supabase_synced);
     const syncedPayments=(cloudPayments||[]).map(p=>{
@@ -372,4 +392,9 @@
   window.addEventListener('load',()=>setTimeout(syncOnForeground,1000));
   window.addEventListener('pageshow',event=>{if(event.persisted)setTimeout(syncOnForeground,250);});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(syncOnForeground,250);});
+  window.__nayadSyncInvoices=syncOnForeground;
+  const authClient=client();
+  if(typeof authClient?.auth?.onAuthStateChange==='function'){
+    authClient.auth.onAuthStateChange((_event,session)=>{if(session)setTimeout(syncOnForeground,0);});
+  }
 })();
