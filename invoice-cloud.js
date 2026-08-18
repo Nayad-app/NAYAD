@@ -21,6 +21,25 @@
   function dataKey(){ return window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY; }
   function readLocal(){ try{return JSON.parse(localStorage.getItem(dataKey()))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}} }
   function writeLocal(data){ localStorage.setItem(dataKey(), JSON.stringify(data)); }
+  function applyLocalData(next,renderNow=true){
+    writeLocal(next);
+    try{
+      const selectedId=typeof selected!=='undefined'&&selected?selected.id:null;
+      if(typeof data!=='undefined')data=next;
+      if(selectedId&&typeof selected!=='undefined')selected=(next.companies||[]).find(c=>String(c.id)===String(selectedId))||null;
+      if(renderNow&&typeof render==='function')render();
+    }catch(e){console.warn('Apply cloud data:',e);}
+  }
+  function applyPaymentToInvoices(company,amount){
+    let left=Number(amount)||0;
+    const invoices=[...(company?.invoices||[])].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    for(const invoice of invoices){
+      if(left<=0)break;
+      const balance=Math.max((Number(invoice.amount)||0)-(Number(invoice.paid)||0),0);
+      if(balance<=0)continue;
+      const take=Math.min(balance,left);invoice.paid=(Number(invoice.paid)||0)+take;left-=take;
+    }
+  }
   function currentCompany(id){
     const same=x=>x&&String(x.id)===String(id);
     if(typeof selected!=='undefined'&&same(selected))return selected;
@@ -114,10 +133,18 @@
       const session=(await sb.auth.getSession()).data?.session;if(!session)throw new Error('Эхлээд NAYAD-д нэвтэрнэ үү.');
       const storeRow=await store(),supplier=await ensureSupplier(storeRow,company);
       const payment={id:crypto.randomUUID(),companyId:company.id,company:company.name,supabase_supplier_id:supplier.id,amount,date,method,supabase_synced:true};
-      await recordCloudPayment(sb,supplier.id,payment);
-      const local=readLocal();local.payments=local.payments||[];local.payments.push(payment);writeLocal(local);
-      close();notify('Төлбөр cloud-д амжилттай бүртгэгдлээ.');
-      await queueCloudSync(()=>syncCloud());setTimeout(()=>location.reload(),350);
+      const cloudResult=await recordCloudPayment(sb,supplier.id,payment);
+      const local=readLocal();local.payments=local.payments||[];
+      const localCompany=(local.companies||[]).find(c=>String(c.supabase_supplier_id)===String(supplier.id)||String(c.id)===String(company.id));
+      if(localCompany)applyPaymentToInvoices(localCompany,amount);
+      if(!local.payments.some(p=>String(p.id)===String(payment.id)))local.payments.push(payment);
+      applyLocalData(local,false);
+      close();
+      if(typeof sync==='function')sync();
+      if(typeof render==='function')render();
+      const remaining=Number(cloudResult?.result?.remaining_balance);
+      notify(Number.isFinite(remaining)?`Төлбөр бүртгэгдлээ. Үлдэгдэл: ${new Intl.NumberFormat('mn-MN').format(remaining)} ₮`:'Төлбөр cloud-д амжилттай бүртгэгдлээ.');
+      queueCloudSync(()=>syncCloud()).catch(e=>console.warn('payment refresh:',e));
     }catch(e){
       console.error('cloud payment:',e);
       const msg=String(e?.message||'');
@@ -331,7 +358,7 @@
     });
     const nextPayments=[...syncedPayments,...pendingLocal];
     if(JSON.stringify(local.payments)!==JSON.stringify(nextPayments)){local.payments=nextPayments;changed=true;}
-    if(changed){writeLocal(local);if(sessionStorage.getItem('NAYAD_CLOUD_SYNC_RELOAD')!=='1'){sessionStorage.setItem('NAYAD_CLOUD_SYNC_RELOAD','1');location.reload();}}else sessionStorage.removeItem('NAYAD_CLOUD_SYNC_RELOAD');
+    if(changed){applyLocalData(local,true);}else sessionStorage.removeItem('NAYAD_CLOUD_SYNC_RELOAD');
   }
 
   let lastForegroundSync=0;
