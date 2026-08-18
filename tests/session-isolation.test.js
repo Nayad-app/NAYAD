@@ -15,12 +15,6 @@ const values=new Map([
 const content={firstChild:null,querySelector:()=>null,insertBefore(){}};
 const app={classList:{contains:()=>false}};
 
-function membershipsQuery(){
-  const response={data:membershipRows,error:null};
-  const q={select(){return q;},eq(){return q;},order(){return q;},then(resolve,reject){return Promise.resolve(response).then(resolve,reject);}};
-  return q;
-}
-
 const context={
   console,Intl,setTimeout:fn=>{fn();return 1;},clearTimeout(){},
   localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,String(value))},
@@ -37,11 +31,11 @@ context.window.__nayadActiveStoreId=oldStoreId;
 context.window.addEventListener=()=>{};
 context.window.closeSheet=()=>{};
 context.window.nayadSupabase={
-  auth:{getSession:async()=>({data:{session:{user:{id:newUserId}}}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
-  from:table=>{assert.equal(table,'store_members');return membershipsQuery();},
+  auth:{onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
   rpc:async name=>{
+    if(name==='get_my_stores')return {data:membershipRows,error:null};
     assert.equal(name,'ensure_my_store');ensureCalls++;
-    membershipRows=[{store_id:newStoreId,role:'owner',created_at:'2026-08-18',stores:{id:newStoreId,name:'Namka store'}}];
+    membershipRows=[{user_id:newUserId,id:newStoreId,role:'owner',created_at:'2026-08-18',name:'Namka store'}];
     return {data:[{id:newStoreId,name:'Namka store'}],error:null};
   }
 };
@@ -75,5 +69,9 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
   assert.equal(context.window.__nayadActiveStoreId,newStoreId,'the stale store from the previous account must be discarded');
   assert.equal(renderedCompany,'','a fresh account must render an empty store, never the previous account data');
   assert.equal(values.get(`NAYAD_ACTIVE_STORE:${newUserId}`),newStoreId);
+  membershipRows=[{user_id:'different-session',id:'other-store',role:'owner',created_at:'2026-08-18',name:'Other store'}];
+  const mismatched=await context.window.__nayadPrepareUserStore(newUserId);
+  assert.equal(mismatched,false,'a store response for a different authenticated user must be rejected');
+  assert.equal(context.window.__nayadActiveStoreId,null,'rejecting a mismatched session must also clear the previously active store');
   console.log('session-isolation: PASS — a recreated account opens a new empty store');
 })().catch(error=>{console.error(error);process.exitCode=1;});
