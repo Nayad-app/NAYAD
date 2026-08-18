@@ -17,8 +17,8 @@
       }
       const {data:{session}}=await sb.auth.getSession();
       if(!session) return false;
-      window.__nayadUser=session.user;
       if(typeof profileFromUser==='function') profileFromUser(session.user);
+      else window.__nayadUser=session.user;
       if(typeof showAuthenticatedApp==='function') await showAuthenticatedApp();
       return true;
     }catch(e){

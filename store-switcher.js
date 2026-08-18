@@ -5,6 +5,7 @@
   let stores=[];
   let initializedFor='';
   let switching=false;
+  let refreshQueue=Promise.resolve([]);
 
   const STYLE=`<style id="nayad-store-switcher-styles">
   .storeSwitcherBar{margin:0 0 14px}
@@ -35,9 +36,10 @@
     return uid&&storeId?`${DATA_PREFIX}${uid}:${storeId}`:(uid?`NAYAD_DATA_V3:${uid}`:'NAYAD_DATA_V2');
   };
 
-  async function fetchStores(){
+  async function fetchStores(expectedUserId=userId()){
     const client=sb();if(!client)return [];
     const {data:{session}}=await client.auth.getSession();if(!session)return [];
+    if(!expectedUserId||String(session.user.id)!==String(expectedUserId))return [];
     let result=await client.from('store_members').select('store_id,role,created_at,stores!inner(id,name)').eq('user_id',session.user.id).order('created_at',{ascending:true});
     if(result.error)throw result.error;
     if(!(result.data||[]).length){
@@ -91,16 +93,40 @@
     return true;
   }
 
-  async function refreshStores(options={}){
+  async function refreshStoresNow(options={}){
     const uid=userId();if(!uid)return [];
-    stores=await fetchStores();window.__nayadStores=stores;
+    const identityChanged=initializedFor!==uid;
+    if(identityChanged){
+      stores=[];
+      window.__nayadStores=[];
+      window.__nayadActiveStore=null;
+      window.__nayadActiveStoreId=null;
+    }
+    const fetched=await fetchStores(uid);
+    if(uid!==userId())return [];
+    stores=fetched;window.__nayadStores=stores;
     const requested=options.selectStoreId;
     const remembered=localStorage.getItem(ACTIVE_PREFIX+uid);
-    const current=window.__nayadActiveStoreId;
-    const selectedId=[requested,current,remembered].find(id=>id&&stores.some(s=>String(s.id)===String(id)))||stores[0]?.id;
+    const current=identityChanged?null:window.__nayadActiveStoreId;
+    const selectedId=[requested,remembered,current].find(id=>id&&stores.some(s=>String(s.id)===String(id)))||stores[0]?.id;
     initializedFor=uid;
     if(selectedId)await activateStore(selectedId,{sync:options.sync!==false,close:options.close});
     return stores;
+  }
+
+  function refreshStores(options={}){
+    const expectedUserId=userId();
+    refreshQueue=refreshQueue.catch(()=>[]).then(()=>{
+      if(!expectedUserId||expectedUserId!==userId())return [];
+      return refreshStoresNow(options);
+    });
+    return refreshQueue;
+  }
+
+  async function prepareUserStore(expectedUserId=userId()){
+    if(!expectedUserId||expectedUserId!==userId())return false;
+    await refreshStores({sync:false,close:false});
+    return expectedUserId===userId()&&Boolean(active());
   }
 
   async function selectStore(storeId){
@@ -122,11 +148,12 @@
   window.selectNayadStore=selectStore;
   window.__nayadRefreshStores=refreshStores;
   window.__nayadGetActiveStore=getActiveStore;
+  window.__nayadPrepareUserStore=prepareUserStore;
 
   window.addEventListener('load',()=>setTimeout(()=>refreshStores({sync:true,close:false}).catch(e=>console.warn('Store list:',e)),800));
   const authClient=sb();
   if(typeof authClient?.auth?.onAuthStateChange==='function')authClient.auth.onAuthStateChange((_event,session)=>{
-    if(!session){stores=[];initializedFor='';window.__nayadStores=[];window.__nayadActiveStore=null;window.__nayadActiveStoreId=null;return;}
+    if(!session){stores=[];initializedFor='';refreshQueue=Promise.resolve([]);window.__nayadStores=[];window.__nayadActiveStore=null;window.__nayadActiveStoreId=null;return;}
     setTimeout(()=>refreshStores({sync:true,close:false}).catch(e=>console.warn('Store auth refresh:',e)),0);
   });
 })();
