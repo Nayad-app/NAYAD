@@ -71,6 +71,10 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
   assert.equal(context.window.__nayadActiveStoreId,newStoreId,'the stale store from the previous account must be discarded');
   assert.equal(renderedCompany,'','a fresh account must render an empty store, never the previous account data');
   assert.equal(values.get(`NAYAD_ACTIVE_STORE:${newUserId}`),newStoreId);
+  membershipRows=[{id:newStoreId,role:'owner',created_at:'2026-08-18',name:'Namka store'}];
+  const withoutOptionalUserId=await context.window.__nayadPrepareUserStore(newUserId);
+  assert.equal(withoutOptionalUserId,true,'a valid RPC response without the optional user_id field must be accepted');
+  assert.equal(context.window.__nayadActiveStoreId,newStoreId);
   membershipRows=[{user_id:'different-session',id:'other-store',role:'owner',created_at:'2026-08-18',name:'Other store'}];
   const mismatched=await context.window.__nayadPrepareUserStore(newUserId);
   assert.equal(mismatched,false,'a store response for a different authenticated user must be rejected');

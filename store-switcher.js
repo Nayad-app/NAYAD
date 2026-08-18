@@ -61,7 +61,11 @@
       if(result.error)throw result.error;
     }
     const rows=result.data||[];
-    if(rows.some(row=>String(row.user_id)!==String(expectedUserId)))return [];
+    /* Some deployed get_my_stores() return signatures do not expose user_id.
+       The request is already bound to the verified Supabase session and the
+       RPC itself scopes rows with auth.uid(), so only reject an explicit,
+       conflicting user_id instead of treating a missing field as a mismatch. */
+    if(rows.some(row=>row.user_id!=null&&String(row.user_id)!==String(expectedUserId)))return [];
     return rows.map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',created_at:row.created_at})).filter(x=>x.id);
   }
 
