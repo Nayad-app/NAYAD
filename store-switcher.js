@@ -38,19 +38,17 @@
 
   async function fetchStores(expectedUserId=userId()){
     const client=sb();if(!client)return [];
-    const {data:{session}}=await client.auth.getSession();if(!session)return [];
-    if(!expectedUserId||String(session.user.id)!==String(expectedUserId))return [];
-    let result=await client.from('store_members').select('store_id,role,created_at,stores!inner(id,name)').eq('user_id',session.user.id).order('created_at',{ascending:true});
+    if(!expectedUserId)return [];
+    let result=await client.rpc('get_my_stores');
     if(result.error)throw result.error;
     if(!(result.data||[]).length){
       const made=await client.rpc('ensure_my_store');if(made.error)throw made.error;
-      result=await client.from('store_members').select('store_id,role,created_at,stores!inner(id,name)').eq('user_id',session.user.id).order('created_at',{ascending:true});
+      result=await client.rpc('get_my_stores');
       if(result.error)throw result.error;
     }
-    return (result.data||[]).map(row=>{
-      const store=Array.isArray(row.stores)?row.stores[0]:row.stores;
-      return {id:row.store_id||store?.id,name:store?.name||'NAYAD',role:row.role||'member',created_at:row.created_at};
-    }).filter(x=>x.id).sort((a,b)=>(a.role==='owner'?0:1)-(b.role==='owner'?0:1)||String(a.created_at||'').localeCompare(String(b.created_at||'')));
+    const rows=result.data||[];
+    if(rows.some(row=>String(row.user_id)!==String(expectedUserId)))return [];
+    return rows.map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',created_at:row.created_at})).filter(x=>x.id);
   }
 
   function renderBar(){
@@ -104,6 +102,10 @@
     }
     const fetched=await fetchStores(uid);
     if(uid!==userId())return [];
+    if(!fetched.length){
+      stores=[];window.__nayadStores=[];window.__nayadActiveStore=null;window.__nayadActiveStoreId=null;initializedFor=uid;
+      return [];
+    }
     stores=fetched;window.__nayadStores=stores;
     const requested=options.selectStoreId;
     const remembered=localStorage.getItem(ACTIVE_PREFIX+uid);
