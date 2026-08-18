@@ -62,6 +62,12 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
 
 (async()=>{
   assert.match(indexHtml,/waitForStorePreparation/,'the app must wait for store isolation before rendering');
+  const phoneLogin=indexHtml.match(/async function phoneLogin\(\)\{.*?\}\nasync function registerUser/s)?.[0]||'';
+  const registerUser=indexHtml.match(/async function registerUser\(\)\{.*?\}\nasync function googleLogin/s)?.[0]||'';
+  assert.match(phoneLogin,/await showAuthenticatedApp\(\)/,'password login must prepare the authenticated store before opening the app');
+  assert.doesNotMatch(phoneLogin,/classList\.remove\("hide"\);render\(\)/,'password login must never reveal stale cached app data directly');
+  assert.match(registerUser,/await showAuthenticatedApp\(\)/,'an immediately authenticated registration must prepare its own store before opening the app');
+  assert.doesNotMatch(registerUser,/classList\.remove\("hide"\);render\(\)/,'registration must never reveal stale cached app data directly');
   assert.doesNotMatch(oauthFix,/window\.__nayadUser=session\.user;\s*if\(typeof profileFromUser/,'OAuth must not hide an account change before profile isolation runs');
   const ready=await context.window.__nayadPrepareUserStore(newUserId);
   assert.equal(ready,true);
