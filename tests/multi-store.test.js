@@ -20,15 +20,6 @@ const pendingCloud=new Promise(resolve=>{releasePendingCloud=resolve;});
 const content={firstChild:null,querySelector:()=>null,insertBefore(){}};
 const app={classList:{contains:()=>false}};
 
-function membershipsQuery(){
-  const response={data:[
-    {store_id:ownId,role:'owner',created_at:'2026-08-17',stores:{id:ownId,name:'tsendun store'}},
-    {store_id:sharedId,role:'member',created_at:'2026-08-18',stores:{id:sharedId,name:'NAYAD'}}
-  ],error:null};
-  const q={select(){return q;},eq(){return q;},order(){return q;},then(resolve,reject){return Promise.resolve(response).then(resolve,reject);}};
-  return q;
-}
-
 const context={
   console,Intl,setTimeout:fn=>{fn();return 1;},clearTimeout(){},
   localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,String(value))},
@@ -47,9 +38,14 @@ context.window.__nayadSyncInvoices=async()=>{invoiceSyncs++;};
 context.window.__nayadSyncSuppliers=async()=>{supplierSyncs++;};
 context.window.__nayadCloudSyncQueue=pendingCloud;
 context.window.nayadSupabase={
-  auth:{getSession:async()=>({data:{session:{user:{id:userId}}}}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
-  from:table=>{assert.equal(table,'store_members');return membershipsQuery();},
-  rpc:async name=>{throw new Error('Unexpected RPC: '+name);}
+  auth:{onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
+  rpc:async name=>{
+    assert.equal(name,'get_my_stores');
+    return {data:[
+      {user_id:userId,id:ownId,role:'owner',created_at:'2026-08-17',name:'tsendun store'},
+      {user_id:userId,id:sharedId,role:'member',created_at:'2026-08-18',name:'NAYAD'}
+    ],error:null};
+  }
 };
 
 vm.createContext(context);
