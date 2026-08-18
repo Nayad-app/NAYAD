@@ -334,5 +334,13 @@
     if(changed){writeLocal(local);if(sessionStorage.getItem('NAYAD_CLOUD_SYNC_RELOAD')!=='1'){sessionStorage.setItem('NAYAD_CLOUD_SYNC_RELOAD','1');location.reload();}}else sessionStorage.removeItem('NAYAD_CLOUD_SYNC_RELOAD');
   }
 
-  window.addEventListener('load',()=>setTimeout(()=>queueCloudSync(()=>syncCloud()).catch(e=>console.warn('cloud invoice sync:',e)),1000));
+  let lastForegroundSync=0;
+  function syncOnForeground(){
+    if(document.visibilityState==='hidden')return;
+    const now=Date.now();if(now-lastForegroundSync<2000)return;lastForegroundSync=now;
+    queueCloudSync(()=>syncCloud()).catch(e=>console.warn('foreground invoice sync:',e));
+  }
+  window.addEventListener('load',()=>setTimeout(syncOnForeground,1000));
+  window.addEventListener('pageshow',event=>{if(event.persisted)setTimeout(syncOnForeground,250);});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(syncOnForeground,250);});
 })();

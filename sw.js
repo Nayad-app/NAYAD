@@ -1,6 +1,6 @@
-const CACHE = "nayad-v30";
+const CACHE = "nayad-v31";
 
-const ASSETS = ["./","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./oauth-fix.js","./render.js","./share.js","./invoice-cloud.js","./supplier-cloud.js","./company-label.js"];
+const ASSETS = ["./","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./oauth-fix.js","./render.js","./share.js","./invoice-cloud.js?v=31","./supplier-cloud.js?v=31","./company-label.js"];
 
 self.addEventListener("install", event => { event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener("activate", event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); });
