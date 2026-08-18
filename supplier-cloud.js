@@ -15,7 +15,7 @@
   function queueCloudSync(task){return window.__nayadQueueCloudSync(task);}
 
   function sb(){ return window.nayadSupabase || window.sb || null; }
-  function dataKey(){ return window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY; }
+  function dataKey(){ return typeof window.__nayadStoreDataKey==='function'?window.__nayadStoreDataKey():(window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY); }
   function readLocal(){
     if(window.__nayadState)return window.__nayadState.read();
     try{return JSON.parse(localStorage.getItem(dataKey()))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}}
@@ -35,6 +35,10 @@
   }
   async function myStore(){
     const c=sb(); if(!c)throw new Error('Supabase холболт олдсонгүй.');
+    if(typeof window.__nayadGetActiveStore==='function'){
+      const activeStore=await window.__nayadGetActiveStore();
+      if(activeStore?.id)return activeStore;
+    }
     const {data,error}=await c.rpc('ensure_my_store'); if(error)throw error;
     const row=Array.isArray(data)?data[0]:data;
     if(row?.id)return row;

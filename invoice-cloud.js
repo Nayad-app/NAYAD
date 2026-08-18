@@ -18,7 +18,7 @@
   function queueCloudSync(task){return window.__nayadQueueCloudSync(task);}
 
   function client(){ return window.nayadSupabase || window.sb || null; }
-  function dataKey(){ return window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY; }
+  function dataKey(){ return typeof window.__nayadStoreDataKey==='function'?window.__nayadStoreDataKey():(window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY); }
   function readLocal(){
     if(window.__nayadState)return window.__nayadState.read();
     try{return JSON.parse(localStorage.getItem(dataKey()))||{companies:[],payments:[]}}catch(_){return {companies:[],payments:[]}}
@@ -74,6 +74,10 @@
 
   async function store(){
     const sb=client(); if(!sb) throw new Error('Supabase холболт олдсонгүй.');
+    if(typeof window.__nayadGetActiveStore==='function'){
+      const activeStore=await window.__nayadGetActiveStore();
+      if(activeStore?.id)return activeStore;
+    }
     const {data,error}=await sb.rpc('get_my_store');
     if(error) throw error;
     const row=Array.isArray(data)?data[0]:data;
@@ -384,15 +388,15 @@
   }
 
   let lastForegroundSync=0;
-  function syncOnForeground(){
+  function syncOnForeground(force=false){
     if(document.visibilityState==='hidden')return;
-    const now=Date.now();if(now-lastForegroundSync<2000)return;lastForegroundSync=now;
-    queueCloudSync(()=>syncCloud()).catch(e=>console.warn('foreground invoice sync:',e));
+    const now=Date.now();if(!force&&now-lastForegroundSync<2000)return;lastForegroundSync=now;
+    return queueCloudSync(()=>syncCloud()).catch(e=>console.warn('foreground invoice sync:',e));
   }
   window.addEventListener('load',()=>setTimeout(syncOnForeground,1000));
   window.addEventListener('pageshow',event=>{if(event.persisted)setTimeout(syncOnForeground,250);});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(syncOnForeground,250);});
-  window.__nayadSyncInvoices=syncOnForeground;
+  window.__nayadSyncInvoices=()=>syncOnForeground(true);
   const authClient=client();
   if(typeof authClient?.auth?.onAuthStateChange==='function'){
     authClient.auth.onAuthStateChange((_event,session)=>{if(session)setTimeout(syncOnForeground,0);});

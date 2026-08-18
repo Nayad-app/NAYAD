@@ -37,6 +37,10 @@
 
   async function getStore(){
     const client=sb(); if(!client)return null;
+    if(typeof window.__nayadGetActiveStore==='function'){
+      const activeStore=await window.__nayadGetActiveStore();
+      if(activeStore?.id){currentStore=activeStore;return activeStore;}
+    }
     const {data,error}=await client.rpc('get_my_store');
     if(error){console.warn('NAYAD store:',error.message);return null}
     currentStore=data?.[0]||null; return currentStore;
@@ -67,7 +71,7 @@
   async function createStoreInvite(){
     const email=(document.getElementById('shareInviteEmail')?.value||'').trim().toLowerCase();
     if(!email)return toastSafe('И-мэйл хаяг оруулна уу.');
-    const store=currentStore||await getStore(); if(!store)return toastSafe('Дэлгүүр олдсонгүй.');
+    const store=await getStore(); if(!store)return toastSafe('Дэлгүүр олдсонгүй.');
     try{
       const {data,error}=await sb().rpc('create_store_invite',{p_store_id:store.id,p_email:email});
       if(error)throw error;
@@ -84,15 +88,18 @@
   }
 
   async function acceptInviteFromUrl(){
-    const token=new URLSearchParams(location.search).get('invite'); if(!token)return;
+    const token=new URLSearchParams(location.search).get('invite')||sessionStorage.getItem('NAYAD_PENDING_INVITE'); if(!token)return;
     const client=sb(); if(!client)return;
     const {data:{session}}=await client.auth.getSession();
     if(!session){sessionStorage.setItem('NAYAD_PENDING_INVITE',token);return}
     try{
-      const {error}=await client.rpc('accept_store_invite',{p_token:token});
+      const {data,error}=await client.rpc('accept_store_invite',{p_token:token});
       if(error)throw error;
+      sessionStorage.removeItem('NAYAD_PENDING_INVITE');
       const u=new URL(location.href);u.searchParams.delete('invite');history.replaceState({},document.title,u.pathname+(u.search?u.search:'')+u.hash);
-      toastSafe('Дэлгүүрт амжилттай нэгдлээ.');
+      const membership=Array.isArray(data)?data[0]:data;
+      if(typeof window.__nayadRefreshStores==='function')await window.__nayadRefreshStores({selectStoreId:membership?.store_id,sync:true,close:false});
+      toastSafe('Дэлгүүрт амжилттай нэгдлээ. Дэлгүүр сонгох хэсгээс хооронд нь шилжинэ.');
     }catch(e){console.error('Accept invite:',e);toastSafe(e?.message||'Урилгыг хүлээж авахад алдаа гарлаа.');}
   }
 

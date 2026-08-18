@@ -4,6 +4,7 @@
   const USER_DATA_PREFIX='NAYAD_DATA_V3:';
 
   function key(){
+    if(typeof window.__nayadStoreDataKey==='function')return window.__nayadStoreDataKey();
     return window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : LEGACY_KEY;
   }
 
