@@ -8,6 +8,7 @@ const oldStoreId='tsendun-store';
 const newStoreId='new-empty-store';
 let membershipRows=[];
 let ensureCalls=0;
+let sessionChecks=0;
 let renderedCompany='';
 const values=new Map([
   [`NAYAD_DATA_V4:${newUserId}:${oldStoreId}`,JSON.stringify({companies:[{id:1,name:'TSENDUN DATA',invoices:[]}],payments:[]})]
@@ -31,7 +32,7 @@ context.window.__nayadActiveStoreId=oldStoreId;
 context.window.addEventListener=()=>{};
 context.window.closeSheet=()=>{};
 context.window.nayadSupabase={
-  auth:{onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
+  auth:{getSession:async()=>{sessionChecks++;return {data:{session:{user:{id:sessionChecks===1?'previous-user':newUserId}}},error:null}},onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
   rpc:async name=>{
     if(name==='get_my_stores')return {data:membershipRows,error:null};
     assert.equal(name,'ensure_my_store');ensureCalls++;
@@ -65,6 +66,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
   assert.doesNotMatch(oauthFix,/window\.__nayadUser=session\.user;\s*if\(typeof profileFromUser/,'OAuth must not hide an account change before profile isolation runs');
   const ready=await context.window.__nayadPrepareUserStore(newUserId);
   assert.equal(ready,true);
+  assert.equal(sessionChecks,2,'store loading must wait until Supabase exposes the expected session user');
   assert.equal(ensureCalls,1,'a user without membership must receive a new store');
   assert.equal(context.window.__nayadActiveStoreId,newStoreId,'the stale store from the previous account must be discarded');
   assert.equal(renderedCompany,'','a fresh account must render an empty store, never the previous account data');

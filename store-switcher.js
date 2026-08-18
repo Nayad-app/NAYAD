@@ -32,6 +32,17 @@
   function active(){return window.__nayadActiveStore||null;}
   function roleLabel(role){return role==='owner'?'Эзэмшигч':'Гишүүн';}
 
+  async function waitForSessionUser(client,expectedUserId){
+    for(let attempt=0;attempt<4;attempt++){
+      const {data,error}=await client.auth.getSession();
+      if(error)throw error;
+      const sessionUserId=data?.session?.user?.id||'';
+      if(String(sessionUserId)===String(expectedUserId))return true;
+      if(attempt<3)await new Promise(resolve=>setTimeout(resolve,80));
+    }
+    return false;
+  }
+
   window.__nayadStoreDataKey=function(uid=userId(),storeId=window.__nayadActiveStoreId){
     return uid&&storeId?`${DATA_PREFIX}${uid}:${storeId}`:(uid?`NAYAD_DATA_V3:${uid}`:'NAYAD_DATA_V2');
   };
@@ -39,6 +50,9 @@
   async function fetchStores(expectedUserId=userId()){
     const client=sb();if(!client)return [];
     if(!expectedUserId)return [];
+    /* setSession emits SIGNED_IN before every dependent module has necessarily
+       observed the new session. Never query with an older account's token. */
+    if(!await waitForSessionUser(client,expectedUserId))return [];
     let result=await client.rpc('get_my_stores');
     if(result.error)throw result.error;
     if(!(result.data||[]).length){

@@ -38,7 +38,7 @@ context.window.__nayadSyncInvoices=async()=>{invoiceSyncs++;};
 context.window.__nayadSyncSuppliers=async()=>{supplierSyncs++;};
 context.window.__nayadCloudSyncQueue=pendingCloud;
 context.window.nayadSupabase={
-  auth:{onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
+  auth:{getSession:async()=>({data:{session:{user:{id:userId}}},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
   rpc:async name=>{
     assert.equal(name,'get_my_stores');
     return {data:[
