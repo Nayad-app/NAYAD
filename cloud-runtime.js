@@ -1,51 +1,12 @@
-/* NAYAD cloud runtime v53 — one authenticated store owns startup cloud sync. */
+/* NAYAD cloud runtime v54 — one authenticated store owns cloud sync. */
 (function(){
-  if(window.__nayadCloudRuntimeV53)return;
-  window.__nayadCloudRuntimeV53=true;
+  if(window.__nayadCloudRuntimeV54)return;
+  window.__nayadCloudRuntimeV54=true;
 
-  const CLOUD_SCRIPT_RE=/\/(?:invoice-cloud|supplier-cloud)\.js(?:\?|$)/i;
   let syncPromise=null;
   let syncKey='';
   let lastCompletedKey='';
   let lastCompletedAt=0;
-
-  function currentScriptIsCloudModule(){
-    return CLOUD_SCRIPT_RE.test(String(document.currentScript?.src||''));
-  }
-
-  /* The legacy cloud modules used to start themselves from load/auth/visibility
-     listeners. That creates multiple competing store initializers when accounts
-     are switched. Block only those top-level registrations; every other listener
-     in the app continues to use the native APIs unchanged. */
-  const nativeWindowAdd=window.addEventListener.bind(window);
-  window.addEventListener=function(type,listener,options){
-    if(currentScriptIsCloudModule()&&(type==='load'||type==='pageshow')){
-      console.info('NAYAD cloud runtime blocked legacy',type,'listener.');
-      return;
-    }
-    return nativeWindowAdd(type,listener,options);
-  };
-
-  const nativeDocumentAdd=document.addEventListener.bind(document);
-  document.addEventListener=function(type,listener,options){
-    if(currentScriptIsCloudModule()&&type==='visibilitychange'){
-      console.info('NAYAD cloud runtime blocked legacy visibility listener.');
-      return;
-    }
-    return nativeDocumentAdd(type,listener,options);
-  };
-
-  const auth=(window.nayadSupabase||window.sb)?.auth||null;
-  if(auth&&typeof auth.onAuthStateChange==='function'){
-    const nativeOnAuthStateChange=auth.onAuthStateChange.bind(auth);
-    auth.onAuthStateChange=function(callback){
-      if(currentScriptIsCloudModule()){
-        console.info('NAYAD cloud runtime blocked legacy cloud auth listener.');
-        return {data:{subscription:{unsubscribe(){}}},error:null};
-      }
-      return nativeOnAuthStateChange(callback);
-    };
-  }
 
   function client(){return window.nayadSupabase||window.sb||null;}
 
@@ -112,4 +73,11 @@
       if(syncKey===key){syncPromise=null;syncKey='';}
     }
   };
+
+  function request(reason){
+    if(document.visibilityState==='hidden')return;
+    window.__nayadStartCloudSync({reason}).catch(()=>{});
+  }
+  window.addEventListener('pageshow',event=>{if(event.persisted)setTimeout(()=>request('bfcache'),250);});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>request('visible'),250);});
 })();
