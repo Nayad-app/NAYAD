@@ -44,8 +44,7 @@
       headers:{
         'Content-Type':'application/json',
         'apikey':PUBLIC_KEY,
-        'Authorization':'Bearer '+token,
-        'X-NAYAD-Store-Recovery':'v46'
+        'Authorization':'Bearer '+token
       },
       body:'{}'
     });
