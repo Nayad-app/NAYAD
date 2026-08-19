@@ -198,6 +198,7 @@
         const local=readLocal();local.payments=local.payments||[];
         const localCompany=(local.companies||[]).find(c=>String(c.supabase_supplier_id)===String(supplier.id)||String(c.id)===String(company.id)||String(c.name||'').trim().toLowerCase()===String(company.name||'').trim().toLowerCase());
         if(!localCompany)throw new Error('Төлбөрийн нийлүүлэгч дотоод төлөвт олдсонгүй.');
+        localCompany.supabase_supplier_id=supplier.id;
         if(Number.isFinite(remaining))setCompanyRemainingBalance(localCompany,remaining);else applyPaymentToInvoices(localCompany,amount);
         if(!local.payments.some(p=>String(p.id)===String(payment.id)))local.payments.push(payment);
         close();
