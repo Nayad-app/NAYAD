@@ -10,6 +10,8 @@ const authoritative={companies:[{id:1,name:'vitafit',supabase_supplier_id:'suppl
 const stale=JSON.parse(JSON.stringify(authoritative));
 stale.companies[0].invoices[0].paid=85500;
 stale.companies[0].debt=14500;
+stale.companies.push({id:2,name:'bat',invoices:[{id:'local-only',amount:1200,paid:0}],debt:1200});
+stale.companies.push({id:3,name:'vitafit',supabase_supplier_id:'supplier-1',invoices:[],debt:0});
 const storage=new Map([[key,JSON.stringify(authoritative)]]);
 let onLoad=null;
 let renderedDebt=null;
@@ -60,6 +62,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'supplier-cloud.js'),'utf8'),cont
   assert.equal(saved.companies[0].debt,14200,'supplier metadata must preserve the newest stored balance');
   assert.equal(saved.companies[0].invoices[0].paid,85800,'supplier metadata must preserve paid invoice values');
   assert.equal(saved.companies[0].bank,'ХААН банк','supplier metadata still needs to update');
+  assert.equal(saved.companies.length,1,'a stale device-only supplier must be removed');
   assert.equal(liveDebt,14200,'supplier sync must replace stale visible state');
   assert.equal(renderedDebt,14200,'supplier sync must render the preserved balance');
   console.log('supplier-sync: PASS — metadata refresh cannot revert a 14,200 ₮ payment balance');
