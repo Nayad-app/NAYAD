@@ -1,7 +1,7 @@
-/* NAYAD auth guard v53 — current session is authoritative; app boot owns cloud sync. */
+/* NAYAD auth guard v55 — browser Supabase Auth owns session persistence. */
 (function(){
-  if(window.__nayadAuthGuardV53)return;
-  window.__nayadAuthGuardV53=true;
+  if(window.__nayadAuthGuardV55)return;
+  window.__nayadAuthGuardV55=true;
 
   const originalHandleAuthStateChange=window.handleAuthStateChange;
   const originalShowAuthenticatedApp=window.showAuthenticatedApp;
@@ -23,6 +23,13 @@
       if(typeof window.profileFromUser==='function')window.profileFromUser(user);
       else window.__nayadUser=user;
     }
+  }
+  function resetRuntimeIdentity(){
+    window.__nayadUser=null;
+    window.__nayadStores=[];
+    window.__nayadActiveStoreId='';
+    window.__nayadActiveStore=null;
+    if(typeof window.switchUserData==='function')window.switchUserData(null);
   }
   function scheduleCloudSync(reason){
     setTimeout(async()=>{
@@ -66,8 +73,7 @@
       const session=await readCurrentSession();
       const user=session?.user||null;
       if(!user){
-        window.__nayadUser=null;
-        if(typeof window.switchUserData==='function')window.switchUserData(null);
+        resetRuntimeIdentity();
         if(typeof originalShowLoginScreen==='function')await originalShowLoginScreen();
         return false;
       }
@@ -97,9 +103,9 @@
   if(typeof originalShowAuthenticatedApp==='function')window.showAuthenticatedApp=safeShowAuthenticatedApp;
   if(typeof originalShowLoginScreen==='function')window.showLoginScreen=safeShowLoginScreen;
 
-  /* Phone login persists the new Supabase session, then starts a clean document.
-     The new document has one authenticated identity; cloud-runtime starts data
-     sync only after that identity's active store has been prepared. */
+  /* Phone login v55: the edge function only resolves and verifies the phone
+     identity. The browser then signs in natively with Supabase Auth. No raw
+     token handoff, no setSession(), and no forced navigation are used. */
   if(typeof originalPhoneLogin==='function'){
     window.phoneLogin=async function(){
       const username=(document.getElementById('loginPhone')?.value||'').trim();
@@ -110,34 +116,60 @@
       if(!username||!password){if(typeof authMessage==='function')authMessage('loginMsg','Утасны дугаар болон нууц үгээ оруулна уу.');return;}
       if(!phone){if(typeof authMessage==='function')authMessage('loginMsg','Утасны дугаараа 8 оронтой зөв оруулна уу.');return;}
       if(typeof setAuthBusy==='function')setAuthBusy('loginBtn',true,'Нэвтэрч байна...');
-      let navigating=false;
       try{
         const url=(typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'https://kjgtmxcxchjevzoxwqzr.supabase.co')+'/functions/v1/phone-login';
         const key=(typeof SUPABASE_PUBLISHABLE_KEY!=='undefined'?SUPABASE_PUBLISHABLE_KEY:'');
         const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','apikey':key},body:JSON.stringify({phone,password})});
         const result=await response.json().catch(()=>({}));
-        if(!response.ok||!result.access_token||!result.refresh_token)throw new Error('Invalid login credentials');
+        if(!response.ok||typeof result.email!=='string'||!result.email||typeof result.user_id!=='string'||!result.user_id){
+          throw new Error('Invalid login credentials');
+        }
+
         const c=client();
-        if(!c?.auth?.setSession)throw new Error('Нэвтрэх үйлчилгээ бэлэн биш байна.');
-        const login=await c.auth.setSession({access_token:result.access_token,refresh_token:result.refresh_token});
+        if(!c?.auth?.signInWithPassword)throw new Error('Нэвтрэх үйлчилгээ бэлэн биш байна.');
+        const login=await c.auth.signInWithPassword({email:result.email,password});
         if(login.error)throw login.error;
         if(!login.data?.session||!login.data?.user)throw new Error('Нэвтрэх session үүссэнгүй.');
+        if(String(login.data.user.id)!==String(result.user_id)){
+          try{await c.auth.signOut({scope:'local'});}catch(_){ }
+          throw new Error('Нэвтрэх хэрэглэгч таарсангүй.');
+        }
+
         const rememberKey=(typeof REMEMBER_KEY!=='undefined'?REMEMBER_KEY:'NAYAD_REMEMBER_ME');
         localStorage.setItem(rememberKey,remember?'1':'0');
         if(!remember)sessionStorage.setItem('NAYAD_SESSION_ONLY','1');
         else sessionStorage.removeItem('NAYAD_SESSION_ONLY');
-        sessionStorage.setItem('NAYAD_JUST_LOGGED_IN',login.data.user.id||'1');
-        navigating=true;
-        window.location.replace(window.location.pathname);
+
+        applyCurrentUser(login.data.user);
+        const opened=await safeShowAuthenticatedApp();
+        if(!opened)throw new Error('Дэлгүүрийн мэдээлэл ачаалж чадсангүй.');
       }catch(error){
         console.error(error);
         const message=(typeof authFriendlyError==='function')?authFriendlyError(error):(error?.message||'Нэвтрэхэд алдаа гарлаа.');
         if(typeof authMessage==='function')authMessage('loginMsg',message);
       }finally{
-        if(!navigating&&typeof setAuthBusy==='function')setAuthBusy('loginBtn',false);
+        if(typeof setAuthBusy==='function')setAuthBusy('loginBtn',false);
       }
     };
   }
+
+  /* Logout is local to this browser. A user signing out here must not revoke
+     the same account on other devices. */
+  window.logoutNayad=async function(){
+    const rememberKey=(typeof REMEMBER_KEY!=='undefined'?REMEMBER_KEY:'NAYAD_REMEMBER_ME');
+    localStorage.removeItem(rememberKey);
+    sessionStorage.removeItem('NAYAD_SESSION_ONLY');
+    sessionStorage.removeItem('NAYAD_JUST_LOGGED_IN');
+    try{
+      const c=client();
+      if(c?.auth?.signOut)await c.auth.signOut({scope:'local'});
+    }catch(error){
+      console.warn('Local signOut:',error);
+    }finally{
+      resetRuntimeIdentity();
+      if(typeof originalShowLoginScreen==='function')await originalShowLoginScreen();
+    }
+  };
 
   async function reconcile(reason='recovery'){
     if(running)return running;
