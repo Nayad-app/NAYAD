@@ -144,6 +144,7 @@
     if(changed&&options.sync!==false){
       if(typeof window.__nayadSyncInvoices==='function')await window.__nayadSyncInvoices();
       if(typeof window.__nayadSyncSuppliers==='function')await window.__nayadSyncSuppliers();
+      if(typeof window.__nayadWatchCloudStore==='function')await window.__nayadWatchCloudStore();
     }
     return true;
   }
