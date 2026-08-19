@@ -1,4 +1,4 @@
-const CACHE = "nayad-v55";
+const CACHE = "nayad-v56";
 
 const ASSETS = [
   "./",
@@ -9,7 +9,7 @@ const ASSETS = [
   "./oauth-fix.js?v=45",
   "./render.js",
   "./app-state.js?v=37",
-  "./store-switcher.js?v=51",
+  "./store-switcher.js?v=52",
   "./store-recovery.js?v=52",
   "./cloud-runtime.js?v=54",
   "./auth-guard.js?v=55",
@@ -49,7 +49,7 @@ function injectCloudRuntimeBeforeCloudModules(html){
 
 function patchDocument(html){
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
-  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=51");
+  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=52");
   patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=52");
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=54");
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=55");

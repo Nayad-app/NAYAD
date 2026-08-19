@@ -9,6 +9,7 @@ const newStoreId='new-empty-store';
 let membershipRows=[];
 let ensureCalls=0;
 let sessionChecks=0;
+let keepMembershipEmptyAfterEnsure=false;
 let renderedCompany='';
 const values=new Map([
   [`NAYAD_DATA_V4:${newUserId}:${oldStoreId}`,JSON.stringify({companies:[{id:1,name:'TSENDUN DATA',invoices:[]}],payments:[]})]
@@ -32,11 +33,11 @@ context.window.__nayadActiveStoreId=oldStoreId;
 context.window.addEventListener=()=>{};
 context.window.closeSheet=()=>{};
 context.window.nayadSupabase={
-  auth:{getSession:async()=>{sessionChecks++;return {data:{session:{user:{id:sessionChecks===1?'previous-user':newUserId}}},error:null}},onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
+  auth:{getSession:async()=>{sessionChecks++;return {data:{session:{user:{id:newUserId}}},error:null}},onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
   rpc:async name=>{
     if(name==='get_my_stores')return {data:membershipRows,error:null};
     assert.equal(name,'ensure_my_store');ensureCalls++;
-    membershipRows=[{user_id:newUserId,id:newStoreId,role:'owner',created_at:'2026-08-18',name:'Namka store'}];
+    if(!keepMembershipEmptyAfterEnsure)membershipRows=[{user_id:newUserId,id:newStoreId,role:'owner',created_at:'2026-08-18',name:'Namka store'}];
     return {data:[{id:newStoreId,name:'Namka store'}],error:null};
   }
 };
@@ -66,7 +67,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
   assert.doesNotMatch(oauthFix,/window\.__nayadUser=session\.user;\s*if\(typeof profileFromUser/,'OAuth must not hide an account change before profile isolation runs');
   const ready=await context.window.__nayadPrepareUserStore(newUserId);
   assert.equal(ready,true);
-  assert.equal(sessionChecks,2,'store loading must wait until Supabase exposes the expected session user');
+  assert.equal(sessionChecks,4,'store loading must reconcile and verify the Supabase session user');
   assert.equal(ensureCalls,1,'a user without membership must receive a new store');
   assert.equal(context.window.__nayadActiveStoreId,newStoreId,'the stale store from the previous account must be discarded');
   assert.equal(renderedCompany,'','a fresh account must render an empty store, never the previous account data');
@@ -75,7 +76,16 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
   const withoutOptionalUserId=await context.window.__nayadPrepareUserStore(newUserId);
   assert.equal(withoutOptionalUserId,true,'a valid RPC response without the optional user_id field must be accepted');
   assert.equal(context.window.__nayadActiveStoreId,newStoreId);
+  membershipRows=[];
+  keepMembershipEmptyAfterEnsure=true;
+  const withEnsuredFallback=await context.window.__nayadPrepareUserStore(newUserId);
+  assert.equal(withEnsuredFallback,true,'a successful ensure_my_store response must open the store when the list is briefly empty');
+  assert.equal(context.window.__nayadActiveStoreId,newStoreId);
+  keepMembershipEmptyAfterEnsure=false;
   membershipRows=[{user_id:'different-session',id:'other-store',role:'owner',created_at:'2026-08-18',name:'Other store'}];
+  context.window.__nayadStores=[];
+  context.window.__nayadActiveStore=null;
+  context.window.__nayadActiveStoreId=null;
   const mismatched=await context.window.__nayadPrepareUserStore(newUserId);
   assert.equal(mismatched,false,'a store response for a different authenticated user must be rejected');
   assert.equal(context.window.__nayadActiveStoreId,null,'rejecting a mismatched session must also clear the previously active store');

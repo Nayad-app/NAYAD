@@ -92,12 +92,19 @@
     if(!await waitForSessionUser(client,expectedUserId))return [];
     let result=await client.rpc('get_my_stores');
     if(result.error)throw result.error;
-    if(!(result.data||[]).length){
+    let rows=Array.isArray(result.data)?result.data:[];
+    if(!rows.length){
       const made=await client.rpc('ensure_my_store');if(made.error)throw made.error;
+      const ensured=Array.isArray(made.data)?made.data[0]:made.data;
       result=await client.rpc('get_my_stores');
       if(result.error)throw result.error;
+      rows=Array.isArray(result.data)?result.data:[];
+      /* Immediately after a session change the invoker-scoped list can be
+         briefly empty. ensure_my_store is bound to auth.uid() and has
+         already returned the verified user's store, so keep that result as
+         a safe fallback instead of rejecting a valid login. */
+      if(!rows.length&&ensured?.id)rows=[{id:ensured.id,name:ensured.name,role:'owner'}];
     }
-    const rows=result.data||[];
     if(rows.some(row=>row.user_id!=null&&String(row.user_id)!==String(expectedUserId)))return [];
     return normalizeStores(rows);
   }
