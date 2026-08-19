@@ -170,7 +170,11 @@
         refreshPaymentView();
         return;
       }
-      window.location.reload();
+      /* A query nonce prevents a browser or an older service worker from
+         restoring the previous document from its navigation cache. */
+      const target=new URL(window.location.href);
+      target.searchParams.set('payment_refresh',String(Date.now()));
+      window.location.replace(target.href);
     },300);
   }
 
