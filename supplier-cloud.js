@@ -27,6 +27,9 @@
   function val(id){ return document.getElementById(id)?.value?.trim?.() || document.getElementById(id)?.value || ''; }
   function toastMsg(msg){ if(typeof window.toast==='function')window.toast(msg); }
   function norm(s){ return String(s||'').trim().toLowerCase(); }
+  function duplicateLocalSupplier(name,excludeId=''){
+    return (readLocal().companies||[]).find(company=>norm(company.name)===norm(name)&&String(company.id)!==String(excludeId));
+  }
   function sameSupplier(a,b){
     if(a?.supabase_supplier_id && b?.id) return String(a.supabase_supplier_id)===String(b.id);
     const sameName=norm(a?.name)===norm(b?.name);
@@ -66,10 +69,12 @@
       const q=await c.from('suppliers').select('*').eq('store_id',storeId).eq('id',x.supabase_supplier_id).maybeSingle();
       if(!q.error&&q.data)return q.data;
     }
-    let q=c.from('suppliers').select('*').eq('store_id',storeId).eq('name',String(x.name||'').trim());
-    const reg=String(x.reg||'').trim(); if(reg)q=q.eq('reg_no',reg);
-    const r=await q.limit(1).maybeSingle();
-    if(!r.error&&r.data)return r.data;
+    const wantedName=String(x.name||'').trim();
+    const r=await c.from('suppliers').select('*').eq('store_id',storeId).ilike('name',wantedName).limit(20);
+    if(!r.error){
+      const exact=(r.data||[]).find(row=>norm(row.name)===norm(wantedName));
+      if(exact)return exact;
+    }
     return null;
   }
   async function ensureCloudSupplier(x){
@@ -86,6 +91,12 @@
     }
     throw ins.error;
   }
+  async function createCloudSupplier(x){
+    const c=sb(),store=await myStore();
+    const ins=await c.from('suppliers').insert(payload(store.id,x)).select('*').single();
+    if(ins.error)throw ins.error;
+    return ins.data;
+  }
   function attachCloudId(localId,cloudId){
     const d=readLocal(), c=(d.companies||[]).find(x=>String(x.id)===String(localId));
     if(c){c.supabase_supplier_id=cloudId;writeLocal(d);}
@@ -95,17 +106,24 @@
   if(typeof originalSaveCompany==='function'){
     window.saveCompany=async function(){
       const name=val('newName'); if(!name){toastMsg('Компанийн нэр оруулна уу.');return;}
+      if(duplicateLocalSupplier(name)){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
       const bank=val('newBank'),bankAccount=val('newBankAccount').toUpperCase();
       if((bank&&!bankAccount)||(!bank&&bankAccount)){toastMsg('Банк болон дансны дугаарыг хоёуланг нь оруулна уу.');return;}
       const draft={name,reg:val('newReg'),address:val('newAddress'),director:val('newDirector'),directorPhone:val('newDirectorPhone'),sales:val('newSales'),salesPhone:val('newSalesPhone'),orgPhone:val('newOrgPhone'),bank,bankAccount,status:'active'};
       try{
-        const cloud=await ensureCloudSupplier(draft);
+        const store=await myStore();
+        const existing=await findExisting(store.id,draft);
+        if(existing){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
+        const cloud=await createCloudSupplier(draft);
         originalSaveCompany();
         const d=readLocal();
         const matches=(d.companies||[]).filter(c=>norm(c.name)===norm(name)&&(!draft.reg||!c.reg||norm(c.reg)===norm(draft.reg)));
         const local=matches[matches.length-1]; if(local){local.supabase_supplier_id=cloud.id;writeLocal(d);}
         toastMsg('Нийлүүлэгч cloud-д хадгалагдлаа.');
-      }catch(e){console.error('supplier create:',e);toastMsg('Нийлүүлэгч хадгалахад алдаа: '+(e?.message||''));}
+      }catch(e){
+        console.error('supplier create:',e);
+        toastMsg(e?.code==='23505'?'Ийм нэртэй компани бүртгэлтэй байна.':'Нийлүүлэгч хадгалахад алдаа: '+(e?.message||''));
+      }
     };
   }
 
@@ -116,6 +134,7 @@
         const target=(typeof selected!=='undefined'&&selected)?selected:null;
         if(!target){originalSaveEdit();return;}
         const draft={...target,name:val('eName')||target.name,reg:val('eReg'),address:val('eAddress'),director:val('eDirector'),directorPhone:val('eDirectorPhone'),sales:val('eSales'),salesPhone:val('eSalesPhone'),orgPhone:val('eOrgPhone'),bank:val('eBank'),bankAccount:val('eBankAccount').toUpperCase(),status:val('eStatus')||'active'};
+        if(duplicateLocalSupplier(draft.name,target.id)){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
         if((draft.bank&&!draft.bankAccount)||(!draft.bank&&draft.bankAccount)){toastMsg('Банк болон дансны дугаарыг хоёуланг нь оруулна уу.');return;}
         const cloud=await ensureCloudSupplier(draft);
         target.supabase_supplier_id=cloud.id;
@@ -194,8 +213,21 @@
     /* Supabase is authoritative after sign-in. Old per-device rows must never
        be uploaded as new suppliers, otherwise desktop and mobile diverge. */
     const remoteIds=new Set(remote.map(s=>String(s.id)));
-    const authoritative=d.companies.filter(company=>remoteIds.has(String(company.supabase_supplier_id||'')));
-    if(authoritative.length!==d.companies.length){d.companies=authoritative;changed=true;}
+    const authoritativeBySupplier=new Map();
+    for(const company of d.companies){
+      const supplierId=String(company.supabase_supplier_id||'');
+      if(!remoteIds.has(supplierId)){changed=true;continue;}
+      const existing=authoritativeBySupplier.get(supplierId);
+      if(!existing){authoritativeBySupplier.set(supplierId,company);continue;}
+      const invoiceIds=new Set((existing.invoices||[]).map(invoice=>String(invoice.id)));
+      for(const invoice of company.invoices||[]){if(!invoiceIds.has(String(invoice.id))){existing.invoices.push(invoice);invoiceIds.add(String(invoice.id));}}
+      for(const payment of d.payments||[]){if(String(payment.companyId)===String(company.id)){payment.companyId=existing.id;payment.company=existing.name;}}
+      changed=true;
+    }
+    const authoritative=[...authoritativeBySupplier.values()];
+    if(authoritative.length!==d.companies.length)changed=true;
+    d.companies=authoritative;
+    const authoritativeLocalIds=new Set(d.companies.map(company=>String(company.id)));
 
     if(changed){
       /* Supplier metadata may finish syncing after a payment. Merge it into the
@@ -211,7 +243,7 @@
       }
       /* Preserve a supplier created while this request was in flight, but
          remove every stale row that existed before the cloud snapshot. */
-      fresh.companies=fresh.companies.filter(company=>remoteIds.has(String(company.supabase_supplier_id||''))||!companiesAtSyncStart.has(String(company.id)));
+      fresh.companies=fresh.companies.filter(company=>authoritativeLocalIds.has(String(company.id))||!companiesAtSyncStart.has(String(company.id)));
       if(window.__nayadState)window.__nayadState.commit(fresh,{render:true});
       else writeLocal(fresh);
       sessionStorage.removeItem(SYNC_FLAG);
