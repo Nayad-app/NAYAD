@@ -122,6 +122,40 @@
     return {id:paymentId,result:Array.isArray(data)?data[0]:data};
   }
 
+  async function refreshPaidSupplier(sb,supplierId,remaining){
+    /* Payment settlement must not depend on the global store-sync coordinator.
+       Read the affected supplier directly after the transactional RPC, then
+       replace the visible invoice balances with that authoritative snapshot. */
+    const {data:rows,error}=await sb.from('invoices')
+      .select('id,supplier_id,invoice_no,invoice_date,amount,paid,image_url')
+      .eq('supplier_id',supplierId)
+      .order('invoice_date',{ascending:true});
+    if(error)throw error;
+    const fresh=readLocal();
+    fresh.companies=fresh.companies||[];
+    const company=fresh.companies.find(c=>String(c.supabase_supplier_id)===String(supplierId));
+    if(!company)throw new Error('Төлбөрийн нийлүүлэгч дэлгэцийн төлөвт олдсонгүй.');
+    const existing=new Map((company.invoices||[]).map(invoice=>[String(invoice.id),invoice]));
+    company.invoices=(rows||[]).map(row=>{
+      const previous=existing.get(String(row.id))||{};
+      return {
+        ...previous,
+        id:row.id,
+        date:row.invoice_date,
+        no:row.invoice_no||'',
+        amount:Number(row.amount)||0,
+        paid:Number(row.paid)||0,
+        image_url:row.image_url||previous.image_url||'',
+        supabase_synced:true
+      };
+    });
+    /* If a replica/CDN returns the pre-payment row for a moment, the RPC's
+       transaction result still wins so the UI can never jump backwards. */
+    if(Number.isFinite(Number(remaining)))setCompanyRemainingBalance(company,Number(remaining));
+    applyLocalData(fresh,true);
+    return true;
+  }
+
   async function pushPendingPayments(storeRow,local){
     const sb=client(); if(!sb)return false;
     let changed=false;
@@ -169,7 +203,15 @@
         close();
         applyLocalData(local,true);
         notify(Number.isFinite(remaining)?`Төлбөр бүртгэгдлээ. Үлдэгдэл: ${new Intl.NumberFormat('mn-MN').format(remaining)} ₮`:'Төлбөр cloud-д амжилттай бүртгэгдлээ.');
-        await syncCloud(Number.isFinite(remaining)?{supplierId:supplier.id,remaining}:null);
+        await refreshPaidSupplier(sb,supplier.id,remaining);
+        /* The direct supplier refresh above settles this screen immediately.
+           Queue the broader cross-device snapshot only after this payment task
+           releases the shared write lock. */
+        setTimeout(()=>{
+          if(typeof window.__nayadStartCloudSync==='function'){
+            window.__nayadStartCloudSync({reason:'payment-settled',force:true}).catch(()=>{});
+          }
+        },0);
       });
     }catch(e){
       console.error('cloud payment:',e);
