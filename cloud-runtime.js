@@ -1,12 +1,14 @@
-/* NAYAD cloud runtime v54 — one authenticated store owns cloud sync. */
+/* NAYAD cloud runtime v55 — one authenticated store owns live cloud sync. */
 (function(){
-  if(window.__nayadCloudRuntimeV54)return;
-  window.__nayadCloudRuntimeV54=true;
+  if(window.__nayadCloudRuntimeV55)return;
+  window.__nayadCloudRuntimeV55=true;
 
   let syncPromise=null;
   let syncKey='';
   let lastCompletedKey='';
   let lastCompletedAt=0;
+  let watchedKey='';
+  let realtimeChannel=null;
 
   function client(){return window.nayadSupabase||window.sb||null;}
 
@@ -76,8 +78,34 @@
 
   function request(reason){
     if(document.visibilityState==='hidden')return;
-    window.__nayadStartCloudSync({reason}).catch(()=>{});
+    window.__nayadStartCloudSync({reason,force:true}).catch(()=>{});
   }
-  window.addEventListener('pageshow',event=>{if(event.persisted)setTimeout(()=>request('bfcache'),250);});
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>request('visible'),250);});
+
+  async function watchActiveStore(){
+    const c=client(),context=await currentContext();
+    if(!c?.channel||!context)return false;
+    const key=context.userId+':'+context.storeId;
+    if(realtimeChannel&&watchedKey===key)return true;
+    if(realtimeChannel&&typeof c.removeChannel==='function')await c.removeChannel(realtimeChannel).catch(()=>{});
+    watchedKey=key;
+    const refresh=()=>setTimeout(()=>request('realtime-change'),120);
+    realtimeChannel=c.channel('nayad-store-'+context.storeId)
+      .on('postgres_changes',{event:'*',schema:'public',table:'invoices',filter:'store_id=eq.'+context.storeId},refresh)
+      .on('postgres_changes',{event:'*',schema:'public',table:'payments',filter:'store_id=eq.'+context.storeId},refresh)
+      .on('postgres_changes',{event:'*',schema:'public',table:'suppliers',filter:'store_id=eq.'+context.storeId},refresh)
+      .subscribe();
+    return true;
+  }
+
+  function refreshAll(reason){
+    request(reason);
+    watchActiveStore().catch(error=>console.warn('NAYAD realtime watch:',error));
+  }
+  window.__nayadWatchCloudStore=watchActiveStore;
+  window.addEventListener('load',()=>setTimeout(()=>refreshAll('load'),1000));
+  window.addEventListener('pageshow',()=>setTimeout(()=>refreshAll('pageshow'),250));
+  window.addEventListener('focus',()=>setTimeout(()=>refreshAll('focus'),150));
+  window.addEventListener('online',()=>setTimeout(()=>refreshAll('online'),150));
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>refreshAll('visible'),250);});
+  setInterval(()=>{if(document.visibilityState==='visible')request('visible-backup');},30000);
 })();
