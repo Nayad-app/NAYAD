@@ -150,6 +150,9 @@
     if(typeof sync==='function')sync();
     if(amount>Number(company.debt||0)){notify('Үлдэгдлээс их байна.');return;}
     const btn=document.querySelector('#sheet .actions .primary');if(btn){btn.disabled=true;btn.textContent='Хадгалж байна...';}
+    // A newly installed service worker must not reload the page between the
+    // successful payment RPC and the local/cloud balance refresh.
+    window.__nayadCriticalOperation='payment';
     try{
       await queueCloudSync(async()=>{
         const sb=client();if(!sb)throw new Error('Supabase холболт олдсонгүй.');
@@ -173,6 +176,8 @@
       const msg=String(e?.message||'');
       notify(msg.includes('exceeds outstanding')?'Үлдэгдлээс их байна.':'Төлбөр хадгалахад алдаа: '+msg);
       if(btn){btn.disabled=false;btn.textContent='Төлөх';}
+    }finally{
+      if(window.__nayadCriticalOperation==='payment')delete window.__nayadCriticalOperation;
     }
   };
 
