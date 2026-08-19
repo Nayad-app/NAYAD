@@ -156,6 +156,24 @@
     return true;
   }
 
+  function refreshPaymentView(){
+    /* A payment is a financial write: once the RPC has committed, prefer one
+       clean render from persisted state over leaving a stale dashboard in the
+       current tab. The small delay lets the success toast and local commit
+       paint first; the guard also avoids a service-worker reload mid-write. */
+    if(typeof window.__nayadRefreshPaymentView==='function'){
+      window.__nayadRefreshPaymentView();
+      return;
+    }
+    setTimeout(()=>{
+      if(window.__nayadCriticalOperation==='payment'){
+        refreshPaymentView();
+        return;
+      }
+      window.location.reload();
+    },300);
+  }
+
   async function pushPendingPayments(storeRow,local){
     const sb=client(); if(!sb)return false;
     let changed=false;
@@ -187,6 +205,7 @@
     // A newly installed service worker must not reload the page between the
     // successful payment RPC and the local/cloud balance refresh.
     window.__nayadCriticalOperation='payment';
+    let paymentCommitted=false;
     try{
       await queueCloudSync(async()=>{
         const sb=client();if(!sb)throw new Error('Supabase холболт олдсонгүй.');
@@ -205,6 +224,7 @@
         applyLocalData(local,true);
         notify(Number.isFinite(remaining)?`Төлбөр бүртгэгдлээ. Үлдэгдэл: ${new Intl.NumberFormat('mn-MN').format(remaining)} ₮`:'Төлбөр cloud-д амжилттай бүртгэгдлээ.');
         await refreshPaidSupplier(sb,supplier.id,remaining);
+        paymentCommitted=true;
         /* The direct supplier refresh above settles this screen immediately.
            Queue the broader cross-device snapshot only after this payment task
            releases the shared write lock. */
@@ -221,6 +241,7 @@
       if(btn){btn.disabled=false;btn.textContent='Төлөх';}
     }finally{
       if(window.__nayadCriticalOperation==='payment')delete window.__nayadCriticalOperation;
+      if(paymentCommitted)refreshPaymentView();
     }
   };
 
