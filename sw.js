@@ -1,4 +1,4 @@
-const CACHE = "nayad-v71";
+const CACHE = "nayad-v72";
 
 const ASSETS = [
   "./",
@@ -14,7 +14,7 @@ const ASSETS = [
   "./store-recovery.js?v=52",
   "./cloud-runtime.js?v=57",
   "./auth-guard.js?v=55",
-  "./mobile-fix.js?v=45",
+  "./mobile-fix.js?v=46",
   "./share.js?v=37",
   "./invoice-cloud.js?v=64",
   "./supplier-cloud.js?v=56",
@@ -60,7 +60,7 @@ function patchDocument(html){
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScript(patched,"./store-recovery.js?v=52");
   patched=injectScript(patched,"./auth-guard.js?v=55");
-  patched=injectScript(patched,"./mobile-fix.js?v=45");
+  patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;
 }
 
