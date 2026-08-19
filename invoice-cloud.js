@@ -361,16 +361,15 @@
       if(!c){c={id:Date.now()+Math.floor(Math.random()*100000),name:s.name,reg:s.reg_no||'',address:s.address||'',director:s.director||'',directorPhone:s.director_phone||'',salesPhone:s.sales_phone||'',status:s.is_active===false?'inactive':'active',color:'green',invoices:[]};local.companies.push(c);changed=true;}
       c.supabase_supplier_id=s.id;c.invoices=c.invoices||[];
       const remote=invoices.filter(i=>i.supplier_id===s.id);
-      for(const ri of remote){
+      const nextInvoices=remote.map(ri=>{
         const imgs=(images||[]).filter(im=>String(im.invoice_id)===String(ri.id)).sort((a,b)=>(a.page_number||1)-(b.page_number||1));
         const urls=imgs.map(x=>x.image_url).filter(Boolean); const paths=imgs.map(x=>x.image_path).filter(Boolean);
-        const next={id:ri.id,date:ri.invoice_date,no:ri.invoice_no||'',amount:Number(ri.amount)||0,paid:Number(ri.paid)||0,image_url:ri.image_url||urls[0]||'',image_urls:urls,image_paths:paths,image_count:urls.length,supabase_synced:true};
-        const idx=c.invoices.findIndex(i=>String(i.id)===String(ri.id));
-        if(idx<0){c.invoices.push(next);changed=true;}else{
-          const old=c.invoices[idx]; const same=JSON.stringify([old.date,old.no,old.amount,old.paid,old.image_url,old.image_count])===JSON.stringify([next.date,next.no,next.amount,next.paid,next.image_url,next.image_count]);
-          if(!same){c.invoices[idx]={...old,...next};changed=true;}
-        }
-      }
+        return {id:ri.id,date:ri.invoice_date,no:ri.invoice_no||'',amount:Number(ri.amount)||0,paid:Number(ri.paid)||0,image_url:ri.image_url||urls[0]||'',image_urls:urls,image_paths:paths,image_count:urls.length,supabase_synced:true};
+      });
+      if(JSON.stringify(c.invoices)!==JSON.stringify(nextInvoices))changed=true;
+      // Supabase is authoritative. Do not keep invoices that only exist in one
+      // browser's old localStorage; that is what made phone and computer differ.
+      c.invoices=nextInvoices;
       if(paymentGuard&&String(paymentGuard.supplierId)===String(s.id)){
         setCompanyRemainingBalance(c,paymentGuard.remaining);
       }
@@ -383,7 +382,10 @@
     });
     const nextPayments=[...syncedPayments,...pendingLocal];
     if(JSON.stringify(local.payments)!==JSON.stringify(nextPayments)){local.payments=nextPayments;changed=true;}
-    if(changed){applyLocalData(local,true);}else sessionStorage.removeItem('NAYAD_CLOUD_SYNC_RELOAD');
+    // Always commit after a successful cloud read. localStorage can already be
+    // correct while the currently rendered in-memory state is stale.
+    applyLocalData(local,true);
+    sessionStorage.removeItem('NAYAD_CLOUD_SYNC_RELOAD');
   }
 
   let lastForegroundSync=0;
