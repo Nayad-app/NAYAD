@@ -177,6 +177,7 @@
     const r=await c.from('suppliers').select('id,name,reg_no,address,director,director_phone,sales_rep,sales_phone,org_phone,bank_name,bank_account,is_active').eq('store_id',store.id).order('created_at',{ascending:true});
     if(r.error)throw r.error;
     const d=readLocal(); d.companies=d.companies||[]; let changed=false;
+    const companiesAtSyncStart=new Set(d.companies.map(company=>String(company.id)));
     const remote=r.data||[];
 
     for(const s of remote){
@@ -190,17 +191,11 @@
       local.invoices=local.invoices||[];
     }
 
-    /* First owner migration: push legacy/local suppliers that are not in cloud yet.
-       Remote rows are applied first, so a second store member will not overwrite cloud data with stale defaults. */
-    for(const local of d.companies){
-      if(local.supabase_supplier_id || !String(local.name||'').trim())continue;
-      const already=remote.find(s=>sameSupplier(local,s));
-      if(already){local.supabase_supplier_id=already.id;changed=true;continue;}
-      try{
-        const created=await ensureCloudSupplier(local);
-        if(created?.id){local.supabase_supplier_id=created.id;changed=true;}
-      }catch(e){console.warn('legacy supplier bootstrap:',local.name,e);}
-    }
+    /* Supabase is authoritative after sign-in. Old per-device rows must never
+       be uploaded as new suppliers, otherwise desktop and mobile diverge. */
+    const remoteIds=new Set(remote.map(s=>String(s.id)));
+    const authoritative=d.companies.filter(company=>remoteIds.has(String(company.supabase_supplier_id||'')));
+    if(authoritative.length!==d.companies.length){d.companies=authoritative;changed=true;}
 
     if(changed){
       /* Supplier metadata may finish syncing after a payment. Merge it into the
@@ -214,6 +209,9 @@
         Object.assign(target,synced);
         target.invoices=newestInvoices;
       }
+      /* Preserve a supplier created while this request was in flight, but
+         remove every stale row that existed before the cloud snapshot. */
+      fresh.companies=fresh.companies.filter(company=>remoteIds.has(String(company.supabase_supplier_id||''))||!companiesAtSyncStart.has(String(company.id)));
       if(window.__nayadState)window.__nayadState.commit(fresh,{render:true});
       else writeLocal(fresh);
       sessionStorage.removeItem(SYNC_FLAG);
