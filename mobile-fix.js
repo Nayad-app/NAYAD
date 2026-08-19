@@ -1,6 +1,15 @@
 /* NAYAD mobile invoice reorder/viewer enhancements. */
 (function(){
   if(document.getElementById('nayad-mobile-invoice-fix'))return;
+
+  /* Keep the app shell at its designed scale on iOS while preserving normal
+     one-finger scrolling. */
+  ['gesturestart','gesturechange','gestureend'].forEach(type=>{
+    document.addEventListener(type,event=>event.preventDefault(),{passive:false});
+  });
+  document.addEventListener('touchmove',event=>{
+    if(event.touches&&event.touches.length>1)event.preventDefault();
+  },{passive:false});
   const style=document.createElement('style');
   style.id='nayad-mobile-invoice-fix';
   style.textContent=`
