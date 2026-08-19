@@ -3,7 +3,7 @@
   const MAX_SIDE=2000;
   function loadImage(file){return new Promise((resolve,reject)=>{const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Зургийг уншиж чадсангүй.'))};img.src=url})}
   async function compress(file){
-    if(!file||!file.type.startsWith('image/')||/gif|heic|heif/i.test(file.type)||file.size<=MAX_BYTES)return file;
+    if(!file||!file.type.startsWith('image/')||file.size<=MAX_BYTES)return file;
     try{
       const img=await loadImage(file),scale=Math.min(1,MAX_SIDE/Math.max(img.naturalWidth||img.width,img.naturalHeight||img.height));
       const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round((img.naturalWidth||img.width)*scale));canvas.height=Math.max(1,Math.round((img.naturalHeight||img.height)*scale));
