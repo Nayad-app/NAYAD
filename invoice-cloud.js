@@ -428,10 +428,15 @@
     let suppliers=[];
     if(supplierIds.length){const r=await sb.from('suppliers').select('id,name,reg_no,address,director,director_phone,sales_phone,is_active').in('id',supplierIds);if(!r.error)suppliers=r.data||[];}
     const {data:images}=invoices.length?await sb.from('invoice_images').select('invoice_id,image_url,image_path,page_number').in('invoice_id',invoices.map(x=>x.id)).order('page_number',{ascending:true}):{data:[]};
-    let changed=false;
+    /* A store snapshot is authoritative. Do not merge it into the previous
+       browser list by name: an old/duplicated local supplier can otherwise
+       survive on one device and make its balance differ from the other. */
+    const previousCompanies=local.companies||[];
+    const syncedCompanies=[];
     for(const s of suppliers){
-      let c=local.companies.find(x=>x.supabase_supplier_id===s.id||x.name===s.name);
-      if(!c){c={id:Date.now()+Math.floor(Math.random()*100000),name:s.name,reg:s.reg_no||'',address:s.address||'',director:s.director||'',directorPhone:s.director_phone||'',salesPhone:s.sales_phone||'',status:s.is_active===false?'inactive':'active',color:'green',invoices:[]};local.companies.push(c);changed=true;}
+      let c=previousCompanies.find(x=>String(x.supabase_supplier_id)===String(s.id))||previousCompanies.find(x=>String(x.name||'').trim().toLowerCase()===String(s.name||'').trim().toLowerCase());
+      if(!c)c={id:Date.now()+Math.floor(Math.random()*100000),color:'green',invoices:[]};
+      c.name=s.name;c.reg=s.reg_no||'';c.address=s.address||'';c.director=s.director||'';c.directorPhone=s.director_phone||'';c.salesPhone=s.sales_phone||'';c.status=s.is_active===false?'inactive':'active';
       c.supabase_supplier_id=s.id;c.invoices=c.invoices||[];
       const remote=invoices.filter(i=>i.supplier_id===s.id);
       const nextInvoices=remote.map(ri=>{
@@ -439,14 +444,13 @@
         const urls=imgs.map(x=>x.image_url).filter(Boolean); const paths=imgs.map(x=>x.image_path).filter(Boolean);
         return {id:ri.id,date:ri.invoice_date,no:ri.invoice_no||'',amount:Number(ri.amount)||0,paid:Number(ri.paid)||0,image_url:ri.image_url||urls[0]||'',image_urls:urls,image_paths:paths,image_count:urls.length,supabase_synced:true};
       });
-      if(JSON.stringify(c.invoices)!==JSON.stringify(nextInvoices))changed=true;
-      // Supabase is authoritative. Do not keep invoices that only exist in one
-      // browser's old localStorage; that is what made phone and computer differ.
       c.invoices=nextInvoices;
       if(paymentGuard&&String(paymentGuard.supplierId)===String(s.id)){
         setCompanyRemainingBalance(c,paymentGuard.remaining);
       }
+      syncedCompanies.push(c);
     }
+    local.companies=syncedCompanies;
     const pendingLocal=local.payments.filter(p=>!p.supabase_synced);
     const syncedPayments=(cloudPayments||[]).map(p=>{
       const supplier=suppliers.find(s=>String(s.id)===String(p.supplier_id));
@@ -454,7 +458,7 @@
       return {id:p.id,companyId:company?.id,company:supplier?.name||company?.name||'Нийлүүлэгч',supabase_supplier_id:p.supplier_id,amount:Number(p.amount)||0,date:p.payment_date,method:p.method||'Бусад',note:p.note||'',supabase_synced:true};
     });
     const nextPayments=[...syncedPayments,...pendingLocal];
-    if(JSON.stringify(local.payments)!==JSON.stringify(nextPayments)){local.payments=nextPayments;changed=true;}
+    local.payments=nextPayments;
     // Always commit after a successful cloud read. localStorage can already be
     // correct while the currently rendered in-memory state is stale.
     applyLocalData(local,true);
