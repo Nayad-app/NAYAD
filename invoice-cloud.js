@@ -170,10 +170,6 @@
         applyLocalData(local,true);
         notify(Number.isFinite(remaining)?`Төлбөр бүртгэгдлээ. Үлдэгдэл: ${new Intl.NumberFormat('mn-MN').format(remaining)} ₮`:'Төлбөр cloud-д амжилттай бүртгэгдлээ.');
         await syncCloud(Number.isFinite(remaining)?{supplierId:supplier.id,remaining}:null);
-        // The RPC is idempotent and local state is already committed above. A
-        // short final reload makes the next screen read the same cloud truth
-        // even if a browser kept an older in-memory page snapshot.
-        setTimeout(()=>{try{location.reload()}catch(_){}},350);
       });
     }catch(e){
       console.error('cloud payment:',e);
