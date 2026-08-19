@@ -31,6 +31,18 @@
   function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
   function active(){return window.__nayadActiveStore||null;}
   function roleLabel(role){return role==='owner'?'Эзэмшигч':'Гишүүн';}
+  function normalizeStores(rows){
+    return (rows||[]).map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',created_at:row.created_at})).filter(row=>row.id);
+  }
+  function hydrateVerifiedStores(rows,expectedUserId=userId()){
+    if(!expectedUserId||String(expectedUserId)!==String(userId()))return false;
+    const verified=normalizeStores(rows);
+    if(!verified.length)return false;
+    stores=verified;
+    initializedFor=expectedUserId;
+    window.__nayadStores=stores;
+    return true;
+  }
 
   async function waitForSessionUser(client,expectedUserId){
     for(let attempt=0;attempt<4;attempt++){
@@ -50,8 +62,6 @@
   async function fetchStores(expectedUserId=userId()){
     const client=sb();if(!client)return [];
     if(!expectedUserId)return [];
-    /* setSession emits SIGNED_IN before every dependent module has necessarily
-       observed the new session. Never query with an older account's token. */
     if(!await waitForSessionUser(client,expectedUserId))return [];
     let result=await client.rpc('get_my_stores');
     if(result.error)throw result.error;
@@ -61,12 +71,8 @@
       if(result.error)throw result.error;
     }
     const rows=result.data||[];
-    /* Some deployed get_my_stores() return signatures do not expose user_id.
-       The request is already bound to the verified Supabase session and the
-       RPC itself scopes rows with auth.uid(), so only reject an explicit,
-       conflicting user_id instead of treating a missing field as a mismatch. */
     if(rows.some(row=>row.user_id!=null&&String(row.user_id)!==String(expectedUserId)))return [];
-    return rows.map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',created_at:row.created_at})).filter(x=>x.id);
+    return normalizeStores(rows);
   }
 
   function renderBar(){
@@ -80,16 +86,15 @@
 
   function showPicker(){
     if(typeof window.sheet!=='function')return;
+    if((initializedFor!==userId()||!stores.length)&&Array.isArray(window.__nayadStores))hydrateVerifiedStores(window.__nayadStores,userId());
     const rows=stores.map(store=>`<button class="storePickerItem ${String(store.id)===String(window.__nayadActiveStoreId)?'active':''}" type="button" onclick="selectNayadStore('${esc(store.id)}')"><span class="storePickerAvatar">${esc(initial(store.name))}</span><span class="storePickerMeta"><b>${esc(store.name)}</b><span>${roleLabel(store.role)}</span></span><span class="storePickerCheck">✓</span></button>`).join('');
     window.sheet(`<div class="storePickerHeader"><h2>Дэлгүүр сонгох</h2><button class="storePickerClose" type="button" onclick="closeSheet()" aria-label="Хаах"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="storePickerHint">Та өөрийн болон хуваалцсан дэлгүүрүүдийн хооронд шилжиж болно.</div><div class="storePickerList">${rows||'<div class="card">Дэлгүүр олдсонгүй.</div>'}</div>`);
   }
 
   async function activateStore(storeId,options={}){
+    if((initializedFor!==userId()||!stores.length)&&Array.isArray(window.__nayadStores))hydrateVerifiedStores(window.__nayadStores,userId());
     const next=stores.find(s=>String(s.id)===String(storeId));if(!next)return false;
     const changed=String(window.__nayadActiveStoreId||'')!==String(next.id);
-    /* Finish every write for the current store before changing the active id.
-       Cloud tasks resolve their store lazily, so switching first could otherwise
-       send an older payment or invoice to the newly selected store. */
     if(changed&&options.sync!==false&&window.__nayadCloudSyncQueue){
       await window.__nayadCloudSyncQueue.catch(()=>{});
     }
@@ -111,25 +116,14 @@
 
   async function refreshStoresNow(options={}){
     const uid=userId();if(!uid)return [];
-    const identityChanged=initializedFor!==uid;
-    if(identityChanged){
-      stores=[];
-      window.__nayadStores=[];
-      window.__nayadActiveStore=null;
-      window.__nayadActiveStoreId=null;
-    }
     const fetched=await fetchStores(uid);
     if(uid!==userId())return [];
-    if(!fetched.length){
-      stores=[];window.__nayadStores=[];window.__nayadActiveStore=null;window.__nayadActiveStoreId=null;initializedFor=uid;
-      return [];
-    }
-    stores=fetched;window.__nayadStores=stores;
+    if(!fetched.length)return [];
+    stores=fetched;initializedFor=uid;window.__nayadStores=stores;
     const requested=options.selectStoreId;
     const remembered=localStorage.getItem(ACTIVE_PREFIX+uid);
-    const current=identityChanged?null:window.__nayadActiveStoreId;
+    const current=window.__nayadActiveStoreId;
     const selectedId=[requested,remembered,current].find(id=>id&&stores.some(s=>String(s.id)===String(id)))||stores[0]?.id;
-    initializedFor=uid;
     if(selectedId)await activateStore(selectedId,{sync:options.sync!==false,close:options.close});
     return stores;
   }
@@ -145,6 +139,10 @@
 
   async function prepareUserStore(expectedUserId=userId()){
     if(!expectedUserId||expectedUserId!==userId())return false;
+    if(active()&&Array.isArray(window.__nayadStores)&&window.__nayadStores.length){
+      hydrateVerifiedStores(window.__nayadStores,expectedUserId);
+      return true;
+    }
     await refreshStores({sync:false,close:false});
     return expectedUserId===userId()&&Boolean(active());
   }
@@ -157,7 +155,15 @@
   }
 
   async function getActiveStore(){
-    if(active()&&initializedFor===userId())return active();
+    if(active()){
+      if(initializedFor!==userId()&&Array.isArray(window.__nayadStores))hydrateVerifiedStores(window.__nayadStores,userId());
+      return active();
+    }
+    const externalPrepare=window.__nayadPrepareUserStore;
+    if(typeof externalPrepare==='function'&&externalPrepare!==prepareUserStore){
+      await externalPrepare(userId());
+      return active();
+    }
     await refreshStores({sync:false,close:false});
     return active();
   }
@@ -169,11 +175,10 @@
   window.__nayadRefreshStores=refreshStores;
   window.__nayadGetActiveStore=getActiveStore;
   window.__nayadPrepareUserStore=prepareUserStore;
+  window.__nayadHydrateVerifiedStores=hydrateVerifiedStores;
 
-  window.addEventListener('load',()=>setTimeout(()=>refreshStores({sync:true,close:false}).catch(e=>console.warn('Store list:',e)),800));
-  const authClient=sb();
-  if(typeof authClient?.auth?.onAuthStateChange==='function')authClient.auth.onAuthStateChange((_event,session)=>{
-    if(!session){stores=[];initializedFor='';refreshQueue=Promise.resolve([]);window.__nayadStores=[];window.__nayadActiveStore=null;window.__nayadActiveStoreId=null;return;}
-    setTimeout(()=>refreshStores({sync:true,close:false}).catch(e=>console.warn('Store auth refresh:',e)),0);
-  });
+  /* Store initialization is intentionally NOT started from load/auth listeners.
+     store-recovery.js owns login-time initialization with the exact verified JWT.
+     Keeping one initializer prevents an older account's refresh queue from
+     clearing or replacing the active store after an account switch. */
 })();
