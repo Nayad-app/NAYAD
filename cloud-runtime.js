@@ -1,7 +1,7 @@
-/* NAYAD cloud runtime v55 — one authenticated store owns live cloud sync. */
+/* NAYAD cloud runtime v56 — one authenticated store owns live cloud sync. */
 (function(){
-  if(window.__nayadCloudRuntimeV55)return;
-  window.__nayadCloudRuntimeV55=true;
+  if(window.__nayadCloudRuntimeV56)return;
+  window.__nayadCloudRuntimeV56=true;
 
   let syncPromise=null;
   let syncKey='';
@@ -25,11 +25,24 @@
       else window.__nayadUser=user;
     }
 
-    let store=window.__nayadActiveStore||null;
+    const selectedStoreId=window.__nayadActiveStoreId||'';
+    const verifiedStores=Array.isArray(window.__nayadStores)?window.__nayadStores:[];
+    let store=selectedStoreId?verifiedStores.find(item=>String(item.id)===String(selectedStoreId))||null:null;
+    if(!store?.id)store=window.__nayadActiveStore||null;
     if(!store?.id&&typeof window.__nayadGetActiveStore==='function'){
       store=await window.__nayadGetActiveStore();
     }
     if(!store?.id)return null;
+
+    /* Store initialization and auth callbacks can finish in a different
+       order. Reconcile the two runtime fields only with a store returned by
+       the authenticated store list, so sync never aborts on a stale object. */
+    const verified=verifiedStores.find(item=>String(item.id)===String(store.id));
+    if(verified){
+      store=verified;
+      window.__nayadActiveStore=verified;
+      window.__nayadActiveStoreId=verified.id;
+    }
 
     const second=await c.auth.getSession();
     if(second.error)throw second.error;
