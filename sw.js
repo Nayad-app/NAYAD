@@ -1,4 +1,4 @@
-const CACHE = "nayad-v56";
+const CACHE = "nayad-v57";
 
 const ASSETS = [
   "./",
@@ -9,6 +9,7 @@ const ASSETS = [
   "./oauth-fix.js?v=45",
   "./render.js",
   "./app-state.js?v=37",
+  "./image-compress.js?v=1",
   "./store-switcher.js?v=52",
   "./store-recovery.js?v=52",
   "./cloud-runtime.js?v=54",
