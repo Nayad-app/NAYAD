@@ -1,4 +1,4 @@
-const CACHE = "nayad-v46";
+const CACHE = "nayad-v47";
 
 const ASSETS = [
   "./",
@@ -11,7 +11,7 @@ const ASSETS = [
   "./app-state.js?v=37",
   "./store-switcher.js?v=43",
   "./store-recovery.js?v=46",
-  "./auth-guard.js?v=45",
+  "./auth-guard.js?v=47",
   "./mobile-fix.js?v=45",
   "./share.js?v=37",
   "./invoice-cloud.js?v=37",
@@ -40,8 +40,9 @@ function injectScript(html,src){
 function patchDocument(html){
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=46");
+  patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=47");
   patched=injectScript(patched,"./store-recovery.js?v=46");
-  patched=injectScript(patched,"./auth-guard.js?v=45");
+  patched=injectScript(patched,"./auth-guard.js?v=47");
   patched=injectScript(patched,"./mobile-fix.js?v=45");
   return patched;
 }
