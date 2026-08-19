@@ -38,13 +38,28 @@ function injectScript(html,src){
 }
 
 function patchDocument(html){
-  let patched=html
-    .replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
-
+  let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=injectScript(patched,"./store-recovery.js?v=45");
   patched=injectScript(patched,"./auth-guard.js?v=45");
   patched=injectScript(patched,"./mobile-fix.js?v=45");
   return patched;
+}
+
+async function patchedResponse(response){
+  const html=await response.clone().text();
+  const headers=new Headers(response.headers);
+  headers.delete("content-length");
+  return new Response(patchDocument(html),{
+    status:response.status,
+    statusText:response.statusText,
+    headers
+  });
+}
+
+async function cachedDocument(){
+  const cached=await caches.match("./");
+  if(!cached)return new Response("NAYAD offline",{status:503});
+  try{return await patchedResponse(cached);}catch(_){return cached;}
 }
 
 self.addEventListener("fetch",event=>{
@@ -53,22 +68,11 @@ self.addEventListener("fetch",event=>{
   if(request.mode==="navigate"||request.destination==="document"){
     event.respondWith(
       fetch(request,{cache:"no-store"})
-        .then(async response=>{
-          try{
-            const html=await response.clone().text();
-            const headers=new Headers(response.headers);
-            headers.delete("content-length");
-            return new Response(patchDocument(html),{
-              status:response.status,
-              statusText:response.statusText,
-              headers
-            });
-          }catch(error){
-            console.warn("NAYAD document patch:",error);
-            return response;
-          }
-        })
-        .catch(()=>caches.match("./"))
+        .then(response=>patchedResponse(response).catch(error=>{
+          console.warn("NAYAD document patch:",error);
+          return response;
+        }))
+        .catch(()=>cachedDocument())
     );
     return;
   }
