@@ -15,6 +15,16 @@
       return JSON.parse(atob(padded))?.sub||'';
     }catch(_){return '';}
   }
+  function adoptSessionUser(user){
+    if(!user?.id)return '';
+    if(String(window.__nayadUser?.id||'')!==String(user.id)){
+      if(typeof window.profileFromUser==='function')window.profileFromUser(user);
+      else window.__nayadUser=user;
+    }else{
+      window.__nayadUser=user;
+    }
+    return user.id;
+  }
   function normalizeRows(rows){
     return (rows||[]).map(row=>({
       id:row.id,
@@ -24,9 +34,9 @@
     })).filter(row=>row.id);
   }
   function activateExpectedStore(expectedUserId,rows){
-    if(String(window.__nayadUser?.id||'')!==String(expectedUserId))return false;
     const stores=normalizeRows(rows);
     if(!stores.length)return false;
+    if(String(window.__nayadUser?.id||'')!==String(expectedUserId))return false;
     const remembered=localStorage.getItem(ACTIVE_PREFIX+expectedUserId);
     const current=window.__nayadActiveStoreId;
     const selectedId=[remembered,current].find(id=>id&&stores.some(store=>String(store.id)===String(id)))||stores[0].id;
@@ -64,23 +74,30 @@
   async function prepareVerifiedStore(expectedUserId){
     const c=client();
     if(!c||!expectedUserId)return false;
-    if(String(window.__nayadUser?.id||'')!==String(expectedUserId))return false;
 
     let ensured=false;
     for(let attempt=0;attempt<10;attempt++){
-      if(String(window.__nayadUser?.id||'')!==String(expectedUserId))return false;
-
       try{
         const {data,error}=await c.auth.getSession();
         if(error)throw error;
         const session=data?.session||null;
-        const sessionUserId=session?.user?.id||'';
+        const sessionUser=session?.user||null;
+        const sessionUserId=sessionUser?.id||'';
         const accessToken=session?.access_token||'';
         const tokenUserId=jwtSub(accessToken);
 
-        if(String(sessionUserId)!==String(expectedUserId)||String(tokenUserId)!==String(expectedUserId)||!accessToken){
+        if(!accessToken||!sessionUserId||String(tokenUserId)!==String(sessionUserId)){
           await sleep(100+attempt*60);
           continue;
+        }
+
+        /* The verified Supabase session is the source of truth. A stale auth
+           event may temporarily overwrite window.__nayadUser after account
+           switching, so restore the UI identity from the verified session. */
+        adoptSessionUser(sessionUser);
+
+        if(String(sessionUserId)!==String(expectedUserId)){
+          return false;
         }
 
         const rows=(await rpcWithExactToken('get_my_stores',accessToken))||[];
@@ -90,6 +107,9 @@
             await sleep(120+attempt*60);
             continue;
           }
+          /* Re-assert the verified session after the network round-trip in case
+             an older onAuthStateChange callback fired while the RPC was in flight. */
+          adoptSessionUser(sessionUser);
           return activateExpectedStore(expectedUserId,rows);
         }
 
