@@ -1,7 +1,7 @@
-/* NAYAD auth guard v49 — current session is authoritative; phone login starts a clean runtime. */
+/* NAYAD auth guard v53 — current session is authoritative; app boot owns cloud sync. */
 (function(){
-  if(window.__nayadAuthGuardV49)return;
-  window.__nayadAuthGuardV49=true;
+  if(window.__nayadAuthGuardV53)return;
+  window.__nayadAuthGuardV53=true;
 
   const originalHandleAuthStateChange=window.handleAuthStateChange;
   const originalShowAuthenticatedApp=window.showAuthenticatedApp;
@@ -23,6 +23,18 @@
       if(typeof window.profileFromUser==='function')window.profileFromUser(user);
       else window.__nayadUser=user;
     }
+  }
+  function scheduleCloudSync(reason){
+    setTimeout(async()=>{
+      for(let i=0;i<20;i++){
+        if(typeof window.__nayadStartCloudSync==='function'){
+          await window.__nayadStartCloudSync({reason});
+          return;
+        }
+        await new Promise(resolve=>setTimeout(resolve,25));
+      }
+      console.warn('NAYAD cloud runtime was not ready after app boot.');
+    },0);
   }
 
   if(typeof originalHandleAuthStateChange==='function'){
@@ -60,8 +72,11 @@
         return false;
       }
       applyCurrentUser(user);
-      if(typeof originalShowAuthenticatedApp==='function')return Boolean(await originalShowAuthenticatedApp());
-      return true;
+      const opened=typeof originalShowAuthenticatedApp==='function'
+        ?Boolean(await originalShowAuthenticatedApp())
+        :true;
+      if(opened)scheduleCloudSync('app-open');
+      return opened;
     }catch(error){
       console.warn('Auth guard show app:',error);
       return false;
@@ -82,10 +97,9 @@
   if(typeof originalShowAuthenticatedApp==='function')window.showAuthenticatedApp=safeShowAuthenticatedApp;
   if(typeof originalShowLoginScreen==='function')window.showLoginScreen=safeShowLoginScreen;
 
-  /* Account switching was the remaining failure mode: setSession succeeds, but
-     listeners from the previous account can still mutate store state in the same
-     JS runtime. For phone login, persist the new Supabase session and immediately
-     start a fresh document. A cold load has one auth identity and no stale queues. */
+  /* Phone login persists the new Supabase session, then starts a clean document.
+     The new document has one authenticated identity; cloud-runtime starts data
+     sync only after that identity's active store has been prepared. */
   if(typeof originalPhoneLogin==='function'){
     window.phoneLogin=async function(){
       const username=(document.getElementById('loginPhone')?.value||'').trim();
@@ -133,7 +147,10 @@
         if(session?.user){
           applyCurrentUser(session.user);
           const app=document.getElementById('app');
-          if(app&&!app.classList.contains('hide'))return true;
+          if(app&&!app.classList.contains('hide')){
+            scheduleCloudSync('reconcile-'+reason);
+            return true;
+          }
           return Boolean(await safeShowAuthenticatedApp());
         }
         return false;
