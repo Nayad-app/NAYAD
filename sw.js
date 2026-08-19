@@ -1,6 +1,6 @@
-const CACHE = "nayad-v43";
+const CACHE = "nayad-v44";
 
-const ASSETS = ["./","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./oauth-fix.js?v=42","./render.js","./app-state.js?v=37","./store-switcher.js?v=43","./share.js?v=37","./invoice-cloud.js?v=37","./supplier-cloud.js?v=37","./company-label.js"];
+const ASSETS = ["./","./manifest.webmanifest","./icon-180.png","./icon-192.png","./icon-512.png","./oauth-fix.js?v=42","./render.js","./app-state.js?v=37","./store-switcher.js?v=43","./share.js?v=37","./invoice-cloud.js?v=37","./supplier-cloud.js?v=37","./company-label.js","./auth-guard.js?v=44"];
 
 self.addEventListener("install", event => { event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener("activate", event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())); });
@@ -19,6 +19,7 @@ self.addEventListener("fetch", event => {
         if(!patched.includes("invoice-cloud.js")) patched=patched.replace(/<\/body>/i,'<script src="./invoice-cloud.js?v=37"></script></body>');
         if(!patched.includes("supplier-cloud.js")) patched=patched.replace(/<\/body>/i,'<script src="./supplier-cloud.js?v=37"></script></body>');
         if(!patched.includes("company-label.js")) patched=patched.replace(/<\/body>/i,'<script src="./company-label.js"></script></body>');
+        if(!patched.includes("auth-guard.js")) patched=patched.replace(/<\/body>/i,'<script src="./auth-guard.js?v=44"></script></body>');
 
         const mobileInvoiceFix=`<style>
 .imageList{touch-action:pan-y;-webkit-user-select:none;user-select:none}
