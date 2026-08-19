@@ -282,7 +282,7 @@
       <div class="field"><label>Огноо</label><input id="cloudIDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
       <div class="field"><label>Падааны дугаар</label><input id="cloudINo" placeholder="INV-0001"></div>
       <div class="field"><label>Нийт дүн</label><input id="cloudIAmount" type="number" inputmode="decimal" min="0" step="1" placeholder="0"></div>
-      <div class="field"><label>Падааны зураг — олон хуудас нэмэх боломжтой</label>
+      <div class="field"><label>Падааны зураг — заавал биш, олон хуудас нэмэх боломжтой</label>
         <div class="imageTools"><button type="button" class="secondary" onclick="document.getElementById('cloudGalleryInput').click()">🖼️ Зураг сонгох</button><button type="button" class="secondary" onclick="document.getElementById('cloudCameraInput').click()">📷 Камераар авах</button></div>
         <input id="cloudGalleryInput" type="file" accept="image/*" multiple class="hide"><input id="cloudCameraInput" type="file" accept="image/*" capture="environment" class="hide">
         <div class="sub" style="margin-top:7px">Зүүн талын ☷ тэмдэг дээр дараад шууд дээш/доош чирж дарааллыг солино.</div><div id="cloudImageList" class="imageList"></div>
@@ -299,7 +299,6 @@
     const date=val('cloudIDate')||new Date().toISOString().slice(0,10);
     const no=val('cloudINo')||('INV-'+Date.now().toString().slice(-6));
     if(!amount || amount<0){notify('Нийт дүн оруулна уу.');return;}
-    if(!pending.length){notify('Падааны зураг оруулна уу.');return;}
     const btn=document.getElementById('cloudSaveInvoiceBtn'); if(btn){btn.disabled=true;btn.textContent='Хадгалж байна...';}
     let invoiceId=null, supplierId=null, storeId=null, uploaded=[];
     try{
@@ -332,7 +331,7 @@
       if(cidx>=0){local.companies[cidx].supabase_supplier_id=supplierId;local.companies[cidx].invoices=local.companies[cidx].invoices||[];local.companies[cidx].invoices.push(inv);}
       else{local.companies=local.companies||[];local.companies.push({...company,supabase_supplier_id:supplierId,invoices:[...(company.invoices||[]),inv]});}
       writeLocal(local);
-      clearPending();close();notify(`Падаан болон ${imageUrls.length} зураг cloud-д хадгалагдлаа.`);setTimeout(()=>location.reload(),500);
+      clearPending();close();notify(imageUrls.length?`Падаан болон ${imageUrls.length} зураг cloud-д хадгалагдлаа.`:'Падаан зураггүйгээр хадгалагдлаа.');setTimeout(()=>location.reload(),500);
     }catch(e){
       console.error('NAYAD cloud invoice:',e);
       if(uploaded.length){try{await client().storage.from('invoice-images').remove(uploaded)}catch(_){} }
