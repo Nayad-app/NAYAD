@@ -314,7 +314,7 @@
       if(invoiceError)throw new Error('Падаан хадгалахад алдаа: '+invoiceError.message);
       const imageUrls=[];
       for(let i=0;i<pending.length;i++){
-        const file=pending[i].file;
+        const file=await window.compressInvoiceImage(pending[i].file);
         const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
         const safe=['jpg','jpeg','png','webp','gif','heic','heif'].includes(ext)?ext:'jpg';
         const path=`${storeId}/${supplierId}/${invoiceId}/page-${i+1}-${Date.now()}-${crypto.randomUUID()}.${safe}`;
