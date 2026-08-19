@@ -194,9 +194,21 @@
   async function getActiveStore(){
     const currentUserId=await ensureCurrentUser();
     if(!currentUserId)return null;
-    if(active()){
-      if(initializedFor!==currentUserId&&Array.isArray(window.__nayadStores))hydrateVerifiedStores(window.__nayadStores,currentUserId);
-      if(initializedFor===currentUserId)return active();
+    if(initializedFor!==currentUserId&&Array.isArray(window.__nayadStores))hydrateVerifiedStores(window.__nayadStores,currentUserId);
+    if(initializedFor===currentUserId&&stores.length){
+      /* Never return an active-store object left by another tab/session.
+         Resolve both runtime fields from the authenticated store list. */
+      const requestedId=window.__nayadActiveStoreId||'';
+      const activeId=active()?.id||'';
+      const verified=stores.find(item=>String(item.id)===String(requestedId))
+        ||stores.find(item=>String(item.id)===String(activeId))
+        ||stores[0];
+      if(verified){
+        window.__nayadActiveStore=verified;
+        window.__nayadActiveStoreId=verified.id;
+        if(activeKey())localStorage.setItem(activeKey(),verified.id);
+        return verified;
+      }
     }
     const externalPrepare=window.__nayadPrepareUserStore;
     if(typeof externalPrepare==='function'&&externalPrepare!==prepareUserStore){
