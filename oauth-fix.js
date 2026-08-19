@@ -1,33 +1,26 @@
-/* NAYAD OAuth callback/session recovery */
+/* NAYAD OAuth callback recovery — do not interfere with normal phone/password login. */
 (async function(){
-  async function finishOAuth(){
-    const sb=window.nayadSupabase;
-    if(!sb) return false;
-    try{
-      const url=new URL(window.location.href);
-      const code=url.searchParams.get('code');
-      if(code){
-        const {data,error}=await sb.auth.exchangeCodeForSession(code);
-        if(error) console.warn('OAuth code exchange:',error.message);
-        if(data?.session){
-          url.searchParams.delete('code');
-          url.searchParams.delete('state');
-          history.replaceState({},document.title,url.pathname+(url.search?url.search:'')+url.hash);
-        }
-      }
-      const {data:{session}}=await sb.auth.getSession();
-      if(!session) return false;
-      if(typeof profileFromUser==='function') profileFromUser(session.user);
-      else window.__nayadUser=session.user;
-      if(typeof showAuthenticatedApp==='function') await showAuthenticatedApp();
-      return true;
-    }catch(e){
-      console.warn('NAYAD OAuth callback:',e);
-      return false;
-    }
-  }
-  for(let i=0;i<12;i++){
-    if(await finishOAuth()) return;
-    await new Promise(r=>setTimeout(r,500));
+  const sb=window.nayadSupabase;
+  if(!sb)return;
+  const url=new URL(window.location.href);
+  const code=url.searchParams.get('code');
+
+  /* Supabase PKCE OAuth callbacks contain ?code=. Normal page loads and phone
+     logins must not start another showAuthenticatedApp/store preparation loop. */
+  if(!code)return;
+
+  try{
+    const {data,error}=await sb.auth.exchangeCodeForSession(code);
+    if(error)throw error;
+    url.searchParams.delete('code');
+    url.searchParams.delete('state');
+    history.replaceState({},document.title,url.pathname+(url.search?url.search:'')+url.hash);
+    const session=data?.session||null;
+    if(!session)return;
+    if(typeof profileFromUser==='function')profileFromUser(session.user);
+    else window.__nayadUser=session.user;
+    if(typeof showAuthenticatedApp==='function')await showAuthenticatedApp();
+  }catch(error){
+    console.warn('NAYAD OAuth callback:',error);
   }
 })();
