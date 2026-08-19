@@ -1,64 +1,40 @@
-/* NAYAD auth session guard — reconciles delayed auth events after account switches. */
+/* NAYAD auth session guard — recovery only; normal auth events are handled by index.html. */
 (function(){
-  let generation=0;
+  let running=null;
 
   function client(){return window.nayadSupabase||window.sb||null;}
 
-  async function reconcile(reason='auth'){
-    const c=client();
-    if(!c?.auth?.getSession)return false;
-    const ticket=++generation;
-    await new Promise(resolve=>setTimeout(resolve,0));
+  async function reconcile(reason='recovery'){
+    if(running)return running;
+    running=(async()=>{
+      const c=client();
+      if(!c?.auth?.getSession)return false;
+      try{
+        const {data,error}=await c.auth.getSession();
+        if(error)throw error;
+        const session=data?.session||null;
+        const user=session?.user||null;
+        if(!user)return false;
 
-    let currentSession=null;
-    try{
-      const {data,error}=await c.auth.getSession();
-      if(error)throw error;
-      currentSession=data?.session||null;
-    }catch(error){
-      console.warn('Auth reconcile session:',reason,error);
-      return false;
-    }
-
-    if(ticket!==generation)return false;
-    const currentUser=currentSession?.user||null;
-    const currentUserId=currentUser?.id||'';
-
-    if(currentUser){
-      if(String(window.__nayadUser?.id||'')!==String(currentUserId)){
-        if(typeof window.profileFromUser==='function')window.profileFromUser(currentUser);
-        else window.__nayadUser=currentUser;
-      }
-
-      if(typeof window.showAuthenticatedApp==='function'){
-        const opened=await window.showAuthenticatedApp();
-        if(ticket!==generation)return false;
-        if(opened){
-          const message=document.getElementById('loginMsg');
-          if(message)message.innerHTML='';
+        if(String(window.__nayadUser?.id||'')!==String(user.id||'')){
+          if(typeof window.profileFromUser==='function')window.profileFromUser(user);
+          else window.__nayadUser=user;
         }
-        return Boolean(opened);
-      }
-      return true;
-    }
 
-    if(window.__nayadUser){
-      window.__nayadUser=null;
-      if(typeof window.switchUserData==='function')window.switchUserData(null);
-    }
-    if(typeof window.showLoginScreen==='function')await window.showLoginScreen();
-    return true;
+        const app=document.getElementById('app');
+        if(app&&!app.classList.contains('hide'))return true;
+        if(typeof window.showAuthenticatedApp==='function')return Boolean(await window.showAuthenticatedApp());
+        return true;
+      }catch(error){
+        console.warn('Auth recovery:',reason,error);
+        return false;
+      }
+    })();
+    try{return await running;}finally{running=null;}
   }
 
   window.__nayadAuthReconcile=reconcile;
-
-  const c=client();
-  if(typeof c?.auth?.onAuthStateChange==='function'){
-    c.auth.onAuthStateChange(()=>{
-      setTimeout(()=>reconcile('auth-state-change'),0);
-      setTimeout(()=>reconcile('auth-state-settled'),180);
-    });
-  }
-
-  window.addEventListener('pageshow',()=>setTimeout(()=>reconcile('pageshow'),0));
+  window.addEventListener('pageshow',event=>{
+    if(event.persisted)setTimeout(()=>reconcile('bfcache'),0);
+  });
 })();
