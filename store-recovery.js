@@ -35,6 +35,9 @@
     window.__nayadActiveStoreId=selected.id;
     window.__nayadActiveStore=selected;
     localStorage.setItem(ACTIVE_PREFIX+expectedUserId,selected.id);
+    if(typeof window.__nayadHydrateVerifiedStores==='function'){
+      window.__nayadHydrateVerifiedStores(stores,expectedUserId);
+    }
     return true;
   }
   async function rpcWithExactToken(name,token){
@@ -75,15 +78,11 @@
         const accessToken=session?.access_token||'';
         const tokenUserId=jwtSub(accessToken);
 
-        /* Do not issue a store query until BOTH the session object and the JWT
-           itself identify the account we are opening. */
         if(String(sessionUserId)!==String(expectedUserId)||String(tokenUserId)!==String(expectedUserId)||!accessToken){
           await sleep(100+attempt*60);
           continue;
         }
 
-        /* Bypass supabase-js PostgREST's cached Authorization state. The exact
-           access_token inspected above is attached to this request explicitly. */
         const rows=(await rpcWithExactToken('get_my_stores',accessToken))||[];
         if(rows.length){
           if(!rows.every(row=>String(row?.user_id||'')===String(expectedUserId))){
