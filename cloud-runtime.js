@@ -1,7 +1,7 @@
-/* NAYAD cloud runtime v56 — one authenticated store owns live cloud sync. */
+/* NAYAD cloud runtime v57 — financial sync recovers from stale store context. */
 (function(){
-  if(window.__nayadCloudRuntimeV56)return;
-  window.__nayadCloudRuntimeV56=true;
+  if(window.__nayadCloudRuntimeV57)return;
+  window.__nayadCloudRuntimeV57=true;
 
   let syncPromise=null;
   let syncKey='';
@@ -59,10 +59,22 @@
     return Boolean(now&&expected&&String(now.userId)===String(expected.userId)&&String(now.storeId)===String(expected.storeId));
   }
 
+  async function recoverContext(){
+    let context=await currentContext();
+    if(context)return context;
+    if(typeof window.__nayadGetActiveStore==='function'){
+      await window.__nayadGetActiveStore();
+      context=await currentContext();
+    }
+    return context;
+  }
+
   window.__nayadStartCloudSync=async function(options={}){
-    const context=await currentContext();
-    if(!context)return false;
-    const key=context.userId+':'+context.storeId;
+    let context=await recoverContext();
+    /* Invoice/supplier modules independently verify the authenticated session,
+       active store and RLS. Do not suppress their authoritative refetch merely
+       because this coordinator observed a transient stale runtime object. */
+    const key=context?context.userId+':'+context.storeId:'recovering';
     const force=options.force===true;
 
     if(syncPromise&&syncKey===key)return syncPromise;
@@ -70,12 +82,12 @@
 
     syncKey=key;
     syncPromise=(async()=>{
-      if(!await sameContext(context))return false;
       if(typeof window.__nayadSyncInvoices==='function')await window.__nayadSyncInvoices();
-      if(!await sameContext(context))return false;
+      context=await recoverContext();
       if(typeof window.__nayadSyncSuppliers==='function')await window.__nayadSyncSuppliers();
-      if(!await sameContext(context))return false;
-      lastCompletedKey=key;
+      const completedContext=await recoverContext();
+      if(context&&completedContext&&!await sameContext(completedContext))return false;
+      lastCompletedKey=completedContext?completedContext.userId+':'+completedContext.storeId:key;
       lastCompletedAt=Date.now();
       return true;
     })().catch(error=>{
@@ -111,8 +123,9 @@
   }
 
   function refreshAll(reason){
-    request(reason);
-    watchActiveStore().catch(error=>console.warn('NAYAD realtime watch:',error));
+    if(document.visibilityState==='hidden')return;
+    window.__nayadStartCloudSync({reason,force:true})
+      .finally(()=>watchActiveStore().catch(error=>console.warn('NAYAD realtime watch:',error)));
   }
   window.__nayadWatchCloudStore=watchActiveStore;
   window.addEventListener('load',()=>setTimeout(()=>refreshAll('load'),1000));
