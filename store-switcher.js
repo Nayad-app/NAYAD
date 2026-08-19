@@ -34,6 +34,33 @@
   function normalizeStores(rows){
     return (rows||[]).map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',created_at:row.created_at})).filter(row=>row.id);
   }
+  function clearRuntimeStoreState(){
+    stores=[];
+    initializedFor='';
+    window.__nayadStores=[];
+    window.__nayadActiveStore=null;
+    window.__nayadActiveStoreId=null;
+  }
+  async function ensureCurrentUser(){
+    const client=sb();
+    if(!client?.auth?.getSession)return userId();
+    try{
+      const {data,error}=await client.auth.getSession();
+      if(error)throw error;
+      const user=data?.session?.user||null;
+      if(!user?.id)return '';
+      const currentId=userId();
+      if(String(currentId)!==String(user.id)){
+        clearRuntimeStoreState();
+        if(typeof window.profileFromUser==='function')window.profileFromUser(user);
+        else window.__nayadUser=user;
+      }
+      return user.id;
+    }catch(error){
+      console.warn('Store identity recovery:',error);
+      return userId();
+    }
+  }
   function hydrateVerifiedStores(rows,expectedUserId=userId()){
     if(!expectedUserId||String(expectedUserId)!==String(userId()))return false;
     const verified=normalizeStores(rows);
@@ -115,7 +142,7 @@
   }
 
   async function refreshStoresNow(options={}){
-    const uid=userId();if(!uid)return [];
+    const uid=await ensureCurrentUser();if(!uid)return [];
     const fetched=await fetchStores(uid);
     if(uid!==userId())return [];
     if(!fetched.length)return [];
@@ -129,8 +156,8 @@
   }
 
   function refreshStores(options={}){
-    const expectedUserId=userId();
-    refreshQueue=refreshQueue.catch(()=>[]).then(()=>{
+    refreshQueue=refreshQueue.catch(()=>[]).then(async()=>{
+      const expectedUserId=await ensureCurrentUser();
       if(!expectedUserId||expectedUserId!==userId())return [];
       return refreshStoresNow(options);
     });
@@ -138,13 +165,15 @@
   }
 
   async function prepareUserStore(expectedUserId=userId()){
-    if(!expectedUserId||expectedUserId!==userId())return false;
+    const currentUserId=await ensureCurrentUser();
+    if(!expectedUserId)expectedUserId=currentUserId;
+    if(!expectedUserId||String(expectedUserId)!==String(currentUserId))return false;
     if(active()&&Array.isArray(window.__nayadStores)&&window.__nayadStores.length){
       hydrateVerifiedStores(window.__nayadStores,expectedUserId);
       return true;
     }
     await refreshStores({sync:false,close:false});
-    return expectedUserId===userId()&&Boolean(active());
+    return String(expectedUserId)===String(userId())&&Boolean(active());
   }
 
   async function selectStore(storeId){
@@ -155,14 +184,16 @@
   }
 
   async function getActiveStore(){
+    const currentUserId=await ensureCurrentUser();
+    if(!currentUserId)return null;
     if(active()){
-      if(initializedFor!==userId()&&Array.isArray(window.__nayadStores))hydrateVerifiedStores(window.__nayadStores,userId());
-      return active();
+      if(initializedFor!==currentUserId&&Array.isArray(window.__nayadStores))hydrateVerifiedStores(window.__nayadStores,currentUserId);
+      if(initializedFor===currentUserId)return active();
     }
     const externalPrepare=window.__nayadPrepareUserStore;
     if(typeof externalPrepare==='function'&&externalPrepare!==prepareUserStore){
-      await externalPrepare(userId());
-      return active();
+      await externalPrepare(currentUserId);
+      if(active())return active();
     }
     await refreshStores({sync:false,close:false});
     return active();
@@ -178,7 +209,7 @@
   window.__nayadHydrateVerifiedStores=hydrateVerifiedStores;
 
   /* Store initialization is intentionally NOT started from load/auth listeners.
-     store-recovery.js owns login-time initialization with the exact verified JWT.
-     Keeping one initializer prevents an older account's refresh queue from
-     clearing or replacing the active store after an account switch. */
+     Every store resolution first reconciles window.__nayadUser with the current
+     Supabase session. This keeps early cloud-sync callbacks from falling back to
+     the previous account or to an identity-less ensure_my_store() call. */
 })();
