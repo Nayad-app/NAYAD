@@ -1,13 +1,19 @@
-/* NAYAD store/session recovery — waits until PostgREST and Auth agree on the same user. */
+/* NAYAD store/session recovery — binds every store RPC to the exact current session JWT. */
 (function(){
   const ACTIVE_PREFIX='NAYAD_ACTIVE_STORE:';
+  const PROJECT_URL=(typeof SUPABASE_URL!=='undefined'&&SUPABASE_URL)||'https://kjgtmxcxchjevzoxwqzr.supabase.co';
+  const PUBLIC_KEY=(typeof SUPABASE_PUBLISHABLE_KEY!=='undefined'&&SUPABASE_PUBLISHABLE_KEY)||'';
   let preparePromise=null;
   let prepareUserId='';
 
   function client(){return window.nayadSupabase||window.sb||null;}
   function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
-  function rowUserMatches(row,expectedUserId){
-    return row?.user_id==null||String(row.user_id)===String(expectedUserId);
+  function jwtSub(token){
+    try{
+      const part=String(token||'').split('.')[1]||'';
+      const padded=part.replace(/-/g,'+').replace(/_/g,'/')+'='.repeat((4-part.length%4)%4);
+      return JSON.parse(atob(padded))?.sub||'';
+    }catch(_){return '';}
   }
   function normalizeRows(rows){
     return (rows||[]).map(row=>({
@@ -31,6 +37,27 @@
     localStorage.setItem(ACTIVE_PREFIX+expectedUserId,selected.id);
     return true;
   }
+  async function rpcWithExactToken(name,token){
+    const response=await fetch(PROJECT_URL+'/rest/v1/rpc/'+encodeURIComponent(name),{
+      method:'POST',
+      cache:'no-store',
+      headers:{
+        'Content-Type':'application/json',
+        'apikey':PUBLIC_KEY,
+        'Authorization':'Bearer '+token,
+        'X-NAYAD-Store-Recovery':'v46'
+      },
+      body:'{}'
+    });
+    const text=await response.text();
+    let payload=null;
+    try{payload=text?JSON.parse(text):null;}catch(_){payload=null;}
+    if(!response.ok){
+      const message=payload?.message||payload?.error_description||text||('HTTP '+response.status);
+      throw new Error(message);
+    }
+    return payload;
+  }
 
   async function prepareVerifiedStore(expectedUserId){
     const c=client();
@@ -38,67 +65,53 @@
     if(String(window.__nayadUser?.id||'')!==String(expectedUserId))return false;
 
     let ensured=false;
-    for(let attempt=0;attempt<18;attempt++){
+    for(let attempt=0;attempt<10;attempt++){
       if(String(window.__nayadUser?.id||'')!==String(expectedUserId))return false;
 
-      let sessionUserId='';
       try{
         const {data,error}=await c.auth.getSession();
         if(error)throw error;
-        sessionUserId=data?.session?.user?.id||'';
-      }catch(error){
-        console.warn('Store recovery session:',error);
-      }
-      if(String(sessionUserId)!==String(expectedUserId)){
-        await sleep(Math.min(80+attempt*25,250));
-        continue;
-      }
+        const session=data?.session||null;
+        const sessionUserId=session?.user?.id||'';
+        const accessToken=session?.access_token||'';
+        const tokenUserId=jwtSub(accessToken);
 
-      try{
-        const result=await c.rpc('get_my_stores');
-        if(result.error)throw result.error;
-        const rows=result.data||[];
-
-        /* getSession() can already expose the new user while PostgREST still sends
-           the previous access token for a very short window. The RPC returns its
-           auth.uid() as user_id, so never accept rows from another account. */
-        if(rows.length&&rows.every(row=>rowUserMatches(row,expectedUserId))){
-          return activateExpectedStore(expectedUserId,rows);
-        }
-        if(rows.length&&rows.some(row=>!rowUserMatches(row,expectedUserId))){
-          await sleep(Math.min(90+attempt*30,280));
+        /* Do not issue a store query until BOTH the session object and the JWT
+           itself identify the account we are opening. */
+        if(String(sessionUserId)!==String(expectedUserId)||String(tokenUserId)!==String(expectedUserId)||!accessToken){
+          await sleep(100+attempt*60);
           continue;
         }
 
-        /* Only provision after Auth + PostgREST have repeatedly agreed on the
-           expected account and that account truly has no visible store. */
-        if(!rows.length&&attempt>=3&&!ensured){
-          const made=await c.rpc('ensure_my_store');
-          if(made.error)throw made.error;
+        /* Bypass supabase-js PostgREST's cached Authorization state. The exact
+           access_token inspected above is attached to this request explicitly. */
+        const rows=(await rpcWithExactToken('get_my_stores',accessToken))||[];
+        if(rows.length){
+          if(!rows.every(row=>String(row?.user_id||'')===String(expectedUserId))){
+            console.warn('Store recovery rejected mismatched RPC identity.');
+            await sleep(120+attempt*60);
+            continue;
+          }
+          return activateExpectedStore(expectedUserId,rows);
+        }
+
+        if(!ensured&&attempt>=1){
+          await rpcWithExactToken('ensure_my_store',accessToken);
           ensured=true;
         }
       }catch(error){
-        console.warn('Store recovery RPC:',error);
+        console.warn('Store recovery exact-token RPC:',error);
       }
-      await sleep(Math.min(90+attempt*30,280));
+      await sleep(120+attempt*60);
     }
     return false;
   }
 
-  const originalPrepare=window.__nayadPrepareUserStore;
   window.__nayadPrepareUserStore=function(expectedUserId=window.__nayadUser?.id||''){
     if(!expectedUserId)return Promise.resolve(false);
     if(preparePromise&&prepareUserId===expectedUserId)return preparePromise;
     prepareUserId=expectedUserId;
-    preparePromise=(async()=>{
-      const verified=await prepareVerifiedStore(expectedUserId);
-      if(verified)return true;
-      if(typeof originalPrepare==='function'){
-        try{return Boolean(await originalPrepare(expectedUserId));}
-        catch(error){console.warn('Original store prepare fallback:',error);}
-      }
-      return false;
-    })();
+    preparePromise=prepareVerifiedStore(expectedUserId);
     return preparePromise.finally(()=>{
       if(prepareUserId===expectedUserId){preparePromise=null;prepareUserId='';}
     });
