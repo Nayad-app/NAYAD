@@ -26,16 +26,11 @@ self.addEventListener("install",event=>{
 });
 
 self.addEventListener("activate",event=>{
-  event.waitUntil((async()=>{
-    const keys=await caches.keys();
-    const hadOldNayadCache=keys.some(key=>key.startsWith("nayad-")&&key!==CACHE);
-    await Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)));
-    await self.clients.claim();
-    if(hadOldNayadCache){
-      const windows=await self.clients.matchAll({type:"window"});
-      await Promise.all(windows.map(client=>client.navigate(client.url).catch(()=>null)));
-    }
-  })());
+  event.waitUntil(
+    caches.keys()
+      .then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))))
+      .then(()=>self.clients.claim())
+  );
 });
 
 function injectScript(html,src){
