@@ -41,6 +41,10 @@
   function commit(next,options){
     const state=persist(next);
     const renderNow=options?.render!==false;
+    if(typeof window.__nayadApplyData==='function'){
+      window.__nayadApplyData(state,renderNow);
+      return state;
+    }
     try{
       const selectedId=typeof selected!=='undefined'&&selected?selected.id:null;
       if(typeof data!=='undefined')data=state;
