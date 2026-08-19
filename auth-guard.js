@@ -1,8 +1,9 @@
-/* NAYAD auth guard v47 — stale auth events must never replace the current session. */
+/* NAYAD auth guard v48 — the current Supabase session is the only auth source of truth. */
 (function(){
-  if(window.__nayadAuthGuardV47)return;
-  window.__nayadAuthGuardV47=true;
+  if(window.__nayadAuthGuardV48)return;
+  window.__nayadAuthGuardV48=true;
 
+  const originalHandleAuthStateChange=window.handleAuthStateChange;
   const originalShowAuthenticatedApp=window.showAuthenticatedApp;
   const originalShowLoginScreen=window.showLoginScreen;
   let running=null;
@@ -25,6 +26,36 @@
     }
   }
 
+  /* index.html registered its auth callback before this file loads. That callback
+     resolves handleAuthStateChange by name when its timer runs, so replacing the
+     global function here also protects the already-registered callback. Never
+     trust the session object carried by a delayed event; re-read the session that
+     Supabase currently owns and pass only that to the original handler. */
+  if(typeof originalHandleAuthStateChange==='function'){
+    window.handleAuthStateChange=async function(event,eventSession){
+      const recovery=(event==='PASSWORD_RECOVERY')||
+        (typeof INITIAL_RECOVERY_FLOW!=='undefined'&&INITIAL_RECOVERY_FLOW)||
+        (typeof isPasswordRecovery==='function'&&isPasswordRecovery());
+      const confirming=(typeof INITIAL_EMAIL_CONFIRM_FLOW!=='undefined'&&INITIAL_EMAIL_CONFIRM_FLOW);
+      if(recovery||confirming)return originalHandleAuthStateChange(event,eventSession);
+
+      try{
+        await Promise.resolve();
+        const currentSession=await readCurrentSession();
+        const eventUserId=eventSession?.user?.id||'';
+        const currentUserId=currentSession?.user?.id||'';
+        if(eventUserId&&currentUserId&&String(eventUserId)!==String(currentUserId)){
+          console.info('NAYAD ignored stale auth event for',eventUserId);
+        }
+        if(currentSession?.user)return originalHandleAuthStateChange(event,currentSession);
+        return originalHandleAuthStateChange('SIGNED_OUT',null);
+      }catch(error){
+        console.warn('Auth event verification:',error);
+        return false;
+      }
+    };
+  }
+
   async function safeShowAuthenticatedApp(){
     try{
       const session=await readCurrentSession();
@@ -35,10 +66,6 @@
         if(typeof originalShowLoginScreen==='function')await originalShowLoginScreen();
         return false;
       }
-
-      /* A delayed SIGNED_IN/TOKEN_REFRESHED callback may have just written an
-         older user into window.__nayadUser. Always restore the user from the
-         session that Supabase currently owns before opening a store. */
       applyCurrentUser(user);
       if(typeof originalShowAuthenticatedApp==='function'){
         return Boolean(await originalShowAuthenticatedApp());
@@ -54,8 +81,6 @@
     try{
       const session=await readCurrentSession();
       if(session?.user){
-        /* A stale SIGNED_OUT event must not kick an already signed-in account
-           back to the login screen. */
         applyCurrentUser(session.user);
         return safeShowAuthenticatedApp();
       }
