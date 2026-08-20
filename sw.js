@@ -1,4 +1,4 @@
-const CACHE = "nayad-v72";
+const CACHE = "nayad-v73";
 
 const ASSETS = [
   "./",
@@ -16,7 +16,7 @@ const ASSETS = [
   "./auth-guard.js?v=55",
   "./mobile-fix.js?v=46",
   "./share.js?v=37",
-  "./invoice-cloud.js?v=64",
+  "./invoice-cloud.js?v=65",
   "./supplier-cloud.js?v=56",
   "./company-label.js"
 ];
@@ -41,7 +41,7 @@ function injectScript(html,src){
 
 function injectCloudRuntimeBeforeCloudModules(html){
   if(html.includes("./cloud-runtime.js"))return html;
-  const invoiceTag='<script src="./invoice-cloud.js?v=64"></script>';
+  const invoiceTag='<script src="./invoice-cloud.js?v=65"></script>';
   if(html.includes(invoiceTag)){
     return html.replace(invoiceTag,`<script src="./cloud-runtime.js?v=57"></script>${invoiceTag}`);
   }
@@ -55,7 +55,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=52");
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=57");
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=55");
-  patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=64");
+  patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=65");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=56");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScript(patched,"./store-recovery.js?v=52");
