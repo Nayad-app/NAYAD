@@ -13,6 +13,13 @@
     };
   }
   function queueCloudSync(task){return window.__nayadQueueCloudSync(task);}
+  async function queueSupplierMutation(task){
+    if(window.__nayadCriticalOperation)throw new Error('Өмнөх хадгалалт дууссаны дараа дахин оролдоно уу.');
+    const token='supplier:'+(typeof globalThis.crypto?.randomUUID==='function'?globalThis.crypto.randomUUID():Date.now());
+    window.__nayadCriticalOperation=token;
+    try{return await queueCloudSync(task);}
+    finally{if(window.__nayadCriticalOperation===token)delete window.__nayadCriticalOperation;}
+  }
 
   function sb(){ return window.nayadSupabase || window.sb || null; }
   function dataKey(){ return typeof window.__nayadStoreDataKey==='function'?window.__nayadStoreDataKey():(window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY); }
@@ -111,15 +118,17 @@
       if((bank&&!bankAccount)||(!bank&&bankAccount)){toastMsg('Банк болон дансны дугаарыг хоёуланг нь оруулна уу.');return;}
       const draft={name,reg:val('newReg'),address:val('newAddress'),director:val('newDirector'),directorPhone:val('newDirectorPhone'),sales:val('newSales'),salesPhone:val('newSalesPhone'),orgPhone:val('newOrgPhone'),bank,bankAccount,status:'active'};
       try{
-        const store=await myStore();
-        const existing=await findExisting(store.id,draft);
-        if(existing){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
-        const cloud=await createCloudSupplier(draft);
-        originalSaveCompany();
-        const d=readLocal();
-        const matches=(d.companies||[]).filter(c=>norm(c.name)===norm(name)&&(!draft.reg||!c.reg||norm(c.reg)===norm(draft.reg)));
-        const local=matches[matches.length-1]; if(local){local.supabase_supplier_id=cloud.id;writeLocal(d);}
-        toastMsg('Нийлүүлэгч cloud-д хадгалагдлаа.');
+        await queueSupplierMutation(async()=>{
+          const store=await myStore();
+          const existing=await findExisting(store.id,draft);
+          if(existing){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
+          const cloud=await createCloudSupplier(draft);
+          originalSaveCompany();
+          const d=readLocal();
+          const matches=(d.companies||[]).filter(c=>norm(c.name)===norm(name)&&(!draft.reg||!c.reg||norm(c.reg)===norm(draft.reg)));
+          const local=matches[matches.length-1]; if(local){local.supabase_supplier_id=cloud.id;writeLocal(d);}
+          toastMsg('Нийлүүлэгч cloud-д хадгалагдлаа.');
+        });
       }catch(e){
         console.error('supplier create:',e);
         toastMsg(e?.code==='23505'?'Ийм нэртэй компани бүртгэлтэй байна.':'Нийлүүлэгч хадгалахад алдаа: '+(e?.message||''));
@@ -136,11 +145,13 @@
         const draft={...target,name:val('eName')||target.name,reg:val('eReg'),address:val('eAddress'),director:val('eDirector'),directorPhone:val('eDirectorPhone'),sales:val('eSales'),salesPhone:val('eSalesPhone'),orgPhone:val('eOrgPhone'),bank:val('eBank'),bankAccount:val('eBankAccount').toUpperCase(),status:val('eStatus')||'active'};
         if(duplicateLocalSupplier(draft.name,target.id)){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
         if((draft.bank&&!draft.bankAccount)||(!draft.bank&&draft.bankAccount)){toastMsg('Банк болон дансны дугаарыг хоёуланг нь оруулна уу.');return;}
-        const cloud=await ensureCloudSupplier(draft);
-        target.supabase_supplier_id=cloud.id;
-        originalSaveEdit();
-        attachCloudId(target.id,cloud.id);
-        toastMsg('Нийлүүлэгчийн мэдээлэл cloud-д шинэчлэгдлээ.');
+        await queueSupplierMutation(async()=>{
+          const cloud=await ensureCloudSupplier(draft);
+          target.supabase_supplier_id=cloud.id;
+          originalSaveEdit();
+          attachCloudId(target.id,cloud.id);
+          toastMsg('Нийлүүлэгчийн мэдээлэл cloud-д шинэчлэгдлээ.');
+        });
       }catch(e){console.error('supplier update:',e);toastMsg('Нийлүүлэгч засахад алдаа: '+(e?.message||''));}
     };
   }
@@ -148,22 +159,24 @@
   const originalDeleteCompany=window.deleteCompany;
   if(typeof originalDeleteCompany==='function'){
     window.deleteCompany=async function(id){
-      const d=readLocal(), local=(d.companies||[]).find(x=>String(x.id)===String(id));
-      if(!local){return originalDeleteCompany(id);}
       try{
-        if(local.supabase_supplier_id){
-          const c=sb();
-          const count=await c.from('invoices').select('id',{count:'exact',head:true}).eq('supplier_id',local.supabase_supplier_id);
-          if(count.error)throw count.error;
-          if((count.count||0)>0){
-            const u=await c.from('suppliers').update({is_active:false}).eq('id',local.supabase_supplier_id);
-            if(u.error)throw u.error;
-            toastMsg('Падааны түүхтэй тул устгахгүй, идэвхгүй хэвээр үлдээлээ.');
-            return;
+        await queueSupplierMutation(async()=>{
+          const d=readLocal(), local=(d.companies||[]).find(x=>String(x.id)===String(id));
+          if(!local){return originalDeleteCompany(id);}
+          if(local.supabase_supplier_id){
+            const c=sb();
+            const count=await c.from('invoices').select('id',{count:'exact',head:true}).eq('supplier_id',local.supabase_supplier_id);
+            if(count.error)throw count.error;
+            if((count.count||0)>0){
+              const u=await c.from('suppliers').update({is_active:false}).eq('id',local.supabase_supplier_id);
+              if(u.error)throw u.error;
+              toastMsg('Падааны түүхтэй тул устгахгүй, идэвхгүй хэвээр үлдээлээ.');
+              return;
+            }
+            const del=await c.from('suppliers').delete().eq('id',local.supabase_supplier_id); if(del.error)throw del.error;
           }
-          const del=await c.from('suppliers').delete().eq('id',local.supabase_supplier_id); if(del.error)throw del.error;
-        }
-        originalDeleteCompany(id);
+          originalDeleteCompany(id);
+        });
       }catch(e){console.error('supplier delete:',e);toastMsg('Нийлүүлэгч устгахад алдаа: '+(e?.message||''));}
     };
   }

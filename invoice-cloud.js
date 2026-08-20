@@ -3,7 +3,9 @@
   const KEY = "NAYAD_DATA_V2";
   const USER_DATA_PREFIX = "NAYAD_DATA_V3:";
   let cloudCompanyId = null;
+  let cloudCompanyTarget = null;
   let pending = [];
+  let invoiceSaving = false;
   let reorderBound = false;
   let dragState = null;
 
@@ -18,6 +20,18 @@
   function queueCloudSync(task){return window.__nayadQueueCloudSync(task);}
 
   function client(){ return window.nayadSupabase || window.sb || null; }
+  function operationClient(session,fallback){
+    const library=window.supabase;
+    const url=(typeof SUPABASE_URL!=='undefined'&&SUPABASE_URL)||fallback?.supabaseUrl||'';
+    const key=(typeof SUPABASE_PUBLISHABLE_KEY!=='undefined'&&SUPABASE_PUBLISHABLE_KEY)||fallback?.supabaseKey||'';
+    if(!session?.access_token||!url||!key||typeof library?.createClient!=='function')return fallback;
+    /* Keep every write and any compensation request on the session that
+       started the save. The shared client may switch users from another tab. */
+    return library.createClient(url,key,{
+      auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},
+      global:{headers:{Authorization:`Bearer ${session.access_token}`}}
+    });
+  }
   function dataKey(){ return typeof window.__nayadStoreDataKey==='function'?window.__nayadStoreDataKey():(window.__nayadUser?.id ? USER_DATA_PREFIX+window.__nayadUser.id : KEY); }
   function readLocal(){
     if(window.__nayadState)return window.__nayadState.read();
@@ -58,13 +72,38 @@
     }
     company.debt=Number(remaining);
   }
-  function currentCompany(id){
-    const same=x=>x&&String(x.id)===String(id);
-    if(typeof selected!=='undefined'&&same(selected))return selected;
-    if(typeof data!=='undefined'&&Array.isArray(data?.companies)){
-      const live=data.companies.find(same); if(live)return live;
+  function currentCompany(reference){
+    const ref=reference&&typeof reference==='object'
+      ?{localId:reference.localId??reference.id,supplierId:reference.supplierId??reference.supabase_supplier_id,name:reference.name}
+      :{localId:reference,supplierId:null,name:''};
+    const candidates=[];
+    const add=company=>{
+      if(!company)return;
+      if(!candidates.some(item=>item===company))candidates.push(company);
+    };
+    if(typeof data!=='undefined'&&Array.isArray(data?.companies))data.companies.forEach(add);
+    (readLocal().companies||[]).forEach(add);
+    if(typeof selected!=='undefined')add(selected);
+
+    if(ref.supplierId){
+      const bySupplier=candidates.find(company=>String(company.supabase_supplier_id||'')===String(ref.supplierId));
+      if(bySupplier)return bySupplier;
+      /* Once a cloud UUID has been captured it is the only safe identity.
+         A reused local ID or matching name may belong to another supplier. */
+      return null;
     }
-    return (readLocal().companies||[]).find(same)||null;
+    if(ref.localId!=null){
+      const byLocalId=candidates.find(company=>
+        String(company.id)===String(ref.localId)
+        &&(!ref.supplierId||!company.supabase_supplier_id||String(company.supabase_supplier_id)===String(ref.supplierId))
+      );
+      if(byLocalId)return byLocalId;
+    }
+    const wantedName=String(ref.name||'').trim().toLowerCase();
+    return wantedName?candidates.find(company=>
+      String(company.name||'').trim().toLowerCase()===wantedName
+      &&(!ref.supplierId||!company.supabase_supplier_id||String(company.supabase_supplier_id)===String(ref.supplierId))
+    )||null:null;
   }
   function val(id){ return document.getElementById(id)?.value || ""; }
   function esc(s){ return String(s??"").replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
@@ -85,11 +124,15 @@
     return row;
   }
 
-  async function ensureSupplier(storeRow, company){
-    const sb=client();
+  async function ensureSupplier(storeRow, company, options={}){
+    const sb=options.client||client();
     if(company.supabase_supplier_id){
       const {data,error}=await sb.from('suppliers').select('id,name').eq('id',company.supabase_supplier_id).eq('store_id',storeRow.id).maybeSingle();
       if(!error && data) return data;
+      if(options.requireExistingId){
+        if(error)throw new Error('Нийлүүлэгчийг шалгахад алдаа: '+error.message);
+        throw new Error('Нийлүүлэгч устсан эсвэл энэ дэлгүүрт байхгүй байна. Жагсаалтаа шинэчлээд дахин оролдоно уу.');
+      }
     }
     const {data:found,error:findError}=await sb.from('suppliers').select('id,name').eq('store_id',storeRow.id).eq('name',company.name).limit(1).maybeSingle();
     if(!findError && found){ company.supabase_supplier_id=found.id; return found; }
@@ -345,7 +388,7 @@
     box.innerHTML=pending.map((x,i)=>`<div class="imageItem" data-index="${i}"><div class="drag" style="touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none">☷</div><img src="${x.preview}" alt="page ${i+1}"><div class="meta"><b>${i+1}-р хуудас</b><span>${esc(x.name)}</span><span class="pageBadge">Хуудас ${i+1}</span></div><button type="button" onclick="window.__removeCloudInvoiceImage(${i})">✕</button></div>`).join('');
     bindReorder();
   }
-  window.__removeCloudInvoiceImage=function(i){ const x=pending[i]; if(x?.preview)URL.revokeObjectURL(x.preview); pending.splice(i,1); renderPending(); };
+  window.__removeCloudInvoiceImage=function(i){ if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;} const x=pending[i]; if(x?.preview)URL.revokeObjectURL(x.preview); pending.splice(i,1); renderPending(); };
   function addFiles(files){
     for(const file of files||[]){
       if(!file.type.startsWith('image/')){notify('Зөвхөн зураг сонгоно уу.');continue;}
@@ -355,9 +398,17 @@
   }
 
   window.invoice=function(id){
+    if(invoiceSaving){notify('Өмнөх падаан хадгалагдаж байна.');return;}
     cloudCompanyId=id;
     const company=currentCompany(id);
     if(!company){notify('Нийлүүлэгч олдсонгүй.');return;}
+    cloudCompanyTarget={
+      localId:company.id,
+      supplierId:company.supabase_supplier_id||null,
+      name:company.name||'',
+      storeId:window.__nayadActiveStoreId||window.__nayadActiveStore?.id||null,
+      userId:window.__nayadUser?.id||null
+    };
     clearPending();
     reorderBound=false;
     openSheet(`<h2>Падаан нэмэх</h2><div class="card"><b>${esc(company.name)}</b></div>
@@ -374,52 +425,110 @@
     document.getElementById('cloudCameraInput').onchange=function(){addFiles([...this.files]);this.value=''};
     renderPending();
   };
-  window.__cancelCloudInvoice=function(){clearPending();close();};
+  window.__cancelCloudInvoice=function(){if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}cloudCompanyTarget=null;clearPending();close();};
 
   window.__saveCloudInvoice=async function(){
+    if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}
     const amount=Number(val('cloudIAmount'));
     const date=val('cloudIDate')||new Date().toISOString().slice(0,10);
     const no=val('cloudINo')||('INV-'+Date.now().toString().slice(-6));
     if(!amount || amount<0){notify('Нийт дүн оруулна уу.');return;}
+    if(window.__nayadCriticalOperation){notify('Өмнөх хадгалалт дууссаны дараа дахин оролдоно уу.');return;}
+    const target=cloudCompanyTarget?{...cloudCompanyTarget}:{localId:cloudCompanyId,supplierId:null,name:'',storeId:window.__nayadActiveStoreId||null,userId:window.__nayadUser?.id||null};
+    const pendingFiles=pending.map(item=>({file:item.file,name:item.name||''}));
+    let operationUserId=target.userId||window.__nayadUser?.id||null;
+    const operationToken='invoice:'+crypto.randomUUID();
     const btn=document.getElementById('cloudSaveInvoiceBtn'); if(btn){btn.disabled=true;btn.textContent='Хадгалж байна...';}
-    let invoiceId=null, supplierId=null, storeId=null, uploaded=[];
+    let invoiceId=null, supplierId=null, storeId=null, uploaded=[], remoteComplete=false;
+    invoiceSaving=true;
+    window.__nayadCriticalOperation=operationToken;
     try{
-      const sb=client(); if(!sb)throw new Error('Supabase холболт олдсонгүй.');
-      const session=(await sb.auth.getSession()).data?.session; if(!session)throw new Error('Эхлээд NAYAD-д нэвтэрнэ үү.');
-      const storeRow=await store(); storeId=storeRow.id;
-      const local=readLocal(); const company=currentCompany(cloudCompanyId);
-      if(!company)throw new Error('Нийлүүлэгч олдсонгүй.');
-      const supplier=await ensureSupplier(storeRow,company); supplierId=supplier.id;
-      invoiceId=crypto.randomUUID();
-      const {error:invoiceError}=await sb.from('invoices').insert({id:invoiceId,store_id:storeId,supplier_id:supplierId,invoice_no:no,invoice_date:date,amount,paid:0,image_url:null});
-      if(invoiceError)throw new Error('Падаан хадгалахад алдаа: '+invoiceError.message);
-      const imageUrls=[];
-      for(let i=0;i<pending.length;i++){
-        const file=await window.compressInvoiceImage(pending[i].file);
-        const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
-        const safe=['jpg','jpeg','png','webp','gif','heic','heif'].includes(ext)?ext:'jpg';
-        const path=`${storeId}/${supplierId}/${invoiceId}/page-${i+1}-${Date.now()}-${crypto.randomUUID()}.${safe}`;
-        const {error:uploadError}=await sb.storage.from('invoice-images').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
-        if(uploadError)throw new Error(`${i+1}-р зураг хадгалахад алдаа: ${uploadError.message}`);
-        uploaded.push(path);
-        const {data:urlData}=sb.storage.from('invoice-images').getPublicUrl(path); const imageUrl=urlData?.publicUrl||''; imageUrls.push(imageUrl);
-        const {error:rowError}=await sb.from('invoice_images').insert({id:crypto.randomUUID(),invoice_id:invoiceId,image_url:imageUrl,image_path:path,page_number:i+1});
-        if(rowError)throw new Error(`${i+1}-р зургийн мэдээлэл хадгалахад алдаа: ${rowError.message}`);
-      }
-      if(imageUrls[0]){const {error:updateError}=await sb.from('invoices').update({image_url:imageUrls[0]}).eq('id',invoiceId);if(updateError)throw new Error('Падааны зураг холбоход алдаа: '+updateError.message);}
-      company.supabase_supplier_id=supplierId;
-      const cidx=(local.companies||[]).findIndex(c=>String(c.id)===String(company.id));
-      const inv={id:invoiceId,date,no,amount,paid:0,image_url:imageUrls[0]||'',image_urls:imageUrls,image_paths:uploaded,image_count:imageUrls.length,supabase_synced:true};
-      if(cidx>=0){local.companies[cidx].supabase_supplier_id=supplierId;local.companies[cidx].invoices=local.companies[cidx].invoices||[];local.companies[cidx].invoices.push(inv);}
-      else{local.companies=local.companies||[];local.companies.push({...company,supabase_supplier_id:supplierId,invoices:[...(company.invoices||[]),inv]});}
-      writeLocal(local);
-      clearPending();close();notify(imageUrls.length?`Падаан болон ${imageUrls.length} зураг cloud-д хадгалагдлаа.`:'Падаан зураггүйгээр хадгалагдлаа.');setTimeout(()=>location.reload(),500);
+      await queueCloudSync(async()=>{
+        const sb=client(); if(!sb)throw new Error('Supabase холболт олдсонгүй.');
+        let writeClient=sb;
+        try{
+          const session=(await sb.auth.getSession()).data?.session;
+          if(!session)throw new Error('Эхлээд NAYAD-д нэвтэрнэ үү.');
+          if(operationUserId&&String(session.user?.id||'')!==String(operationUserId))throw new Error('Нэвтэрсэн хэрэглэгч солигдсон байна. Падаанаа дахин нээнэ үү.');
+          operationUserId=session.user?.id||operationUserId;
+          if(!operationUserId)throw new Error('Нэвтэрсэн хэрэглэгчийг таньж чадсангүй. Дахин нэвтэрнэ үү.');
+          writeClient=operationClient(session,sb);
+          const storeRow=await store(); storeId=storeRow.id;
+          if(target.storeId&&String(target.storeId)!==String(storeId))throw new Error('Дэлгүүр солигдсон байна. Падаанаа дахин нээнэ үү.');
+          const local=readLocal();
+          /* A foreground/photo-picker sync may rebuild the local list while this
+             sheet is open. The Supabase UUID captured at open time remains the
+             authoritative identity even if the disposable local ID changed. */
+          const company=currentCompany(target)||(
+            target.supplierId&&target.name
+              ?{id:target.localId,name:target.name,supabase_supplier_id:target.supplierId,invoices:[]}
+              :null
+          );
+          if(!company)throw new Error('Нийлүүлэгч олдсонгүй.');
+          const supplier=await ensureSupplier(storeRow,company,{requireExistingId:Boolean(target.supplierId),client:writeClient}); supplierId=supplier.id;
+          invoiceId=crypto.randomUUID();
+          const {error:invoiceError}=await writeClient.from('invoices').insert({id:invoiceId,store_id:storeId,supplier_id:supplierId,invoice_no:no,invoice_date:date,amount,paid:0,image_url:null});
+          if(invoiceError)throw new Error('Падаан хадгалахад алдаа: '+invoiceError.message);
+          const imageUrls=[];
+          for(let i=0;i<pendingFiles.length;i++){
+            const file=await window.compressInvoiceImage(pendingFiles[i].file);
+            const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
+            const safe=['jpg','jpeg','png','webp','gif','heic','heif'].includes(ext)?ext:'jpg';
+            const path=`${storeId}/${supplierId}/${invoiceId}/page-${i+1}-${Date.now()}-${crypto.randomUUID()}.${safe}`;
+            /* Track an attempted path before awaiting the response. A network
+               error can arrive after Storage already committed the object. */
+            uploaded.push(path);
+            const {error:uploadError}=await writeClient.storage.from('invoice-images').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
+            if(uploadError)throw new Error(`${i+1}-р зураг хадгалахад алдаа: ${uploadError.message}`);
+            const {data:urlData}=writeClient.storage.from('invoice-images').getPublicUrl(path); const imageUrl=urlData?.publicUrl||''; imageUrls.push(imageUrl);
+            const {error:rowError}=await writeClient.from('invoice_images').insert({id:crypto.randomUUID(),invoice_id:invoiceId,image_url:imageUrl,image_path:path,page_number:i+1});
+            if(rowError)throw new Error(`${i+1}-р зургийн мэдээлэл хадгалахад алдаа: ${rowError.message}`);
+          }
+          if(imageUrls[0]){const {error:updateError}=await writeClient.from('invoices').update({image_url:imageUrls[0]}).eq('id',invoiceId);if(updateError)throw new Error('Падааны зураг холбоход алдаа: '+updateError.message);}
+
+          const verifiedSession=(await sb.auth.getSession()).data?.session;
+          if(!verifiedSession||String(verifiedSession.user?.id||'')!==String(operationUserId))throw new Error('Нэвтэрсэн хэрэглэгч солигдсон байна. Падааныг хадгалсангүй.');
+          if(target.storeId&&String(window.__nayadActiveStoreId||storeId)!==String(target.storeId))throw new Error('Дэлгүүр солигдсон байна. Падааныг хадгалсангүй.');
+          remoteComplete=true;
+
+          company.supabase_supplier_id=supplierId;
+          local.companies=local.companies||[];
+          const companyName=String(company.name||'').trim().toLowerCase();
+          let cidx=local.companies.findIndex(c=>String(c.supabase_supplier_id||'')===String(supplierId));
+          if(cidx<0)cidx=local.companies.findIndex(c=>
+            String(c.id)===String(company.id)
+            &&String(c.name||'').trim().toLowerCase()===companyName
+            &&(!c.supabase_supplier_id||String(c.supabase_supplier_id)===String(supplierId))
+          );
+          if(cidx<0)cidx=local.companies.findIndex(c=>String(c.name||'').trim().toLowerCase()===companyName&&(!c.supabase_supplier_id||String(c.supabase_supplier_id)===String(supplierId)));
+          const inv={id:invoiceId,date,no,amount,paid:0,image_url:imageUrls[0]||'',image_urls:imageUrls,image_paths:uploaded,image_count:imageUrls.length,supabase_synced:true};
+          if(cidx>=0){local.companies[cidx].supabase_supplier_id=supplierId;local.companies[cidx].invoices=local.companies[cidx].invoices||[];local.companies[cidx].invoices.push(inv);}
+          else{local.companies.push({...company,supabase_supplier_id:supplierId,invoices:[...(company.invoices||[]),inv]});}
+          try{writeLocal(local);}catch(cacheError){console.warn('Invoice local cache:',cacheError);}
+          cloudCompanyTarget=null;clearPending();close();notify(imageUrls.length?`Падаан болон ${imageUrls.length} зураг cloud-д хадгалагдлаа.`:'Падаан зураггүйгээр хадгалагдлаа.');setTimeout(()=>location.reload(),500);
+        }catch(error){
+          /* Keep compensation under the same cloud lock. A following sync must
+             never observe a half-created invoice or partially uploaded pages. */
+          if(!remoteComplete&&uploaded.length){
+            try{const result=await writeClient.storage.from('invoice-images').remove(uploaded);if(result?.error)throw result.error;}
+            catch(cleanupError){console.warn('Invoice storage cleanup:',cleanupError);}
+          }
+          if(!remoteComplete&&invoiceId){
+            try{const result=await writeClient.from('invoice_images').delete().eq('invoice_id',invoiceId);if(result?.error)throw result.error;}
+            catch(cleanupError){console.warn('Invoice image rows cleanup:',cleanupError);}
+            try{const result=await writeClient.from('invoices').delete().eq('id',invoiceId);if(result?.error)throw result.error;}
+            catch(cleanupError){console.warn('Invoice row cleanup:',cleanupError);}
+          }
+          throw error;
+        }
+      });
     }catch(e){
       console.error('NAYAD cloud invoice:',e);
-      if(uploaded.length){try{await client().storage.from('invoice-images').remove(uploaded)}catch(_){} }
-      if(invoiceId){try{await client().from('invoice_images').delete().eq('invoice_id',invoiceId);await client().from('invoices').delete().eq('id',invoiceId)}catch(_){} }
       notify(e?.message||'Падаан хадгалахад алдаа гарлаа.');
       if(btn){btn.disabled=false;btn.textContent='Падаан нэмэх';}
+    }finally{
+      invoiceSaving=false;
+      if(window.__nayadCriticalOperation===operationToken)delete window.__nayadCriticalOperation;
     }
   };
 
@@ -433,9 +542,15 @@
     if(error||!invoices)return;
     const {data:cloudPayments,error:paymentsError}=await sb.from('payments').select('id,supplier_id,payment_date,amount,method,note,created_at').eq('store_id',storeRow.id).order('created_at',{ascending:true});
     if(paymentsError)return;
-    const supplierIds=[...new Set([...invoices.map(x=>x.supplier_id),...(cloudPayments||[]).map(x=>x.supplier_id)].filter(Boolean))];
-    let suppliers=[];
-    if(supplierIds.length){const r=await sb.from('suppliers').select('id,name,reg_no,address,director,director_phone,sales_phone,is_active').in('id',supplierIds);if(!r.error)suppliers=r.data||[];}
+    /* Companies without invoices or payments are still part of the active
+       store. Loading only supplier IDs referenced by financial rows removed a
+       newly-created company from local state while its first invoice sheet was
+       open, leaving the sheet with an obsolete local ID. */
+    const {data:suppliers,error:suppliersError}=await sb.from('suppliers')
+      .select('id,name,reg_no,address,director,director_phone,sales_rep,sales_phone,org_phone,bank_name,bank_account,is_active')
+      .eq('store_id',storeRow.id)
+      .order('created_at',{ascending:true});
+    if(suppliersError||!suppliers)return;
     const {data:images}=invoices.length?await sb.from('invoice_images').select('invoice_id,image_url,image_path,page_number').in('invoice_id',invoices.map(x=>x.id)).order('page_number',{ascending:true}):{data:[]};
     /* A store snapshot is authoritative. Do not merge it into the previous
        browser list by name: an old/duplicated local supplier can otherwise
@@ -445,9 +560,9 @@
     for(const s of suppliers){
       let c=previousCompanies.find(x=>String(x.supabase_supplier_id)===String(s.id))||previousCompanies.find(x=>String(x.name||'').trim().toLowerCase()===String(s.name||'').trim().toLowerCase());
       if(!c)c={id:Date.now()+Math.floor(Math.random()*100000),color:'green',invoices:[]};
-      c.name=s.name;c.reg=s.reg_no||'';c.address=s.address||'';c.director=s.director||'';c.directorPhone=s.director_phone||'';c.salesPhone=s.sales_phone||'';c.status=s.is_active===false?'inactive':'active';
+      c.name=s.name;c.reg=s.reg_no||'';c.address=s.address||'';c.director=s.director||'';c.directorPhone=s.director_phone||'';c.sales=s.sales_rep||'';c.salesPhone=s.sales_phone||'';c.orgPhone=s.org_phone||'';c.bank=s.bank_name||'';c.bankAccount=s.bank_account||'';c.status=s.is_active===false?'inactive':'active';
       c.supabase_supplier_id=s.id;c.invoices=c.invoices||[];
-      const remote=invoices.filter(i=>i.supplier_id===s.id);
+      const remote=invoices.filter(i=>String(i.supplier_id)===String(s.id));
       const nextInvoices=remote.map(ri=>{
         const imgs=(images||[]).filter(im=>String(im.invoice_id)===String(ri.id)).sort((a,b)=>(a.page_number||1)-(b.page_number||1));
         const urls=imgs.map(x=>x.image_url).filter(Boolean); const paths=imgs.map(x=>x.image_path).filter(Boolean);
