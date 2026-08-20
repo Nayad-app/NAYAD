@@ -1,4 +1,4 @@
-const CACHE = "nayad-v73";
+const CACHE = "nayad-v74";
 
 const ASSETS = [
   "./",
@@ -112,6 +112,14 @@ self.addEventListener("fetch",event=>{
   const request=event.request;
   const url=new URL(request.url);
 
+  /* Never cache authenticated API traffic. A service worker sees cross-origin
+     Supabase requests too; caching those responses made invoice/payment reads
+     permanently stale and could mix data between signed-in users. */
+  if(request.method!=="GET"||url.origin!==self.location.origin){
+    event.respondWith(fetch(request));
+    return;
+  }
+
   if(request.mode==="navigate"||request.destination==="document"){
     event.respondWith(
       fetch(request,{cache:"no-store"})
@@ -142,10 +150,18 @@ self.addEventListener("fetch",event=>{
     return;
   }
 
+  const staticPaths=new Set(ASSETS.map(asset=>new URL(asset,self.registration.scope).pathname));
+  if(!staticPaths.has(url.pathname)){
+    event.respondWith(fetch(request));
+    return;
+  }
+
   event.respondWith(
     caches.match(request).then(cached=>cached||fetch(request).then(response=>{
-      const copy=response.clone();
-      caches.open(CACHE).then(cache=>cache.put(request,copy)).catch(()=>{});
+      if(response.ok){
+        const copy=response.clone();
+        caches.open(CACHE).then(cache=>cache.put(request,copy)).catch(()=>{});
+      }
       return response;
     }))
   );
