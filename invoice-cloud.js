@@ -217,6 +217,10 @@
         const storeRow=await store(),supplier=await ensureSupplier(storeRow,company);
         const payment={id:crypto.randomUUID(),companyId:company.id,company:company.name,supabase_supplier_id:supplier.id,amount,date,method,supabase_synced:true};
         const cloudResult=await recordCloudPayment(sb,supplier.id,payment);
+        /* The database transaction is now committed. Any following local
+           render or verification read may fail, but must never suppress the
+           authoritative cache-busting refresh. */
+        paymentCommitted=true;
         const remaining=Number(cloudResult?.result?.remaining_balance);
         const local=readLocal();local.payments=local.payments||[];
         const localCompany=(local.companies||[]).find(c=>String(c.supabase_supplier_id)===String(supplier.id)||String(c.id)===String(company.id)||String(c.name||'').trim().toLowerCase()===String(company.name||'').trim().toLowerCase());
@@ -227,8 +231,13 @@
         close();
         applyLocalData(local,true);
         notify(Number.isFinite(remaining)?`Төлбөр бүртгэгдлээ. Үлдэгдэл: ${new Intl.NumberFormat('mn-MN').format(remaining)} ₮`:'Төлбөр cloud-д амжилттай бүртгэгдлээ.');
-        await refreshPaidSupplier(sb,supplier.id,remaining);
-        paymentCommitted=true;
+        try{
+          await refreshPaidSupplier(sb,supplier.id,remaining);
+        }catch(refreshError){
+          /* The payment RPC already committed. Keep the optimistic RPC
+             balance and let the unconditional page refresh retry the read. */
+          console.warn('post-payment supplier refresh:',refreshError);
+        }
         /* The direct supplier refresh above settles this screen immediately.
            Queue the broader cross-device snapshot only after this payment task
            releases the shared write lock. */
