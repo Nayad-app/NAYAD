@@ -16,10 +16,11 @@ storage.set(localKey,JSON.stringify(initial));
 let latestPaymentId='';
 /* Deliberately return a stale invoice SELECT after the RPC. The authoritative
    RPC balance must guard the UI from jumping back to 14,500. */
-const server={remaining:14200,staleReadPaid:85500};
+const server={remaining:14200,staleReadPaid:85500,refreshError:true};
 
 function resultFor(table,mode){
   if(table==='suppliers'&&mode==='maybeSingle')return {data:{id:'supplier-1',name:'vitafit'},error:null};
+  if(table==='invoices'&&server.refreshError)return {data:null,error:new Error('temporary invoice refresh failure')};
   if(table==='invoices')return {data:[{id:'invoice-1',supplier_id:'supplier-1',invoice_no:'INV-1',invoice_date:'2026-08-18',amount:100000,paid:server.staleReadPaid,image_url:null}],error:null};
   if(table==='payments')return {data:[{id:latestPaymentId,supplier_id:'supplier-1',payment_date:'2026-08-18',amount:300,method:'Банк',note:null,created_at:'2026-08-18T00:00:00Z'}],error:null};
   if(table==='suppliers')return {data:[{id:'supplier-1',name:'vitafit',reg_no:null,address:null,director:null,director_phone:null,sales_phone:null,is_active:true}],error:null};
@@ -43,6 +44,7 @@ const fields={
 };
 const renders=[];
 const notices=[];
+let postPaymentRefreshes=0;
 const context={
   console,setTimeout,clearTimeout,Intl,URL,crypto,
   localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v))},
@@ -59,6 +61,7 @@ const context={
 context.window=context;
 context.window.__nayadUser={id:userId};
 context.window.addEventListener=()=>{};
+context.window.__nayadRefreshPaymentView=()=>{postPaymentRefreshes++;};
 context.window.toast=message=>notices.push(message);
 context.window.closeSheet=()=>{};
 context.window.nayadSupabase={
@@ -98,5 +101,6 @@ vm.runInContext(fs.readFileSync(path.join(root,'invoice-cloud.js'),'utf8'),conte
   assert.equal(saved.payments.filter(p=>p.id===latestPaymentId).length,1,'payment must not be duplicated');
   assert.equal(renders.at(-1),14200,'last rendered balance must be authoritative');
   assert.match(notices.at(-1),/14,200|14 200|14 200/,'success message must show the same balance');
+  assert.equal(postPaymentRefreshes,1,'committed payment must refresh even when verification read fails');
   console.log('payment-flow: PASS — server, storage and visible UI all remain at 14,200 ₮');
 })().catch(error=>{console.error(error);process.exitCode=1;});
