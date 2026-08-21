@@ -1,7 +1,7 @@
-/* NAYAD cloud runtime v57 — financial sync recovers from stale store context. */
+/* NAYAD cloud runtime v58 — financial sync rejects cross-user store context. */
 (function(){
-  if(window.__nayadCloudRuntimeV57)return;
-  window.__nayadCloudRuntimeV57=true;
+  if(window.__nayadCloudRuntimeV58)return;
+  window.__nayadCloudRuntimeV58=true;
 
   let syncPromise=null;
   let syncKey='';
@@ -11,6 +11,12 @@
   let realtimeChannel=null;
 
   function client(){return window.nayadSupabase||window.sb||null;}
+  function storesBelongTo(userId){
+    return Boolean(userId)&&String(window.__nayadStoresUserId||'')===String(userId);
+  }
+  function verifiedStoresFor(userId){
+    return storesBelongTo(userId)&&Array.isArray(window.__nayadStores)?window.__nayadStores:[];
+  }
 
   async function currentContext(){
     const c=client();
@@ -25,12 +31,15 @@
       else window.__nayadUser=user;
     }
 
-    const selectedStoreId=window.__nayadActiveStoreId||'';
-    const verifiedStores=Array.isArray(window.__nayadStores)?window.__nayadStores:[];
+    let verifiedStores=verifiedStoresFor(user.id);
+    let selectedStoreId=window.__nayadActiveStoreId||'';
     let store=selectedStoreId?verifiedStores.find(item=>String(item.id)===String(selectedStoreId))||null:null;
-    if(!store?.id)store=window.__nayadActiveStore||null;
     if(!store?.id&&typeof window.__nayadGetActiveStore==='function'){
-      store=await window.__nayadGetActiveStore();
+      await window.__nayadGetActiveStore();
+      if(!storesBelongTo(user.id))return null;
+      verifiedStores=verifiedStoresFor(user.id);
+      selectedStoreId=window.__nayadActiveStoreId||'';
+      store=selectedStoreId?verifiedStores.find(item=>String(item.id)===String(selectedStoreId))||null:null;
     }
     if(!store?.id)return null;
 
@@ -38,17 +47,18 @@
        order. Reconcile the two runtime fields only with a store returned by
        the authenticated store list, so sync never aborts on a stale object. */
     const verified=verifiedStores.find(item=>String(item.id)===String(store.id));
-    if(verified){
-      store=verified;
-      window.__nayadActiveStore=verified;
-      window.__nayadActiveStoreId=verified.id;
-    }
+    if(!verified)return null;
+    store=verified;
+    window.__nayadActiveStore=verified;
+    window.__nayadActiveStoreId=verified.id;
 
     const second=await c.auth.getSession();
     if(second.error)throw second.error;
     const verifiedUser=second.data?.session?.user||null;
     if(!verifiedUser?.id||String(verifiedUser.id)!==String(user.id))return null;
     if(String(window.__nayadUser?.id||'')!==String(verifiedUser.id))return null;
+    if(!storesBelongTo(verifiedUser.id))return null;
+    if(!verifiedStoresFor(verifiedUser.id).some(item=>String(item.id)===String(store.id)))return null;
     if(String(window.__nayadActiveStoreId||'')!==String(store.id))return null;
 
     return {userId:verifiedUser.id,storeId:store.id};

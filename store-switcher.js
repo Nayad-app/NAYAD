@@ -26,10 +26,21 @@
 
   function sb(){return window.nayadSupabase||window.sb||null;}
   function userId(){return window.__nayadUser?.id||'';}
+  function runtimeUserId(){return String(window.__nayadStoresUserId||'');}
+  function runtimeBelongsTo(uid=userId()){return Boolean(uid)&&runtimeUserId()===String(uid);}
+  function hasRuntimeStoreState(){
+    return Boolean(
+      stores.length||initializedFor||window.__nayadStores?.length||
+      window.__nayadActiveStoreId||window.__nayadActiveStore
+    );
+  }
+  function trustedGlobalStores(uid=userId()){
+    return runtimeBelongsTo(uid)&&Array.isArray(window.__nayadStores)?window.__nayadStores:null;
+  }
   function activeKey(){return userId()?ACTIVE_PREFIX+userId():'';}
   function initial(name){return String(name||'N').trim().slice(0,1).toUpperCase();}
   function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-  function active(){return window.__nayadActiveStore||null;}
+  function active(){return runtimeBelongsTo()?window.__nayadActiveStore||null:null;}
   function roleLabel(role){return role==='owner'?'Эзэмшигч':'Гишүүн';}
   function normalizeStores(rows){
     return (rows||[]).map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',created_at:row.created_at})).filter(row=>row.id);
@@ -38,6 +49,7 @@
     stores=[];
     initializedFor='';
     window.__nayadStores=[];
+    window.__nayadStoresUserId='';
     window.__nayadActiveStore=null;
     window.__nayadActiveStoreId=null;
   }
@@ -54,6 +66,8 @@
         clearRuntimeStoreState();
         if(typeof window.profileFromUser==='function')window.profileFromUser(user);
         else window.__nayadUser=user;
+      }else if(hasRuntimeStoreState()&&!runtimeBelongsTo(user.id)){
+        clearRuntimeStoreState();
       }
       return user.id;
     }catch(error){
@@ -68,6 +82,7 @@
     stores=verified;
     initializedFor=expectedUserId;
     window.__nayadStores=stores;
+    window.__nayadStoresUserId=expectedUserId;
     return true;
   }
 
@@ -82,8 +97,9 @@
     return false;
   }
 
-  window.__nayadStoreDataKey=function(uid=userId(),storeId=window.__nayadActiveStoreId){
-    return uid&&storeId?`${DATA_PREFIX}${uid}:${storeId}`:(uid?`NAYAD_DATA_V3:${uid}`:'NAYAD_DATA_V2');
+  window.__nayadStoreDataKey=function(uid=userId(),storeId){
+    const resolvedStoreId=storeId!==undefined?storeId:(runtimeBelongsTo(uid)?window.__nayadActiveStoreId:null);
+    return uid&&resolvedStoreId?`${DATA_PREFIX}${uid}:${resolvedStoreId}`:(uid?`NAYAD_DATA_V3:${uid}`:'NAYAD_DATA_V2');
   };
 
   async function fetchStores(expectedUserId=userId()){
@@ -93,18 +109,19 @@
     let result=await client.rpc('get_my_stores');
     if(result.error)throw result.error;
     let rows=Array.isArray(result.data)?result.data:[];
-    if(!rows.length){
+    let ensured=null;
+    if(!rows.some(row=>row?.role==='owner')){
       const made=await client.rpc('ensure_my_store');if(made.error)throw made.error;
-      const ensured=Array.isArray(made.data)?made.data[0]:made.data;
+      ensured=Array.isArray(made.data)?made.data[0]:made.data;
       result=await client.rpc('get_my_stores');
       if(result.error)throw result.error;
       rows=Array.isArray(result.data)?result.data:[];
-      /* Immediately after a session change the invoker-scoped list can be
-         briefly empty. ensure_my_store is bound to auth.uid() and has
-         already returned the verified user's store, so keep that result as
-         a safe fallback instead of rejecting a valid login. */
-      if(!rows.length&&ensured?.id)rows=[{id:ensured.id,name:ensured.name,role:'owner'}];
     }
+    /* Immediately after a session change the invoker-scoped list can be
+       briefly empty. ensure_my_store is bound to auth.uid() and has already
+       returned the verified user's owned store, so keep that result as a safe
+       fallback instead of rejecting a valid login. */
+    if(!rows.length&&ensured?.id)rows=[{id:ensured.id,name:ensured.name,role:'owner'}];
     if(rows.some(row=>row.user_id!=null&&String(row.user_id)!==String(expectedUserId)))return [];
     return normalizeStores(rows);
   }
@@ -120,13 +137,17 @@
 
   function showPicker(){
     if(typeof window.sheet!=='function')return;
-    if((initializedFor!==userId()||!stores.length)&&Array.isArray(window.__nayadStores))hydrateVerifiedStores(window.__nayadStores,userId());
-    const rows=stores.map(store=>`<button class="storePickerItem ${String(store.id)===String(window.__nayadActiveStoreId)?'active':''}" type="button" onclick="selectNayadStore('${esc(store.id)}')"><span class="storePickerAvatar">${esc(initial(store.name))}</span><span class="storePickerMeta"><b>${esc(store.name)}</b><span>${roleLabel(store.role)}</span></span><span class="storePickerCheck">✓</span></button>`).join('');
+    const trusted=trustedGlobalStores();
+    if((initializedFor!==userId()||!stores.length)&&trusted)hydrateVerifiedStores(trusted,userId());
+    const visibleStores=initializedFor===userId()&&runtimeBelongsTo()?stores:[];
+    const rows=visibleStores.map(store=>`<button class="storePickerItem ${String(store.id)===String(window.__nayadActiveStoreId)?'active':''}" type="button" onclick="selectNayadStore('${esc(store.id)}')"><span class="storePickerAvatar">${esc(initial(store.name))}</span><span class="storePickerMeta"><b>${esc(store.name)}</b><span>${roleLabel(store.role)}</span></span><span class="storePickerCheck">✓</span></button>`).join('');
     window.sheet(`<div class="storePickerHeader"><h2>Дэлгүүр сонгох</h2><button class="storePickerClose" type="button" onclick="closeSheet()" aria-label="Хаах"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="storePickerHint">Та өөрийн болон хуваалцсан дэлгүүрүүдийн хооронд шилжиж болно.</div><div class="storePickerList">${rows||'<div class="card">Дэлгүүр олдсонгүй.</div>'}</div>`);
   }
 
   async function activateStore(storeId,options={}){
-    if((initializedFor!==userId()||!stores.length)&&Array.isArray(window.__nayadStores))hydrateVerifiedStores(window.__nayadStores,userId());
+    const trusted=trustedGlobalStores();
+    if((initializedFor!==userId()||!stores.length)&&trusted)hydrateVerifiedStores(trusted,userId());
+    if(initializedFor!==userId()||!runtimeBelongsTo())return false;
     const next=stores.find(s=>String(s.id)===String(storeId));if(!next)return false;
     const changed=String(window.__nayadActiveStoreId||'')!==String(next.id);
     if(changed&&options.sync!==false&&window.__nayadCloudSyncQueue){
@@ -154,7 +175,7 @@
     const fetched=await fetchStores(uid);
     if(uid!==userId())return [];
     if(!fetched.length)return [];
-    stores=fetched;initializedFor=uid;window.__nayadStores=stores;
+    stores=fetched;initializedFor=uid;window.__nayadStores=stores;window.__nayadStoresUserId=uid;
     const requested=options.selectStoreId;
     const remembered=localStorage.getItem(ACTIVE_PREFIX+uid);
     const current=window.__nayadActiveStoreId;
@@ -176,9 +197,10 @@
     const currentUserId=await ensureCurrentUser();
     if(!expectedUserId)expectedUserId=currentUserId;
     if(!expectedUserId||String(expectedUserId)!==String(currentUserId))return false;
-    if(active()&&Array.isArray(window.__nayadStores)&&window.__nayadStores.length){
-      hydrateVerifiedStores(window.__nayadStores,expectedUserId);
-      return true;
+    const trusted=trustedGlobalStores(expectedUserId);
+    if(active()&&trusted?.length){
+      if(initializedFor!==expectedUserId||!stores.length)hydrateVerifiedStores(trusted,expectedUserId);
+      if(initializedFor===expectedUserId&&stores.length&&active())return true;
     }
     await refreshStores({sync:false,close:false});
     return String(expectedUserId)===String(userId())&&Boolean(active());
@@ -194,8 +216,9 @@
   async function getActiveStore(){
     const currentUserId=await ensureCurrentUser();
     if(!currentUserId)return null;
-    if(initializedFor!==currentUserId&&Array.isArray(window.__nayadStores))hydrateVerifiedStores(window.__nayadStores,currentUserId);
-    if(initializedFor===currentUserId&&stores.length){
+    const trusted=trustedGlobalStores(currentUserId);
+    if(initializedFor!==currentUserId&&trusted)hydrateVerifiedStores(trusted,currentUserId);
+    if(initializedFor===currentUserId&&runtimeBelongsTo(currentUserId)&&stores.length){
       /* Never return an active-store object left by another tab/session.
          Resolve both runtime fields from the authenticated store list. */
       const requestedId=window.__nayadActiveStoreId||'';
@@ -213,10 +236,10 @@
     const externalPrepare=window.__nayadPrepareUserStore;
     if(typeof externalPrepare==='function'&&externalPrepare!==prepareUserStore){
       await externalPrepare(currentUserId);
-      if(active())return active();
+      if(runtimeBelongsTo(currentUserId)&&active())return active();
     }
     await refreshStores({sync:false,close:false});
-    return active();
+    return runtimeBelongsTo(currentUserId)?active():null;
   }
 
   const originalRender=window.render;
@@ -227,6 +250,7 @@
   window.__nayadGetActiveStore=getActiveStore;
   window.__nayadPrepareUserStore=prepareUserStore;
   window.__nayadHydrateVerifiedStores=hydrateVerifiedStores;
+  window.__nayadClearStoreRuntime=clearRuntimeStoreState;
 
   /* Store initialization is intentionally NOT started from load/auth listeners.
      Every store resolution first reconciles window.__nayadUser with the current

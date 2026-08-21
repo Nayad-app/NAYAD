@@ -1,4 +1,4 @@
-const CACHE = "nayad-v77";
+const CACHE = "nayad-v78";
 
 const ASSETS = [
   "./",
@@ -10,10 +10,10 @@ const ASSETS = [
   "./render.js",
   "./app-state.js?v=38",
   "./image-compress.js?v=1",
-  "./store-switcher.js?v=57",
-  "./store-recovery.js?v=52",
-  "./cloud-runtime.js?v=57",
-  "./auth-guard.js?v=55",
+  "./store-switcher.js?v=58",
+  "./store-recovery.js?v=53",
+  "./cloud-runtime.js?v=58",
+  "./auth-guard.js?v=56",
   "./mobile-fix.js?v=46",
   "./share.js?v=38",
   "./invoice-cloud.js?v=66",
@@ -39,27 +39,34 @@ function injectScript(html,src){
   return html.replace(/<\/body>/i,`<script src="${src}"></script></body>`);
 }
 
+function injectScriptAfter(html,anchorSrc,src){
+  if(html.includes(src.split('?')[0]))return html;
+  const anchor=`<script src="${anchorSrc}"></script>`;
+  if(!html.includes(anchor))return injectScript(html,src);
+  return html.replace(anchor,`${anchor}<script src="${src}"></script>`);
+}
+
 function injectCloudRuntimeBeforeCloudModules(html){
   if(html.includes("./cloud-runtime.js"))return html;
   const invoiceTag='<script src="./invoice-cloud.js?v=66"></script>';
   if(html.includes(invoiceTag)){
-    return html.replace(invoiceTag,`<script src="./cloud-runtime.js?v=57"></script>${invoiceTag}`);
+    return html.replace(invoiceTag,`<script src="./cloud-runtime.js?v=58"></script>${invoiceTag}`);
   }
-  return injectScript(html,"./cloud-runtime.js?v=57");
+  return injectScript(html,"./cloud-runtime.js?v=58");
 }
 
 function patchDocument(html){
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=38");
-  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=57");
-  patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=52");
-  patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=57");
-  patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=55");
+  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=58");
+  patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=53");
+  patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=58");
+  patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=56");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=66");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=57");
+  patched=injectScriptAfter(patched,"./store-switcher.js?v=58","./store-recovery.js?v=53");
+  patched=injectScriptAfter(patched,"./store-recovery.js?v=53","./auth-guard.js?v=56");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
-  patched=injectScript(patched,"./store-recovery.js?v=52");
-  patched=injectScript(patched,"./auth-guard.js?v=55");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;
 }

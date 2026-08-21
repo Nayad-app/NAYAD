@@ -29,7 +29,15 @@ const context={
 
 const swSource=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-assert.match(swSource,/const CACHE = "nayad-v77";/,'the share fix must invalidate the installed app shell');
+assert.match(swSource,/const CACHE = "nayad-v78";/,'the session isolation fix must invalidate the installed app shell');
+assert.match(swSource,/\.\/store-switcher\.js\?v=58/);
+assert.match(indexSource,/\.\/store-switcher\.js\?v=58/,'index and service worker must load the same store switcher');
+assert.match(swSource,/\.\/store-recovery\.js\?v=53/);
+assert.match(indexSource,/\.\/store-recovery\.js\?v=53/,'store recovery must be loaded directly, not only injected by the service worker');
+assert.match(swSource,/\.\/auth-guard\.js\?v=56/);
+assert.match(indexSource,/\.\/auth-guard\.js\?v=56/,'auth guard must be loaded directly, not only injected by the service worker');
+assert.match(swSource,/\.\/cloud-runtime\.js\?v=58/);
+assert.match(indexSource,/\.\/cloud-runtime\.js\?v=58/,'index and service worker must load the same cloud runtime');
 assert.match(swSource,/\.\/invoice-cloud\.js\?v=66/);
 assert.match(indexSource,/\.\/invoice-cloud\.js\?v=66/,'index and service worker must load the same invoice code');
 assert.match(swSource,/\.\/supplier-cloud\.js\?v=57/);
@@ -37,6 +45,20 @@ assert.match(indexSource,/\.\/supplier-cloud\.js\?v=57/,'index and service worke
 
 vm.createContext(context);
 vm.runInContext(swSource,context,{filename:'sw.js'});
+
+const legacyHtml='<body><script src="./store-switcher.js?v=57"></script><script src="./invoice-cloud.js?v=66"></script></body>';
+const patchedOnce=context.patchDocument(legacyHtml);
+const patchedTwice=context.patchDocument(patchedOnce);
+for(const asset of ['./store-recovery.js?v=53','./auth-guard.js?v=56','./cloud-runtime.js?v=58']){
+  assert.equal(patchedTwice.split(asset).length-1,1,`${asset} must be injected exactly once`);
+}
+assert.ok(
+  patchedTwice.indexOf('./store-switcher.js?v=58')<patchedTwice.indexOf('./store-recovery.js?v=53')&&
+  patchedTwice.indexOf('./store-recovery.js?v=53')<patchedTwice.indexOf('./auth-guard.js?v=56')&&
+  patchedTwice.indexOf('./auth-guard.js?v=56')<patchedTwice.indexOf('./cloud-runtime.js?v=58')&&
+  patchedTwice.indexOf('./cloud-runtime.js?v=58')<patchedTwice.indexOf('./invoice-cloud.js?v=66'),
+  'legacy documents must receive the same safe store/auth/cloud script order'
+);
 
 async function dispatch(request){
   let responsePromise;

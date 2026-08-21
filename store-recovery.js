@@ -42,6 +42,7 @@
     const selectedId=[remembered,current].find(id=>id&&stores.some(store=>String(store.id)===String(id)))||stores[0].id;
     const selected=stores.find(store=>String(store.id)===String(selectedId))||stores[0];
     window.__nayadStores=stores;
+    window.__nayadStoresUserId=expectedUserId;
     window.__nayadActiveStoreId=selected.id;
     window.__nayadActiveStore=selected;
     localStorage.setItem(ACTIVE_PREFIX+expectedUserId,selected.id);
@@ -100,22 +101,31 @@
           return false;
         }
 
-        const rows=(await rpcWithExactToken('get_my_stores',accessToken))||[];
+        let rows=(await rpcWithExactToken('get_my_stores',accessToken))||[];
         if(rows.length){
           if(!rows.every(row=>String(row?.user_id||'')===String(expectedUserId))){
             console.warn('Store recovery rejected mismatched RPC identity.');
             await sleep(120+attempt*60);
             continue;
           }
+        }
+
+        if(!rows.some(row=>row?.role==='owner')&&!ensured){
+          await rpcWithExactToken('ensure_my_store',accessToken);
+          ensured=true;
+          rows=(await rpcWithExactToken('get_my_stores',accessToken))||[];
+          if(rows.length&&!rows.every(row=>String(row?.user_id||'')===String(expectedUserId))){
+            console.warn('Store recovery rejected mismatched RPC identity after ensure.');
+            await sleep(120+attempt*60);
+            continue;
+          }
+        }
+
+        if(rows.length&&rows.some(row=>row?.role==='owner')){
           /* Re-assert the verified session after the network round-trip in case
              an older onAuthStateChange callback fired while the RPC was in flight. */
           adoptSessionUser(sessionUser);
           return activateExpectedStore(expectedUserId,rows);
-        }
-
-        if(!ensured&&attempt>=1){
-          await rpcWithExactToken('ensure_my_store',accessToken);
-          ensured=true;
         }
       }catch(error){
         console.warn('Store recovery exact-token RPC:',error);

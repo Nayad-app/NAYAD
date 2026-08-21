@@ -1,7 +1,7 @@
-/* NAYAD auth guard v55 — browser Supabase Auth owns session persistence. */
+/* NAYAD auth guard v56 — browser Supabase Auth owns session persistence. */
 (function(){
-  if(window.__nayadAuthGuardV55)return;
-  window.__nayadAuthGuardV55=true;
+  if(window.__nayadAuthGuardV56)return;
+  window.__nayadAuthGuardV56=true;
 
   const originalHandleAuthStateChange=window.handleAuthStateChange;
   const originalShowAuthenticatedApp=window.showAuthenticatedApp;
@@ -25,10 +25,14 @@
     }
   }
   function resetRuntimeIdentity(){
+    if(typeof window.__nayadClearStoreRuntime==='function')window.__nayadClearStoreRuntime();
+    else{
+      window.__nayadStores=[];
+      window.__nayadStoresUserId='';
+      window.__nayadActiveStoreId='';
+      window.__nayadActiveStore=null;
+    }
     window.__nayadUser=null;
-    window.__nayadStores=[];
-    window.__nayadActiveStoreId='';
-    window.__nayadActiveStore=null;
     if(typeof window.switchUserData==='function')window.switchUserData(null);
   }
   function scheduleCloudSync(reason){

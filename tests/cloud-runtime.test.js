@@ -23,6 +23,8 @@ context.window.addEventListener=(name,fn)=>{listeners[name]=fn;};
 context.window.__nayadUser={id:'user-1'};
 context.window.__nayadActiveStoreId='store-1';
 context.window.__nayadActiveStore={id:'store-1',name:'Store'};
+context.window.__nayadStores=[{id:'store-1',name:'Store',role:'owner'}];
+context.window.__nayadStoresUserId='other-user';
 context.window.__nayadSyncInvoices=async()=>{invoiceSyncs++;};
 context.window.__nayadSyncSuppliers=async()=>{supplierSyncs++;};
 context.window.nayadSupabase={
@@ -37,7 +39,11 @@ vm.runInContext(fs.readFileSync(path.join(root,'cloud-runtime.js'),'utf8'),conte
 (async()=>{
   assert.equal(typeof listeners.load,'function','cloud sync must bind an initial load handler');
   listeners.load();
-  for(let i=0;i<8&&(!invoiceSyncs||!supplierSyncs||!subscribed);i++)await new Promise(resolve=>setImmediate(resolve));
+  for(let i=0;i<8;i++)await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(subscribed,false,'cloud runtime must reject a store list tagged for another user');
+  context.window.__nayadStoresUserId='user-1';
+  listeners.load();
+  for(let i=0;i<8&&!subscribed;i++)await new Promise(resolve=>setImmediate(resolve));
   assert.ok(invoiceSyncs>0,'initial load must fetch cloud invoices');
   assert.ok(supplierSyncs>0,'initial load must fetch cloud suppliers');
   assert.equal(subscribed,true,'initial load must subscribe to store changes');
