@@ -5,12 +5,22 @@ const vm=require('node:vm');
 
 let sheetHtml='';
 let styles='';
+let inviteResponse={data:{sent:true,link:'https://nayad.store/?invite=invite-token'},error:null};
+const inviteCalls=[];
+let buttonLabel='Урилга илгээх';
+const elements={
+  shareInviteEmail:{value:'member@example.com'},
+  shareInviteButton:{
+    disabled:false,isConnected:true,
+    querySelector:selector=>selector==='span'?{replaceChildren:value=>{buttonLabel=value;}}:null
+  }
+};
 const context={
   console,URL,URLSearchParams,setTimeout:fn=>{fn();return 1;},
   location:{origin:'https://nayad.store',pathname:'/',search:'',href:'https://nayad.store/'},
   history:{replaceState(){}},sessionStorage:{setItem(){}},navigator:{},
   document:{
-    getElementById:()=>null,querySelector:()=>null,
+    getElementById:id=>elements[id]||null,querySelector:()=>null,
     head:{insertAdjacentHTML:(_where,html)=>{styles=html;}},
     body:{},createElement:()=>({})
   },
@@ -24,6 +34,9 @@ context.window.nayadSupabase={
   auth:{
     getSession:async()=>({data:{session:{user:{id:'user-1'}}}}),
     onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})
+  },
+  functions:{
+    invoke:async(name,options)=>{inviteCalls.push({name,options});return inviteResponse;}
   },
   rpc:async(name)=>{
     if(name==='get_my_store')return {data:[{id:'store-1',name:'tsendun store'}],error:null};
@@ -48,5 +61,22 @@ vm.runInContext(fs.readFileSync(path.join(__dirname,'..','share.js'),'utf8'),con
   assert.match(sheetHtml,/placeholder="И-мэйл хаяг"/);
   assert.match(sheetHtml,/Урилга илгээх/);
   assert.doesNotMatch(sheetHtml,/name@gmail\.com|＋ Гишүүн урих/,'old invite UI must be gone');
-  console.log('share-ui: PASS — approved mobile sharing layout is rendered');
+
+  await context.window.createStoreInvite();
+  assert.equal(inviteCalls.length,1,'share must invoke the email delivery function exactly once');
+  assert.equal(inviteCalls[0].name,'send-store-invite');
+  assert.equal(inviteCalls[0].options.body.store_id,'store-1');
+  assert.equal(inviteCalls[0].options.body.email,'member@example.com');
+  assert.match(sheetHtml,/Урилга илгээгдлээ/);
+  assert.match(sheetHtml,/member@example\.com/);
+  assert.match(sheetHtml,/invite-token/);
+  assert.equal(buttonLabel,'Урилга илгээх','invite button must leave its busy state');
+
+  inviteResponse={data:{sent:false,link:'https://nayad.store/?invite=fallback-token'},error:null};
+  await context.window.createStoreInvite();
+  assert.equal(inviteCalls.length,2);
+  assert.match(sheetHtml,/И-мэйл илгээгдсэнгүй/,'provider failure must not be presented as email success');
+  assert.match(sheetHtml,/Холбоос хуулах/,'provider failure must keep a usable invite link');
+  assert.match(sheetHtml,/fallback-token/);
+  console.log('share-ui: PASS — sharing renders and reports real email delivery status');
 })().catch(error=>{console.error(error);process.exitCode=1;});

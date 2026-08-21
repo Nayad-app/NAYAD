@@ -30,6 +30,7 @@
   </style>`;
   if(!document.getElementById('nayad-share-styles'))document.head.insertAdjacentHTML('beforeend',STYLE);
   let currentStore=null;
+  let inviteBusy=false;
 
   function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
   function initials(s){return String(s||'N').trim().slice(0,1).toUpperCase()}
@@ -65,22 +66,35 @@
       sheetSafe(`<h2>Дэлгүүр</h2><div class="card"><b>${esc(store.name)}</b><div class="sub">Та энэ дэлгүүрийн гишүүнээр нэвтэрсэн байна.</div></div><button class="secondary full" onclick="closeSheet()">Хаах</button>`);return;
     }
     const rows=members.map(m=>`<div class="shareMember"><div class="shareAvatar">${m.avatar_url?`<img src="${esc(m.avatar_url)}" alt="">`:esc(initials(m.full_name||m.email))}</div><div class="shareMeta"><b>${esc(m.full_name||'Нэр тодорхойгүй')}</b><span>${esc(m.email||'')}</span></div><span class="shareRole">${m.role==='owner'?'Эзэмшигч':'Гишүүн'}</span></div>`).join('');
-    sheetSafe(`<div class="shareSheet"><div class="shareHeader"><h2>Дэлгүүр хуваалцах</h2><button class="shareCloseIcon" type="button" onclick="closeSheet()" aria-label="Хаах"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="shareStoreCard"><div class="shareStoreIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v10h16V10M3 10h18l-1.5-6h-15Z"/><path d="M8 10v2a2 2 0 0 0 4 0v-2M12 10v2a2 2 0 0 0 4 0v-2M9 20v-5h6v5"/></svg></div><div class="shareStoreMeta"><b>${esc(store.name)}</b><span>Гэр бүл, ажилтнуудтайгаа нэг дэлгүүрийн мэдээллийг хамт удирдана.</span></div></div><div class="shareSectionTitle">Гишүүд · ${members.length}</div><div class="shareMembers">${rows||'<div class="shareEmpty">Гишүүн алга.</div>'}</div><div class="shareSectionTitle">Шинэ гишүүн урих</div><div class="shareInviteField"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg><input id="shareInviteEmail" type="email" inputmode="email" autocomplete="email" placeholder="И-мэйл хаяг"></div><button class="primary full shareInviteButton" type="button" onclick="createStoreInvite()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.5A4.5 4.5 0 0 1 8 13h2a4.5 4.5 0 0 1 4.5 4.5V19M18 8v6M15 11h6"/></svg>Урилга илгээх</button><button class="secondary full shareDismiss" type="button" onclick="closeSheet()">Хаах</button></div>`);
+    sheetSafe(`<div class="shareSheet"><div class="shareHeader"><h2>Дэлгүүр хуваалцах</h2><button class="shareCloseIcon" type="button" onclick="closeSheet()" aria-label="Хаах"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="shareStoreCard"><div class="shareStoreIcon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v10h16V10M3 10h18l-1.5-6h-15Z"/><path d="M8 10v2a2 2 0 0 0 4 0v-2M12 10v2a2 2 0 0 0 4 0v-2M9 20v-5h6v5"/></svg></div><div class="shareStoreMeta"><b>${esc(store.name)}</b><span>Гэр бүл, ажилтнуудтайгаа нэг дэлгүүрийн мэдээллийг хамт удирдана.</span></div></div><div class="shareSectionTitle">Гишүүд · ${members.length}</div><div class="shareMembers">${rows||'<div class="shareEmpty">Гишүүн алга.</div>'}</div><div class="shareSectionTitle">Шинэ гишүүн урих</div><div class="shareInviteField"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg><input id="shareInviteEmail" type="email" inputmode="email" autocomplete="email" placeholder="И-мэйл хаяг"></div><button id="shareInviteButton" class="primary full shareInviteButton" type="button" onclick="createStoreInvite()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.5A4.5 4.5 0 0 1 8 13h2a4.5 4.5 0 0 1 4.5 4.5V19M18 8v6M15 11h6"/></svg><span>Урилга илгээх</span></button><button class="secondary full shareDismiss" type="button" onclick="closeSheet()">Хаах</button></div>`);
   }
 
   async function createStoreInvite(){
     const email=(document.getElementById('shareInviteEmail')?.value||'').trim().toLowerCase();
     if(!email)return toastSafe('И-мэйл хаяг оруулна уу.');
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return toastSafe('И-мэйл хаягаа шалгана уу.');
+    if(inviteBusy)return;
     const store=await getStore(); if(!store)return toastSafe('Дэлгүүр олдсонгүй.');
+    const button=document.getElementById('shareInviteButton');
+    inviteBusy=true;
+    if(button){button.disabled=true;button.querySelector('span')?.replaceChildren('Илгээж байна...');}
     try{
-      const {data,error}=await sb().rpc('create_store_invite',{p_store_id:store.id,p_email:email});
+      if(typeof sb()?.functions?.invoke!=='function')throw new Error('Урилгын и-мэйл үйлчилгээ холбогдоогүй байна.');
+      const {data,error}=await sb().functions.invoke('send-store-invite',{body:{store_id:store.id,email}});
       if(error)throw error;
-      const token=data?.token;
-      if(!token)throw new Error('Урих холбоос үүссэнгүй.');
-      const link=location.origin+location.pathname+'?invite='+encodeURIComponent(token);
-      if(navigator.share){try{await navigator.share({title:'NAYAD дэлгүүрийн урилга',text:`${store.name} дэлгүүрт нэгдээрэй.`,url:link})}catch(_){}}
-      sheetSafe(`<h2>Урилга бэлэн боллоо</h2><div class="authSuccess">${esc(email)} хаягт зориулсан урилга үүслээ.</div><div class="shareLinkBox">${esc(link)}</div><div class="actions"><button class="secondary" onclick="copyStoreInvite('${encodeURIComponent(link)}')">Холбоос хуулах</button><button class="primary" onclick="closeSheet()">Дуусгах</button></div><div class="sub" style="margin-top:10px">Уригдсан хүн энэ холбоосоор орж, ижил и-мэйлээр NAYAD-д нэвтрээд зөвшөөрнө.</div>`);
-    }catch(e){console.error('Store invite:',e);toastSafe(e?.message||'Урилга үүсгэхэд алдаа гарлаа.');}
+      const link=String(data?.link||'');
+      if(!link)throw new Error('Урих холбоос үүссэнгүй.');
+      const encoded=encodeURIComponent(link);
+      if(data?.sent===true){
+        sheetSafe(`<h2>Урилга илгээгдлээ</h2><div class="authSuccess">${esc(email)} хаяг руу урилгын и-мэйл амжилттай илгээлээ.</div><div class="shareLinkBox">${esc(link)}</div><div class="actions"><button class="secondary" onclick="copyStoreInvite('${encoded}')">Холбоос хуулах</button><button class="primary" onclick="closeSheet()">Дуусгах</button></div><div class="sub" style="margin-top:10px">Уригдсан хүн и-мэйл дэх холбоосоор орж, ижил и-мэйлээр NAYAD-д нэвтрээд зөвшөөрнө.</div>`);
+      }else{
+        sheetSafe(`<h2>И-мэйл илгээгдсэнгүй</h2><div class="authError">Урилга үүссэн боловч ${esc(email)} хаяг руу и-мэйл хүргэж чадсангүй. Доорх холбоосыг хуулж илгээнэ үү.</div><div class="shareLinkBox">${esc(link)}</div><div class="actions"><button class="primary" onclick="copyStoreInvite('${encoded}')">Холбоос хуулах</button><button class="secondary" onclick="closeSheet()">Хаах</button></div>`);
+      }
+    }catch(e){console.error('Store invite:',e);toastSafe(e?.message||'Урилга илгээхэд алдаа гарлаа.');}
+    finally{
+      inviteBusy=false;
+      if(button&&button.isConnected){button.disabled=false;button.querySelector('span')?.replaceChildren('Урилга илгээх');}
+    }
   }
 
   async function copyStoreInvite(encoded){

@@ -29,7 +29,7 @@ const context={
 
 const swSource=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-assert.match(swSource,/const CACHE = "nayad-v76";/,'the hotfix must invalidate the installed app shell');
+assert.match(swSource,/const CACHE = "nayad-v77";/,'the share fix must invalidate the installed app shell');
 assert.match(swSource,/\.\/invoice-cloud\.js\?v=66/);
 assert.match(indexSource,/\.\/invoice-cloud\.js\?v=66/,'index and service worker must load the same invoice code');
 assert.match(swSource,/\.\/supplier-cloud\.js\?v=57/);
