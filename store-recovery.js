@@ -122,9 +122,19 @@
         }
 
         if(rows.length&&rows.some(row=>row?.role==='owner')){
-          /* Re-assert the verified session after the network round-trip in case
-             an older onAuthStateChange callback fired while the RPC was in flight. */
-          adoptSessionUser(sessionUser);
+          /* The session may change while the exact-token RPC is in flight.
+             Re-read it immediately before touching UI/runtime state so a late
+             response from account A can never overwrite account B. */
+          const {data:latestData,error:latestError}=await c.auth.getSession();
+          if(latestError)throw latestError;
+          const latestSession=latestData?.session||null;
+          const latestUser=latestSession?.user||null;
+          const latestUserId=latestUser?.id||'';
+          const latestTokenUserId=jwtSub(latestSession?.access_token||'');
+          if(String(latestUserId)!==String(expectedUserId)||String(latestTokenUserId)!==String(expectedUserId)){
+            return false;
+          }
+          adoptSessionUser(latestUser);
           return activateExpectedStore(expectedUserId,rows);
         }
       }catch(error){

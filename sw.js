@@ -1,4 +1,4 @@
-const CACHE = "nayad-v78";
+const CACHE = "nayad-v79";
 
 const ASSETS = [
   "./",
@@ -11,7 +11,7 @@ const ASSETS = [
   "./app-state.js?v=38",
   "./image-compress.js?v=1",
   "./store-switcher.js?v=58",
-  "./store-recovery.js?v=53",
+  "./store-recovery.js?v=54",
   "./cloud-runtime.js?v=58",
   "./auth-guard.js?v=56",
   "./mobile-fix.js?v=46",
@@ -59,13 +59,13 @@ function patchDocument(html){
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=38");
   patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=58");
-  patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=53");
+  patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=54");
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=58");
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=56");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=66");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=57");
-  patched=injectScriptAfter(patched,"./store-switcher.js?v=58","./store-recovery.js?v=53");
-  patched=injectScriptAfter(patched,"./store-recovery.js?v=53","./auth-guard.js?v=56");
+  patched=injectScriptAfter(patched,"./store-switcher.js?v=58","./store-recovery.js?v=54");
+  patched=injectScriptAfter(patched,"./store-recovery.js?v=54","./auth-guard.js?v=56");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;
