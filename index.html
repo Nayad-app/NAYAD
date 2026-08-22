@@ -30,7 +30,46 @@
 @keyframes splashOrbit{0%{opacity:0;transform:scale(.78)}35%{opacity:1}100%{opacity:0;transform:scale(1.16)}}
 @media(prefers-reduced-motion:reduce){.splash:before,.splash div,.splash h1 span,.splash p{animation:none;opacity:1;transform:none}}
 </style>
-<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#FFC107"><link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest"><meta id="nayadThemeColor" name="theme-color" content="#FFC107"><link rel="apple-touch-icon" href="icon-180.png">
+<script>
+(()=>{
+  const THEME_KEY='NAYAD_THEME';
+  const readTheme=()=>{try{return localStorage.getItem(THEME_KEY)==='night'?'night':'light'}catch(_){return 'light'}};
+  const applyTheme=theme=>{
+    const night=theme==='night';
+    document.documentElement.classList.toggle('nightMode',night);
+    document.documentElement.style.colorScheme=night?'dark':'light';
+    const meta=document.getElementById('nayadThemeColor');
+    if(meta)meta.setAttribute('content',night?'#111110':'#FFC107');
+    return night?'night':'light';
+  };
+  applyTheme(readTheme());
+  window.__nayadTheme=()=>document.documentElement.classList.contains('nightMode')?'night':'light';
+  window.__nayadSetTheme=theme=>{
+    const next=applyTheme(theme);
+    try{localStorage.setItem(THEME_KEY,next)}catch(_){}
+    if(typeof window.__nayadRefreshProfileMenu==='function')window.__nayadRefreshProfileMenu();
+    return next;
+  };
+})();
+</script>
+<style id="nayad-night-mode-styles">
+html.nightMode{--bg:#141413;--surface:#1D1D1B;--surface-2:#2A2A27;--text:#F3F3EE;--muted:#B3B3AA;--line:#3C3C38;--yellow-soft:#3A2C00;--red-soft:#3D2022;--green-soft:#193525;--shadow:0 8px 26px rgba(0,0,0,.28);--shadow-sm:0 2px 11px rgba(0,0,0,.24);background-color:#0D0D0C;background-image:radial-gradient(circle at 18% 5%,rgba(255,255,255,.055),transparent 28%),radial-gradient(circle at 86% 34%,rgba(255,255,255,.035),transparent 32%),linear-gradient(135deg,#10100F,#171715 48%,#10100F)}
+html.nightMode body{background:transparent;color:var(--text)}
+html.nightMode .app{background:var(--bg);box-shadow:0 0 45px rgba(0,0,0,.42)}
+html.nightMode header{background:rgba(25,25,23,.92);border-bottom-color:rgba(255,255,255,.08)}
+html.nightMode .bottom{background:rgba(24,24,22,.94);border-top-color:var(--line)}
+html.nightMode .nav{color:#AAA9A2}html.nightMode .nav.active{color:#F4F4EF;background:#312A10}
+html.nightMode .stat.warn{border-color:#725C14}html.nightMode .stat.red{border-color:#753C40}
+html.nightMode .search,html.nightMode .field input,html.nightMode .field select,html.nightMode .field textarea,html.nightMode .bankPickerButton,html.nightMode .bankMenu,html.nightMode .bankOption{background:var(--surface);color:var(--text)}
+html.nightMode .bankLogo{background:#FFF;border-color:#555}html.nightMode .bankLogoFallback{background:#E6E6E0;color:#333}html.nightMode .bankOption:hover,html.nightMode .bankOption.selected{background:#332A0B}
+html.nightMode .sheet{background:var(--surface);box-shadow:0 -12px 40px rgba(0,0,0,.42)}
+html.nightMode .imageItem{background:#242421}html.nightMode .imageItem img{background:#343431}
+html.nightMode .homeActiveStore{background:#242421}html.nightMode .profileAvatar,html.nightMode .profileHeaderAvatar{border-color:#4A4A45;background:#333}
+html.nightMode .authWrap{background:linear-gradient(180deg,#17150E 0%,#171715 50%,#111110 100%)}html.nightMode .authCard{background:var(--surface);border-color:var(--line);box-shadow:0 14px 40px rgba(0,0,0,.34)}html.nightMode .login{background:var(--bg)}
+html.nightMode .oauth{background:var(--surface);color:var(--text);border-color:var(--line)}html.nightMode .authLink,html.nightMode .authBack{color:var(--text)}
+html.nightMode .authError{background:#3D2022;border-color:#713B3D;color:#FFD9D9}html.nightMode .authSuccess{background:#193525;border-color:#36724D;color:#C8F3D6}
+</style>
 <style>
 .splash:before{content:"";position:absolute;width:260px;height:260px;border:1px solid rgba(255,193,7,.16);border-radius:50%;animation:splashOrbit 2.8s ease-out infinite}
 .splash:after{display:none}
@@ -131,7 +170,7 @@ window.__nayadApplyData=function(next,renderNow=true){
 <script src="./store-recovery.js?v=54"></script>
 <script src="./auth-guard.js?v=56"></script>
 <script src="./share.js?v=39"></script>
-<script src="./profile-menu.js?v=1"></script>
+<script src="./profile-menu.js?v=2"></script>
 <script src="./image-compress.js?v=1"></script>
 <script src="./cloud-runtime.js?v=58"></script>
 <script src="./invoice-cloud.js?v=68"></script>
