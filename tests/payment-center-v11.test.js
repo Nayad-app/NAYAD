@@ -71,7 +71,16 @@ assert.match(source,/window\.editConfirmedInvoice=function\(invoiceId\)/,'an unp
 assert.match(source,/revise_confirmed_invoice/,'the correction form must use the audited database RPC');
 assert.match(source,/onclick="window\.showInvoiceDetails/,'payment order rows must be tappable for details');
 
+let paymentSheet='';
+context.window.sheet=html=>{paymentSheet=html;};
+state.companies.push({id:5,name:'Invoice Discount Co',color:'green',invoices:[{
+  id:'inv-invoice-discount',no:'DISC-3',date:'2026-08-01',due_date:'2026-08-31',amount:1500000,paid:455000,
+  status:'confirmed',discount_percent:3,discount_deadline:'2026-08-31',discount_taken:0
+}]});
+context.window.payment(5);
+assert.match(paymentSheet,/value="1000000"/,'a 3% invoice discount must remain 45,000 after a 455,000 partial payment');
+
 vm.runInContext('sync()',context);
 assert.equal(vm.runInContext('data.companies.find(c=>c.id===4).debt',context),0,'draft invoice must not create debt');
 
-console.log('payment-center-v11: PASS — overdue/upcoming ordering, exact dates, discounts and drafts are correct');
+console.log('payment-center-v11: PASS — due ordering, drafts and invoice-level discounts are correct');

@@ -174,6 +174,10 @@
       .eq('supplier_id',supplierId)
       .order('invoice_date',{ascending:true});
     if(error)throw error;
+    const {data:allocations,error:allocationsError}=rows?.length
+      ?await sb.from('payment_allocations').select('invoice_id,discount_amount,payments!inner(status)').in('invoice_id',rows.map(row=>row.id))
+      :{data:[],error:null};
+    if(allocationsError)throw allocationsError;
     const fresh=readLocal();
     fresh.companies=fresh.companies||[];
     const company=fresh.companies.find(c=>String(c.supabase_supplier_id)===String(supplierId));
@@ -181,6 +185,7 @@
     const existing=new Map((company.invoices||[]).map(invoice=>[String(invoice.id),invoice]));
     company.invoices=(rows||[]).map(row=>{
       const previous=existing.get(String(row.id))||{};
+      const discountTaken=(allocations||[]).filter(item=>String(item.invoice_id)===String(row.id)&&item.payments?.status==='posted').reduce((sum,item)=>sum+(Number(item.discount_amount)||0),0);
       return {
         ...previous,
         id:row.id,
@@ -192,6 +197,7 @@
         status:row.status||'confirmed',
         discount_percent:Number(row.discount_percent)||0,
         discount_deadline:row.discount_deadline||null,
+        discount_taken:discountTaken,
         confirmed_at:row.confirmed_at||null,
         created_at:row.created_at||null,
         image_url:row.image_url||previous.image_url||'',
@@ -584,6 +590,10 @@
     if(error||!invoices)return;
     const {data:cloudPayments,error:paymentsError}=await sb.from('payments').select('id,supplier_id,payment_date,amount,method,note,reference,status,created_at').eq('store_id',storeRow.id).order('created_at',{ascending:true});
     if(paymentsError)return;
+    const {data:allocations,error:allocationsError}=invoices.length
+      ?await sb.from('payment_allocations').select('invoice_id,cash_amount,discount_amount,payments!inner(status)').in('invoice_id',invoices.map(x=>x.id))
+      :{data:[],error:null};
+    if(allocationsError)return;
     const {data:agreements,error:agreementsError}=await sb.from('invoice_agreements').select('id,invoice_id,installment_no,installment_count,agreed_due_date,agreed_amount,note,contact_name,contact_phone,status,created_at').eq('store_id',storeRow.id).eq('status','active').order('installment_no',{ascending:true});
     if(agreementsError)return;
     /* Companies without invoices or payments are still part of the active
@@ -612,7 +622,9 @@
         const urls=imgs.map(x=>x.image_url).filter(Boolean); const paths=imgs.map(x=>x.image_path).filter(Boolean);
         const invoiceAgreements=(agreements||[]).filter(item=>String(item.invoice_id)===String(ri.id));
         const effectiveDue=invoiceAgreements.length?invoiceAgreements.map(item=>item.agreed_due_date).sort()[0]:(ri.due_date||null);
-        return {id:ri.id,date:ri.invoice_date,due_date:ri.due_date||null,effective_due_date:effectiveDue,no:ri.invoice_no||'',amount:Number(ri.amount)||0,paid:Number(ri.paid)||0,status:ri.status||'confirmed',discount_percent:Number(ri.discount_percent)||0,discount_deadline:ri.discount_deadline||null,confirmed_at:ri.confirmed_at||null,created_at:ri.created_at||null,agreements:invoiceAgreements,image_url:ri.image_url||urls[0]||'',image_urls:urls,image_paths:paths,image_count:urls.length,supabase_synced:true};
+        const postedAllocations=(allocations||[]).filter(item=>String(item.invoice_id)===String(ri.id)&&item.payments?.status==='posted');
+        const discountTaken=postedAllocations.reduce((sum,item)=>sum+(Number(item.discount_amount)||0),0);
+        return {id:ri.id,date:ri.invoice_date,due_date:ri.due_date||null,effective_due_date:effectiveDue,no:ri.invoice_no||'',amount:Number(ri.amount)||0,paid:Number(ri.paid)||0,status:ri.status||'confirmed',discount_percent:Number(ri.discount_percent)||0,discount_deadline:ri.discount_deadline||null,discount_taken:discountTaken,confirmed_at:ri.confirmed_at||null,created_at:ri.created_at||null,agreements:invoiceAgreements,image_url:ri.image_url||urls[0]||'',image_urls:urls,image_paths:paths,image_count:urls.length,supabase_synced:true};
       });
       c.invoices=nextInvoices;
       if(paymentGuard&&String(paymentGuard.supplierId)===String(s.id)){

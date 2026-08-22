@@ -29,7 +29,7 @@ const context={
 
 const swSource=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-assert.match(swSource,/const CACHE = "nayad-v82";/,'the invoice correction feature must invalidate the installed app shell');
+assert.match(swSource,/const CACHE = "nayad-v83";/,'the invoice-level discount fix must invalidate the installed app shell');
 assert.match(swSource,/\.\/store-switcher\.js\?v=58/);
 assert.match(indexSource,/\.\/store-switcher\.js\?v=58/,'index and service worker must load the same store switcher');
 assert.match(swSource,/\.\/store-recovery\.js\?v=54/);
@@ -40,8 +40,8 @@ assert.match(swSource,/\.\/cloud-runtime\.js\?v=58/);
 assert.match(indexSource,/\.\/cloud-runtime\.js\?v=58/,'index and service worker must load the same cloud runtime');
 assert.match(swSource,/\.\/invoice-cloud\.js\?v=67/);
 assert.match(indexSource,/\.\/invoice-cloud\.js\?v=67/,'index and service worker must load the same invoice code');
-assert.match(swSource,/\.\/payment-center\.js\?v=3/);
-assert.match(indexSource,/\.\/payment-center\.js\?v=3/,'index and service worker must load the same payment center');
+assert.match(swSource,/\.\/payment-center\.js\?v=4/);
+assert.match(indexSource,/\.\/payment-center\.js\?v=4/,'index and service worker must load the same payment center');
 assert.match(swSource,/\.\/supplier-cloud\.js\?v=57/);
 assert.match(indexSource,/\.\/supplier-cloud\.js\?v=57/,'index and service worker must load the same supplier code');
 

@@ -5,6 +5,7 @@ const path=require('node:path');
 const sql=fs.readFileSync(path.join(__dirname,'..','supabase','migrations','20260822071514_payment_center_v11.sql'),'utf8');
 const notificationPrivileges=fs.readFileSync(path.join(__dirname,'..','supabase','migrations','20260822074830_harden_notification_preferences_privileges.sql'),'utf8');
 const revisionSql=fs.readFileSync(path.join(__dirname,'..','supabase','migrations','20260822090000_revise_confirmed_invoice.sql'),'utf8');
+const invoiceDiscountSql=fs.readFileSync(path.join(__dirname,'..','supabase','migrations','20260822100000_invoice_discount_is_invoice_level.sql'),'utf8');
 
 for(const required of [
   /add column if not exists status text not null default 'confirmed'/,
@@ -36,5 +37,13 @@ for(const required of [
   /revoke execute on function public\.revise_confirmed_invoice[^\n]+ from public,anon/,
   /grant execute on function public\.revise_confirmed_invoice[^\n]+ to authenticated/
 ])assert.match(revisionSql,required);
+
+for(const required of [
+  /A timely-payment discount is defined by the original invoice total/,
+  /v_discount_available:=greatest\(round\(v_invoice\.amount\*v_invoice\.discount_percent\/100,2\)-v_prior_discount,0\)/,
+  /v_cash=round\(greatest\(\(v_invoice\.amount-v_invoice\.paid\)-v_discount_available,0\),2\)/,
+  /revoke execute on function public\.post_supplier_payment_v11[^\n]+ from public,anon/,
+  /grant execute on function public\.post_supplier_payment_v11[^\n]+ to authenticated/
+])assert.match(invoiceDiscountSql,required);
 
 console.log('payment-center-migration: PASS — ledger, locking, audit and least-privilege guards are present');

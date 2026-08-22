@@ -44,8 +44,14 @@
   function discountInfo(invoice,onDate=today()){
     const balance=balanceOf(invoice),percent=Number(invoice.discount_percent)||0;
     const eligible=percent>0&&invoice.discount_deadline&&onDate<=invoice.discount_deadline;
-    const cash=eligible?Math.round(balance*(1-percent/100)*100)/100:balance;
-    return {eligible,percent,cash,saving:Math.max(balance-cash,0)};
+    /* The discount belongs to the original invoice, not to every remaining
+       balance. Example: 1,500,000 with 3% = 45,000 discount. If 455,000 was
+       paid first, the final timely payment is 1,000,000, never 1,013,650. */
+    const fullDiscount=Math.round((Number(invoice.amount)||0)*percent)/100;
+    const alreadyTaken=Math.max(Number(invoice.discount_taken)||0,0);
+    const remainingDiscount=Math.max(fullDiscount-alreadyTaken,0);
+    const cash=eligible?Math.max(Math.round((balance-remainingDiscount)*100)/100,0):balance;
+    return {eligible,percent,cash,saving:Math.max(balance-cash,0),remainingDiscount};
   }
   function dueMeta(invoice){
     const due=dueOf(invoice),days=daysBetween(today(),due),negotiated=Array.isArray(invoice.agreements)&&invoice.agreements.length>0;
