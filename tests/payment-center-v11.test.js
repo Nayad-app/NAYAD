@@ -66,6 +66,10 @@ const source=fs.readFileSync(path.join(root,'payment-center.js'),'utf8');
 assert.match(source,/onchange="togglePaymentAllocation\(this\)"/,'checking another invoice must trigger allocation defaulting');
 assert.match(source,/data-default-amount="\$\{discount\.cash\}"/,'each invoice needs a full-payment default amount');
 assert.match(source,/window\.togglePaymentAllocation=function\(check\)/,'a checked zero-value invoice must receive its default payment amount');
+assert.match(source,/window\.showInvoiceDetails=function\(invoiceId\)/,'an invoice row must open a detail view');
+assert.match(source,/window\.editConfirmedInvoice=function\(invoiceId\)/,'an unpaid confirmed invoice needs a correction form');
+assert.match(source,/revise_confirmed_invoice/,'the correction form must use the audited database RPC');
+assert.match(source,/onclick="window\.showInvoiceDetails/,'payment order rows must be tappable for details');
 
 vm.runInContext('sync()',context);
 assert.equal(vm.runInContext('data.companies.find(c=>c.id===4).debt',context),0,'draft invoice must not create debt');

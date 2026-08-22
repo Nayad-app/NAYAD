@@ -4,6 +4,7 @@ const path=require('node:path');
 
 const sql=fs.readFileSync(path.join(__dirname,'..','supabase','migrations','20260822071514_payment_center_v11.sql'),'utf8');
 const notificationPrivileges=fs.readFileSync(path.join(__dirname,'..','supabase','migrations','20260822074830_harden_notification_preferences_privileges.sql'),'utf8');
+const revisionSql=fs.readFileSync(path.join(__dirname,'..','supabase','migrations','20260822090000_revise_confirmed_invoice.sql'),'utf8');
 
 for(const required of [
   /add column if not exists status text not null default 'confirmed'/,
@@ -25,5 +26,15 @@ assert.match(sql,/Legacy payment cannot be reversed automatically/,'old payments
 assert.doesNotMatch(sql,/add constraint if not exists/i,'Postgres does not support ADD CONSTRAINT IF NOT EXISTS');
 assert.match(notificationPrivileges,/revoke delete,truncate,references,trigger on public\.notification_preferences from anon,authenticated/);
 assert.match(notificationPrivileges,/grant select,insert,update on public\.notification_preferences to authenticated/);
+for(const required of [
+  /create or replace function public\.revise_confirmed_invoice/,
+  /select \* into v_invoice from public\.invoices where id=p_invoice_id for update/,
+  /v_role not in \('owner','manager'\)/,
+  /v_invoice\.paid<>0 or exists/,
+  /Reverse posted payment before revising this invoice/,
+  /'confirmed_revised'/,
+  /revoke execute on function public\.revise_confirmed_invoice[^\n]+ from public,anon/,
+  /grant execute on function public\.revise_confirmed_invoice[^\n]+ to authenticated/
+])assert.match(revisionSql,required);
 
 console.log('payment-center-migration: PASS — ledger, locking, audit and least-privilege guards are present');

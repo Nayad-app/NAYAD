@@ -1,4 +1,4 @@
-const CACHE = "nayad-v80";
+const CACHE = "nayad-v82";
 
 const ASSETS = [
   "./",
@@ -18,7 +18,7 @@ const ASSETS = [
   "./share.js?v=38",
   "./invoice-cloud.js?v=67",
   "./supplier-cloud.js?v=57",
-  "./payment-center.js?v=1",
+  "./payment-center.js?v=3",
   "./company-label.js"
 ];
 
@@ -68,7 +68,7 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./store-switcher.js?v=58","./store-recovery.js?v=54");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=54","./auth-guard.js?v=56");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
-  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=67","./payment-center.js?v=1");
+  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=67","./payment-center.js?v=3");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;
 }
