@@ -95,6 +95,8 @@
       if(typeof window.__nayadSyncInvoices==='function')await window.__nayadSyncInvoices();
       context=await recoverContext();
       if(typeof window.__nayadSyncSuppliers==='function')await window.__nayadSyncSuppliers();
+      context=await recoverContext();
+      if(typeof window.__nayadSyncLoans==='function')await window.__nayadSyncLoans();
       const completedContext=await recoverContext();
       if(context&&completedContext&&!await sameContext(completedContext))return false;
       lastCompletedKey=completedContext?completedContext.userId+':'+completedContext.storeId:key;
@@ -129,6 +131,9 @@
       .on('postgres_changes',{event:'*',schema:'public',table:'payments',filter:'store_id=eq.'+context.storeId},refresh)
       .on('postgres_changes',{event:'*',schema:'public',table:'invoice_agreements',filter:'store_id=eq.'+context.storeId},refresh)
       .on('postgres_changes',{event:'*',schema:'public',table:'suppliers',filter:'store_id=eq.'+context.storeId},refresh)
+      .on('postgres_changes',{event:'*',schema:'public',table:'loans',filter:'store_id=eq.'+context.storeId},refresh)
+      .on('postgres_changes',{event:'*',schema:'public',table:'loan_installments',filter:'store_id=eq.'+context.storeId},refresh)
+      .on('postgres_changes',{event:'*',schema:'public',table:'loan_documents',filter:'store_id=eq.'+context.storeId},refresh)
       .subscribe();
     return true;
   }

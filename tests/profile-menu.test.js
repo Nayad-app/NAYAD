@@ -95,6 +95,7 @@ assert.match(drawer.innerHTML,/Дэлгүүр хуваалцах/);
 assert.match(drawer.innerHTML,/Профайлын тохиргоо/);
 assert.match(drawer.innerHTML,/Night mode/);
 assert.match(drawer.innerHTML,/Plus багц руу ахиулах/);
+assert.match(drawer.innerHTML,/Тайлан/);
 assert.match(drawer.innerHTML,/Унтраалттай/);
 assert.ok(
   drawer.innerHTML.indexOf('profileMenuSpacer')<drawer.innerHTML.indexOf("profileMenuAction('logout')"),
