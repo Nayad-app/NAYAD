@@ -7,6 +7,7 @@
       let html='';
       if(page==='companies')html=companies();
       else if(page==='payments')html=payments();
+      else if(page==='loans')html=loans();
       else if(page==='reports')html=reports();
       else html=home();
       content.innerHTML=html;
