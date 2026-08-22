@@ -205,15 +205,53 @@
     finally{if(window.__nayadCriticalOperation==='payment-v11')delete window.__nayadCriticalOperation;}
   };
 
-  window.showInvoiceDetails=function(invoiceId){
+  async function postedPaymentsForInvoice(invoiceId){
+    const client=sb();if(!client)return [];
+    const {data,error}=await client.from('payment_allocations')
+      .select('payment_id,cash_amount,discount_amount,payments!inner(id,payment_date,amount,method,note,reference,status)')
+      .eq('invoice_id',invoiceId)
+      .eq('payments.status','posted');
+    if(error)throw error;
+    return (data||[]).filter(row=>row?.payments?.status==='posted');
+  }
+
+  function paymentReversalRows(rows,invoiceId){
+    if(!rows.length)return `<div class="agreementInfo" style="margin-top:10px">Энэ бол хуучин төлбөр тул автоматаар буцаах боломжгүй байна.</div>`;
+    return `<div class="paymentSectionTitle" style="margin-top:16px"><span>ОРСОН ТӨЛБӨР</span><small>Буцаасны дараа засна</small></div>${rows.map(row=>{const payment=row.payments||{},cash=Number(row.cash_amount)||0,discount=Number(row.discount_amount)||0;return `<div class="card" style="margin-bottom:8px"><div class="row"><div><b>${amount(cash)}${discount?` + ${amount(discount)} хөнгөлөлт`:''}</b><span class="sub">${dateLabel(payment.payment_date)} · ${esc(payment.method||'Бусад')}</span></div><button class="secondary" onclick="window.showPaymentReversal('${esc(payment.id||row.payment_id)}','${esc(invoiceId)}')">Буцаах</button></div></div>`;}).join('')}`;
+  }
+
+  window.showInvoiceDetails=async function(invoiceId){
     const invoice=invoiceById(invoiceId),company=companyForInvoice(invoiceId);if(!invoice||!company)return;
     const status=invoice.status||'confirmed',balance=balanceOf(invoice),discount=Number(invoice.discount_percent)||0;
     const canRevise=status==='confirmed'&&Number(invoice.paid||0)===0;
     const paid=Number(invoice.paid)||0;
+    let postedPayments=[];
+    if(paid){try{postedPayments=await postedPaymentsForInvoice(invoiceId);}catch(error){console.warn('Invoice payment history:',error);}}
     open(`<h2>Падааны дэлгэрэнгүй</h2>
       <div class="invoiceDetailCard"><b>${esc(company.name)}</b><span>${esc(invoice.no||'Дугааргүй')}</span><div class="detailGrid"><small>Падааны огноо<b>${dateLabel(invoice.date)}</b></small><small>Төлөх хугацаа<b>${dateLabel(dueOf(invoice))}</b></small><small>Нийт дүн<b>${amount(invoice.amount)}</b></small><small>Үлдэгдэл<b class="${balance?'redText':'greenText'}">${amount(balance)}</b></small></div>${discount?`<div class="agreementInfo">Хугацаандаа төлбөл ${discount}% хөнгөлөлт эдэлнэ${invoice.discount_deadline?' · '+dateLabel(invoice.discount_deadline)+' хүртэл':''}.</div>`:''}</div>
-      ${status==='draft'?`<p class="sub">Энэ ноорог тул засварлаж, дараа нь баталгаажуулна.</p><button class="primary full" onclick="closeSheet();window.invoice('${esc(company.id)}','${esc(invoice.id)}')">Ноорог засах</button>`:canRevise?`<p class="sub">Төлбөр ороогүй баталгаажсан падааныг залруулж болно. Өмнөх утгууд болон шалтгаан түүхэнд хадгалагдана.</p><button class="primary full" onclick="window.editConfirmedInvoice('${esc(invoice.id)}')">✎ Падаан залруулах</button>`:`<div class="agreementWarning"><b>Шууд засах боломжгүй</b><span>${paid?`Энэ падаанд ${amount(paid)} төлбөр орсон байна. Эхлээд тухайн төлбөрийг шалтгаантай буцаасны дараа залруулна.`:'Цуцалсан падааныг засах боломжгүй.'}</span></div>`}
+      ${status==='draft'?`<p class="sub">Энэ ноорог тул засварлаж, дараа нь баталгаажуулна.</p><button class="primary full" onclick="closeSheet();window.invoice('${esc(company.id)}','${esc(invoice.id)}')">Ноорог засах</button>`:canRevise?`<p class="sub">Төлбөр ороогүй баталгаажсан падааныг залруулж болно. Өмнөх утгууд болон шалтгаан түүхэнд хадгалагдана.</p><button class="primary full" onclick="window.editConfirmedInvoice('${esc(invoice.id)}')">✎ Падаан залруулах</button>`:`<div class="agreementWarning"><b>Шууд засах боломжгүй</b><span>${paid?`Энэ падаанд ${amount(paid)} төлбөр орсон байна. Эхлээд тухайн төлбөрийг шалтгаантай буцаасны дараа залруулна.`:'Цуцалсан падааныг засах боломжгүй.'}</span></div>${paid?paymentReversalRows(postedPayments,invoiceId):''}`}
       <button class="secondary full" style="margin-top:9px" onclick="closeSheet()">Хаах</button>`);
+  };
+
+  window.showPaymentReversal=function(paymentId,invoiceId){
+    if(!paymentId)return notify('Төлбөрийн дугаар олдсонгүй.');
+    open(`<h2>Төлбөр буцаах</h2><div class="agreementWarning"><b>Анхаар</b><span>Энэ гүйлгээг бүхэлд нь буцаана. Нэг төлбөр олон падаанд хуваарилагдсан бол тэдгээрийн дүн мөн сэргэнэ. Буцаалтын түүх устахгүй.</span></div><div class="field"><label>Буцаалтын шалтгаан</label><textarea id="paymentReversalReason" maxlength="300" placeholder="Жишээ: Буруу падаанд төлбөр хуваарилсан"></textarea></div><div class="actions"><button class="secondary" onclick="window.showInvoiceDetails('${esc(invoiceId)}')">Болих</button><button id="reversePaymentBtn" class="primary" style="background:#D64545;color:#fff" onclick="window.reversePayment('${esc(paymentId)}','${esc(invoiceId)}')">ТӨЛБӨР БУЦААХ</button></div>`);
+  };
+
+  window.reversePayment=async function(paymentId,invoiceId){
+    const reason=(document.getElementById('paymentReversalReason')?.value||'').trim();
+    if(!reason){notify('Буцаалтын шалтгаан оруулна уу.');return;}
+    const button=document.getElementById('reversePaymentBtn');if(button){button.disabled=true;button.textContent='Буцааж байна...';}
+    window.__nayadCriticalOperation='payment-reversal';
+    try{
+      const {data,error}=await sb().rpc('reverse_supplier_payment',{p_payment_id:paymentId,p_reason:reason});
+      if(error)throw error;
+      await window.__nayadStartCloudSync?.({reason:'payment-reversed',force:true});
+      try{page='payments';render();}catch(_){ }
+      notify(`Төлбөр буцаагдлаа. Үлдэгдэл: ${amount((Array.isArray(data)?data[0]:data)?.remaining_balance)}`);
+      await window.showInvoiceDetails(invoiceId);
+    }catch(error){console.error('Payment reversal:',error);notify(error?.message||'Төлбөр буцаахад алдаа гарлаа.');if(button){button.disabled=false;button.textContent='ТӨЛБӨР БУЦААХ';}}
+    finally{if(window.__nayadCriticalOperation==='payment-reversal')delete window.__nayadCriticalOperation;}
   };
 
   window.editConfirmedInvoice=function(invoiceId){
