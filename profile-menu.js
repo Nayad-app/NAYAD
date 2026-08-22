@@ -22,8 +22,10 @@
   .profileMenuAction{width:100%;min-height:53px;padding:11px 12px;border-radius:0;background:#fff;color:var(--text);display:flex;align-items:center;gap:11px;text-align:left;border-bottom:1px solid var(--line)}.profileMenuAction:last-child{border-bottom:0}.profileMenuAction:hover{background:#FAFAF7}
   .profileMenuActionIcon{width:35px;height:35px;flex:0 0 35px;border-radius:11px;background:#F3F3EF;display:grid;place-items:center}.profileMenuActionIcon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
   .profileMenuActionText{min-width:0;flex:1}.profileMenuActionText b{display:block;font-size:12px;font-weight:850}.profileMenuActionText span{display:block;color:var(--muted);font-size:9px;margin-top:3px;line-height:1.3}.profileMenuChevron{width:17px;height:17px;fill:none;stroke:#A0A19C;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .profileMenuTheme{width:100%;min-height:57px;padding:11px 12px;background:#fff;color:var(--text);display:flex;align-items:center;gap:11px;text-align:left}.profileMenuTheme:hover{background:#FAFAF7}.profileMenuTheme[aria-pressed="true"]{background:#FFF9E8}.profileMenuThemeSwitch{width:42px;height:25px;flex:0 0 42px;padding:3px;border-radius:999px;background:#C8C8C1;display:flex;align-items:center;justify-content:flex-start;transition:background .18s ease}.profileMenuThemeSwitch span{display:block;width:19px;height:19px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .18s ease}.profileMenuTheme[aria-pressed="true"] .profileMenuThemeSwitch{background:var(--yellow)}.profileMenuTheme[aria-pressed="true"] .profileMenuThemeSwitch span{transform:translateX(17px)}
   .profileMenuSpacer{flex:1;min-height:22px}
   .profileMenuLogout{width:100%;min-height:49px;display:flex;align-items:center;justify-content:center;gap:8px;background:#FFF0F0;color:#B83232;border:1px solid #F4CCCC}.profileMenuLogout svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  html.nightMode .profileMenuDrawer{background:#171716;box-shadow:-18px 0 45px rgba(0,0,0,.48)}html.nightMode .profileMenuUser{background:#222220;border-color:var(--line)}html.nightMode .profileMenuAvatar{background:#343431;border-color:#51514C;color:#EEE}html.nightMode .profileMenuSectionTitle{color:#AAA9A2}html.nightMode .profileMenuStore{background:#30280F;border-color:#6D5815}html.nightMode .profileMenuStoreMeta small{color:#E0BD49}html.nightMode .profileMenuActions{background:#1D1D1B;border-color:var(--line);box-shadow:none}html.nightMode .profileMenuAction,html.nightMode .profileMenuTheme{background:#1D1D1B;color:var(--text);border-bottom-color:var(--line)}html.nightMode .profileMenuAction:hover,html.nightMode .profileMenuTheme:hover{background:#262624}html.nightMode .profileMenuTheme[aria-pressed="true"]{background:#30280F}html.nightMode .profileMenuActionIcon{background:#2A2A27}html.nightMode .profileMenuChevron{stroke:#AAA9A2}html.nightMode .profileMenuLogout{background:#351B1D;color:#FFD8D8;border-color:#6B363A}html.nightMode .profileMenuClose{color:var(--text)}
   @media(max-width:370px){.profileMenuDrawer{width:91vw}.profileMenuLayout{padding-left:14px;padding-right:14px}.profileMenuAction{min-height:50px}}
   @media(prefers-reduced-motion:reduce){.profileMenuBackdrop,.profileMenuDrawer{transition:none}}
   </style>`;
@@ -33,6 +35,7 @@
     switch:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/><path d="m19 7-3 3M5 17l3-3"/></svg>',
     share:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.5A4.5 4.5 0 0 1 8 13h2a4.5 4.5 0 0 1 4.5 4.5V19M18 8v6M15 11h6"/></svg>',
     settings:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5A5.5 5.5 0 0 1 11 13h2a5.5 5.5 0 0 1 5.5 5.5V20"/></svg>',
+    moon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.3A8 8 0 0 1 8.7 4 8 8 0 1 0 20 15.3Z"/></svg>',
     logout:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8V5.5A2.5 2.5 0 0 0 11.5 3h-6A2.5 2.5 0 0 0 3 5.5v13A2.5 2.5 0 0 0 5.5 21h6a2.5 2.5 0 0 0 2.5-2.5V16"/><path d="M10 12h11M17 8l4 4-4 4"/></svg>'
   };
   let lastFocus=null;
@@ -47,6 +50,13 @@
     return `<button class="profileMenuAction" type="button" onclick="profileMenuAction('${name}')"><span class="profileMenuActionIcon">${icon}</span><span class="profileMenuActionText"><b>${title}</b><span>${detail}</span></span><svg class="profileMenuChevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>`;
   }
 
+  function isNightMode(){return document.documentElement?.classList?.contains('nightMode')||false;}
+
+  function themeControl(){
+    const night=isNightMode();
+    return `<button class="profileMenuTheme" type="button" onclick="profileMenuAction('theme')" aria-pressed="${night}"><span class="profileMenuActionIcon">${ICONS.moon}</span><span class="profileMenuActionText"><b>Night mode</b><span>${night?'Идэвхтэй':'Унтраалттай'}</span></span><span class="profileMenuThemeSwitch" aria-hidden="true"><span></span></span></button>`;
+  }
+
   function menuHtml(){
     const p=profile();
     const user=window.__nayadUser||{};
@@ -57,7 +67,7 @@
     const storeName=esc(store?.name||'Дэлгүүр');
     const storeRole=roleLabel(store?.role);
     const avatar=p.avatar?`<img class="profileMenuAvatar" src="${esc(p.avatar)}" alt="">`:`<div class="profileMenuAvatar">${esc(initial(p.name))}</div>`;
-    return `<div class="profileMenuLayout"><div class="profileMenuHeader"><b id="profileMenuTitle">Цэс</b><button class="profileMenuClose" type="button" onclick="closeProfileMenu()" aria-label="Цэс хаах"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="profileMenuUser">${avatar}<div class="profileMenuUserMeta"><b>${esc(p.name||'Нэр тодорхойгүй')}</b><span>${contact}</span></div></div><div class="profileMenuSectionTitle">ДЭЛГҮҮР</div><div class="profileMenuStore"><span class="profileMenuStoreIcon">${ICONS.store}</span><div class="profileMenuStoreMeta"><small>ИДЭВХТЭЙ ДЭЛГҮҮР</small><b data-profile-store-name>${storeName}</b>${storeRole?`<span>${storeRole}</span>`:''}</div></div><div class="profileMenuActions" style="margin-top:9px">${action(ICONS.switch,'Дэлгүүр солих','Өөрийн болон хуваалцсан дэлгүүрүүд','store')}${action(ICONS.share,'Дэлгүүр хуваалцах','Гишүүн урих, хамтран ажиллах','share')}</div><div class="profileMenuSectionTitle">ПРОФАЙЛ</div><div class="profileMenuActions">${action(ICONS.settings,'Профайлын тохиргоо','Утасны дугаар болон бүртгэл','settings')}</div><div class="profileMenuSpacer"></div><button class="profileMenuLogout" type="button" onclick="profileMenuAction('logout')">${ICONS.logout}<span>Гарах</span></button></div>`;
+    return `<div class="profileMenuLayout"><div class="profileMenuHeader"><b id="profileMenuTitle">Цэс</b><button class="profileMenuClose" type="button" onclick="closeProfileMenu()" aria-label="Цэс хаах"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="profileMenuUser">${avatar}<div class="profileMenuUserMeta"><b>${esc(p.name||'Нэр тодорхойгүй')}</b><span>${contact}</span></div></div><div class="profileMenuSectionTitle">ДЭЛГҮҮР</div><div class="profileMenuStore"><span class="profileMenuStoreIcon">${ICONS.store}</span><div class="profileMenuStoreMeta"><small>ИДЭВХТЭЙ ДЭЛГҮҮР</small><b data-profile-store-name>${storeName}</b>${storeRole?`<span>${storeRole}</span>`:''}</div></div><div class="profileMenuActions" style="margin-top:9px">${action(ICONS.switch,'Дэлгүүр солих','Өөрийн болон хуваалцсан дэлгүүрүүд','store')}${action(ICONS.share,'Дэлгүүр хуваалцах','Гишүүн урих, хамтран ажиллах','share')}</div><div class="profileMenuSectionTitle">ХАРАГДАЦ</div><div class="profileMenuActions">${themeControl()}</div><div class="profileMenuSectionTitle">ПРОФАЙЛ</div><div class="profileMenuActions">${action(ICONS.settings,'Профайлын тохиргоо','Утасны дугаар болон бүртгэл','settings')}</div><div class="profileMenuSpacer"></div><button class="profileMenuLogout" type="button" onclick="profileMenuAction('logout')">${ICONS.logout}<span>Гарах</span></button></div>`;
   }
 
   function ensureRoot(){
@@ -103,6 +113,13 @@
   }
 
   function runAction(name){
+    if(name==='theme'){
+      const setTheme=window.__nayadSetTheme;
+      if(typeof setTheme==='function')setTheme(isNightMode()?'light':'night');
+      else if(typeof window.toast==='function')window.toast('Night mode түр боломжгүй байна.');
+      renderMenu();
+      return;
+    }
     const actions={
       store:window.showNayadStorePicker,
       share:window.showStoreShare,

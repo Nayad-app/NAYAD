@@ -8,6 +8,11 @@ function classList(initial=[]){
   return {
     add:value=>values.add(value),
     remove:value=>values.delete(value),
+    toggle:(value,force)=>{
+      const enabled=force===undefined?!values.has(value):Boolean(force);
+      if(enabled)values.add(value);else values.delete(value);
+      return enabled;
+    },
     contains:value=>values.has(value)
   };
 }
@@ -31,6 +36,7 @@ const menuButton={
   focus(){this.focused=true;}
 };
 const app={classList:classList()};
+const documentElement={classList:classList(),style:{}};
 const body={
   classList:classList(),
   appendChild(element){elements[element.id]=element;}
@@ -40,6 +46,7 @@ let storePickerCalls=0;
 let shareCalls=0;
 let settingsCalls=0;
 let logoutCalls=0;
+const themeCalls=[];
 
 const context={
   console,
@@ -47,6 +54,7 @@ const context={
   clearTimeout(){},
   document:{
     activeElement:menuButton,
+    documentElement,
     body,
     head:{insertAdjacentHTML:(_where,html)=>{styles=html;}},
     createElement:tag=>{assert.equal(tag,'div');return root;},
@@ -65,6 +73,10 @@ context.window.showNayadStorePicker=()=>{storePickerCalls++;};
 context.window.showStoreShare=()=>{shareCalls++;};
 context.window.showProfileDetails=()=>{settingsCalls++;};
 context.window.confirmLogout=()=>{logoutCalls++;};
+context.window.__nayadSetTheme=theme=>{
+  documentElement.classList.toggle('nightMode',theme==='night');
+  themeCalls.push(theme);
+};
 
 const projectRoot=path.resolve(__dirname,'..');
 const source=fs.readFileSync(path.join(projectRoot,'profile-menu.js'),'utf8');
@@ -81,6 +93,8 @@ assert.match(drawer.innerHTML,/Namka store/);
 assert.match(drawer.innerHTML,/Дэлгүүр солих/);
 assert.match(drawer.innerHTML,/Дэлгүүр хуваалцах/);
 assert.match(drawer.innerHTML,/Профайлын тохиргоо/);
+assert.match(drawer.innerHTML,/Night mode/);
+assert.match(drawer.innerHTML,/Унтраалттай/);
 assert.ok(
   drawer.innerHTML.indexOf('profileMenuSpacer')<drawer.innerHTML.indexOf("profileMenuAction('logout')"),
   'logout must remain at the bottom of the drawer'
@@ -95,6 +109,14 @@ assert.equal(shareCalls,1);
 context.window.showProfileMenu();
 context.window.profileMenuAction('settings');
 assert.equal(settingsCalls,1);
+context.window.showProfileMenu();
+context.window.profileMenuAction('theme');
+assert.deepEqual(themeCalls,['night']);
+assert.equal(root.classList.contains('open'),true,'theme toggle must keep the drawer open');
+assert.match(drawer.innerHTML,/Идэвхтэй/);
+context.window.profileMenuAction('theme');
+assert.deepEqual(themeCalls,['night','light']);
+assert.match(drawer.innerHTML,/Унтраалттай/);
 context.window.showProfileMenu();
 context.window.profileMenuAction('logout');
 assert.equal(logoutCalls,1);
