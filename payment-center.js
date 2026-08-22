@@ -125,7 +125,7 @@
     const focus=focusInvoiceId?String(focusInvoiceId):'';
     open(`<h2>Төлбөр бүртгэх</h2><div class="paySupplierCard"><b>${esc(company.name)}</b><span>${esc(company.bank||'Банк сонгоогүй')}${company.bankAccount?' · '+esc(company.bankAccount):''}</span></div>
       <div class="paymentSectionTitle"><span>ТӨЛӨГДӨӨГҮЙ ПАДААНУУД</span><small>Дүнг гараар өөрчилж болно</small></div>
-      <div id="allocationList">${invoices.map((invoice,index)=>{const discount=discountInfo(invoice),checked=focus?String(invoice.id)===focus:index===0;return `<label class="allocationRow"><input class="allocationCheck" type="checkbox" data-invoice="${esc(invoice.id)}" ${checked?'checked':''} onchange="recalculatePaymentTotal()"><span><b>${esc(invoice.no||'Дугааргүй')}</b><small>Төлөх өдөр ${dateLabel(dueOf(invoice))} · Үлдэгдэл ${amount(balanceOf(invoice))}</small>${discount.eligible?`<em>${discount.percent}% хөнгөлөлт · ${amount(discount.saving)} хэмнэнэ</em>`:''}</span><input class="allocationAmount" data-invoice="${esc(invoice.id)}" type="number" min="0" max="${balanceOf(invoice)}" step="0.01" value="${checked?discount.cash:0}" oninput="recalculatePaymentTotal()"></label>`;}).join('')}</div>
+      <div id="allocationList">${invoices.map((invoice,index)=>{const discount=discountInfo(invoice),checked=focus?String(invoice.id)===focus:index===0;return `<label class="allocationRow"><input class="allocationCheck" type="checkbox" data-invoice="${esc(invoice.id)}" ${checked?'checked':''} onchange="togglePaymentAllocation(this)"><span><b>${esc(invoice.no||'Дугааргүй')}</b><small>Төлөх өдөр ${dateLabel(dueOf(invoice))} · Үлдэгдэл ${amount(balanceOf(invoice))}</small>${discount.eligible?`<em>${discount.percent}% хөнгөлөлт · ${amount(discount.saving)} хэмнэнэ</em>`:''}</span><input class="allocationAmount" data-invoice="${esc(invoice.id)}" data-default-amount="${discount.cash}" type="number" min="0" max="${balanceOf(invoice)}" step="0.01" value="${checked?discount.cash:0}" oninput="recalculatePaymentTotal()"></label>`;}).join('')}</div>
       <div class="payTotal"><span>Нийт төлөх дүн</span><b id="paymentCenterTotal">0 ₮</b></div>
       <div class="field"><label>Төлбөрийн арга</label><select id="pcMethod"><option>Банк</option><option>Бэлэн мөнгө</option><option>QPay</option><option>Карт</option><option>Бусад</option></select></div>
       <div class="field"><label>Огноо</label><input id="pcDate" type="date" value="${today()}"></div>
@@ -143,6 +143,16 @@
     });
     const target=document.getElementById('paymentCenterTotal');if(target)target.textContent=amount(total);
     return total;
+  };
+
+  /* Checking an invoice means “pay this invoice in full” by default. The
+     amount remains editable, so a partial/manual payment is still possible. */
+  window.togglePaymentAllocation=function(check){
+    const input=document.querySelector(`.allocationAmount[data-invoice="${check.dataset.invoice}"]`);
+    if(check.checked&&input&&Math.max(Number(input.value)||0,0)===0){
+      input.value=input.dataset.defaultAmount||input.max||0;
+    }
+    return window.recalculatePaymentTotal();
   };
 
   window.reviewPaymentCenter=function(companyId){

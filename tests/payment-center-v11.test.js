@@ -62,6 +62,11 @@ assert.ok(html.indexOf('Upcoming Co')<html.indexOf('Unknown Co'),'dated upcoming
 assert.doesNotMatch(html,/999,999 ₮[\s\S]*Өнөөдөр төлөх/,'draft amount must not enter payable summaries');
 assert.match(html,/4% хэмнэнэ/,'invoice-specific discount must be visible on the payment order');
 
+const source=fs.readFileSync(path.join(root,'payment-center.js'),'utf8');
+assert.match(source,/onchange="togglePaymentAllocation\(this\)"/,'checking another invoice must trigger allocation defaulting');
+assert.match(source,/data-default-amount="\$\{discount\.cash\}"/,'each invoice needs a full-payment default amount');
+assert.match(source,/window\.togglePaymentAllocation=function\(check\)/,'a checked zero-value invoice must receive its default payment amount');
+
 vm.runInContext('sync()',context);
 assert.equal(vm.runInContext('data.companies.find(c=>c.id===4).debt',context),0,'draft invoice must not create debt');
 
