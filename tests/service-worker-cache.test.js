@@ -29,7 +29,7 @@ const context={
 
 const swSource=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-assert.match(swSource,/const CACHE = "nayad-v86";/,'animated splash must invalidate the installed app shell');
+assert.match(swSource,/const CACHE = "nayad-v87";/,'night mode must invalidate the installed app shell');
 assert.match(swSource,/\.\/store-switcher\.js\?v=59/);
 assert.match(indexSource,/\.\/store-switcher\.js\?v=59/,'index and service worker must load the same store switcher');
 assert.match(swSource,/\.\/store-recovery\.js\?v=54/);
@@ -48,8 +48,8 @@ assert.match(swSource,/\.\/supplier-cloud\.js\?v=57/);
 assert.match(indexSource,/\.\/supplier-cloud\.js\?v=57/,'index and service worker must load the same supplier code');
 assert.match(swSource,/\.\/share\.js\?v=39/);
 assert.match(indexSource,/\.\/share\.js\?v=39/,'index and service worker must load the same sharing code');
-assert.match(swSource,/\.\/profile-menu\.js\?v=1/);
-assert.match(indexSource,/\.\/profile-menu\.js\?v=1/,'index and service worker must load the profile drawer');
+assert.match(swSource,/\.\/profile-menu\.js\?v=2/);
+assert.match(indexSource,/\.\/profile-menu\.js\?v=2/,'index and service worker must load the profile drawer');
 
 vm.createContext(context);
 vm.runInContext(swSource,context,{filename:'sw.js'});
@@ -68,8 +68,8 @@ assert.ok(
   patchedTwice.indexOf('./cloud-runtime.js?v=58')<patchedTwice.indexOf('./invoice-cloud.js?v=68'),
   'legacy documents must receive the same safe store/auth/cloud script order'
 );
-assert.equal(patchedTwice.split('./profile-menu.js?v=1').length-1,1,'profile drawer must be injected exactly once');
-assert.ok(patchedTwice.indexOf('./share.js?v=39')<patchedTwice.indexOf('./profile-menu.js?v=1'),'profile drawer must load after sharing actions');
+assert.equal(patchedTwice.split('./profile-menu.js?v=2').length-1,1,'profile drawer must be injected exactly once');
+assert.ok(patchedTwice.indexOf('./share.js?v=39')<patchedTwice.indexOf('./profile-menu.js?v=2'),'profile drawer must load after sharing actions');
 
 async function dispatch(request){
   let responsePromise;
