@@ -1,4 +1,4 @@
-const CACHE = "nayad-v92";
+const CACHE = "nayad-v93";
 
 const ASSETS = [
   "./",
@@ -22,6 +22,7 @@ const ASSETS = [
   "./invoice-cloud.js?v=68",
   "./supplier-cloud.js?v=57",
   "./payment-center.js?v=7",
+  "./loans.js?v=1",
   "./company-label.js"
 ];
 
@@ -79,6 +80,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=1");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=68");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=57");
+  patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=1");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=68","./money-input.js?v=1");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=59","./store-recovery.js?v=54");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=54","./auth-guard.js?v=56");
@@ -86,6 +88,7 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=1");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=68","./payment-center.js?v=7");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=7","./loans.js?v=1");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;
 }
