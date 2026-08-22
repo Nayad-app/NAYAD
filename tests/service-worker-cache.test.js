@@ -29,7 +29,7 @@ const context={
 
 const swSource=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-assert.match(swSource,/const CACHE = "nayad-v88";/,'payment center night mode must invalidate the installed app shell');
+assert.match(swSource,/const CACHE = "nayad-v89";/,'night-mode menu icon fix must invalidate the installed app shell');
 assert.match(swSource,/\.\/store-switcher\.js\?v=59/);
 assert.match(indexSource,/\.\/store-switcher\.js\?v=59/,'index and service worker must load the same store switcher');
 assert.match(swSource,/\.\/store-recovery\.js\?v=54/);
