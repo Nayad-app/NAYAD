@@ -127,6 +127,7 @@
     realtimeChannel=c.channel('nayad-store-'+context.storeId)
       .on('postgres_changes',{event:'*',schema:'public',table:'invoices',filter:'store_id=eq.'+context.storeId},refresh)
       .on('postgres_changes',{event:'*',schema:'public',table:'payments',filter:'store_id=eq.'+context.storeId},refresh)
+      .on('postgres_changes',{event:'*',schema:'public',table:'invoice_agreements',filter:'store_id=eq.'+context.storeId},refresh)
       .on('postgres_changes',{event:'*',schema:'public',table:'suppliers',filter:'store_id=eq.'+context.storeId},refresh)
       .subscribe();
     return true;

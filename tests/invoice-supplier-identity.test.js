@@ -15,7 +15,7 @@ const initial={
 };
 const storage=new Map([[localKey,JSON.stringify(initial)]]);
 const notices=[];
-const invoiceInserts=[];
+const draftSaves=[];
 const imageRowInserts=[];
 const imageUploads=[];
 let activeStoreId=storeId;
@@ -33,9 +33,13 @@ const elements={
   cloudCameraInput:{files:[],value:'',onchange:null},
   cloudImageList:{innerHTML:'',style:{},addEventListener(){},querySelectorAll(){return[];}},
   cloudIDate:{value:'2026-08-20'},
+  cloudIDueDate:{value:'2026-08-30'},
   cloudINo:{value:'INV-0001'},
   cloudIAmount:{value:'1000000'},
-  cloudSaveInvoiceBtn:{disabled:false,textContent:'Падаан нэмэх'}
+  cloudIDiscount:{value:'4'},
+  cloudIDiscountDeadline:{value:'2026-08-25'},
+  cloudSaveInvoiceBtn:{disabled:false,textContent:'Ноорог хадгалах'},
+  cloudConfirmInvoiceBtn:{disabled:false,textContent:'Баталгаажуулах'}
 };
 
 const supplierRow={
@@ -56,7 +60,6 @@ function query(table){
       return Promise.resolve({data:null,error:null});
     },
     insert(payload){
-      if(table==='invoices')invoiceInserts.push(payload);
       if(table==='invoice_images')imageRowInserts.push(payload);
       return Promise.resolve({data:null,error:null});
     },
@@ -106,6 +109,12 @@ context.window.toast=message=>notices.push(message);
 context.window.compressInvoiceImage=async file=>file;
 context.window.nayadSupabase={
   auth:{getSession:async()=>({data:{session:{user:{id:userId}}},error:null})},
+  rpc:async(name,args)=>{
+    if(name==='save_invoice_draft'){draftSaves.push(args);return {data:[{invoice_id:args.p_invoice_id,invoice_status:'draft'}],error:null};}
+    if(name==='confirm_invoice')return {data:[{invoice_id:args.p_invoice_id,invoice_status:'confirmed'}],error:null};
+    if(name==='delete_invoice_draft')return {data:true,error:null};
+    throw new Error('Unexpected RPC: '+name);
+  },
   from:table=>query(table),
   storage:{from:bucket=>({
     upload:async(path,file,options)=>{imageUploads.push({bucket,path,file,options});return {error:null};},
@@ -144,7 +153,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'invoice-cloud.js'),'utf8'),conte
   const gate=deferred();
   context.window.__nayadCloudSyncQueue=gate.promise;
   const savePromise=context.window.__saveCloudInvoice();
-  assert.equal(invoiceInserts.length,0,'the invoice write must wait for the existing cloud queue');
+  assert.equal(draftSaves.length,0,'the invoice write must wait for the existing cloud queue');
 
   const sheetWhileSaving=sheetHtml;
   context.window.__cancelCloudInvoice();
@@ -160,15 +169,18 @@ vm.runInContext(fs.readFileSync(path.join(root,'invoice-cloud.js'),'utf8'),conte
   gate.resolve();
   await savePromise;
 
-  assert.equal(invoiceInserts.length,1,'the first invoice must be inserted exactly once');
-  assert.equal(invoiceInserts[0].store_id,storeId);
-  assert.equal(invoiceInserts[0].supplier_id,supplierId,'save must use the stable Supabase supplier UUID');
+  assert.equal(draftSaves.length,2,'the draft is saved once, then linked to its uploaded cover image');
+  assert.equal(draftSaves[0].p_supplier_id,supplierId,'save must use the stable Supabase supplier UUID');
+  assert.equal(draftSaves[0].p_due_date,'2026-08-30');
+  assert.equal(draftSaves[0].p_discount_percent,4);
+  assert.equal(draftSaves[0].p_image_url,null);
+  assert.match(draftSaves[1].p_image_url,/storage\.test/);
   assert.equal(imageUploads.length,1,'the image staged before queueing must upload exactly once');
   assert.equal(imageUploads[0].bucket,'invoice-images');
   assert.equal(imageUploads[0].file,imageFile);
-  assert.match(imageUploads[0].path,new RegExp(`^${storeId}/${supplierId}/${invoiceInserts[0].id}/page-1-`));
+  assert.match(imageUploads[0].path,new RegExp(`^${storeId}/${supplierId}/${draftSaves[0].p_invoice_id}/page-1-`));
   assert.equal(imageRowInserts.length,1,'the uploaded image must create exactly one invoice_images row');
-  assert.equal(imageRowInserts[0].invoice_id,invoiceInserts[0].id);
+  assert.equal(imageRowInserts[0].invoice_id,draftSaves[0].p_invoice_id);
   assert.equal(imageRowInserts[0].page_number,1);
   assert.equal(notices.some(message=>/Нийлүүлэгч олдсонгүй/.test(message)),false);
   saved=JSON.parse(storage.get(localKey));
@@ -180,7 +192,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'invoice-cloud.js'),'utf8'),conte
   activeStoreId='store-2';
   context.window.__nayadActiveStoreId='store-2';
   await context.window.__saveCloudInvoice();
-  assert.equal(invoiceInserts.length,1,'an invoice sheet opened in another store must not insert');
+  assert.equal(draftSaves.length,2,'an invoice sheet opened in another store must not insert');
   assert.match(notices.at(-1),/Дэлгүүр солигдсон/);
 
   console.log('invoice-supplier-identity: PASS — queued save snapshots stable supplier/image identity and blocks cancel/reopen races');

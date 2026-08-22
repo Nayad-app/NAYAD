@@ -39,9 +39,13 @@ function createHarness(options={}){
     cloudCameraInput:{files:[],value:''},
     cloudImageList:{innerHTML:'',style:{},addEventListener(){},querySelectorAll(){return[];}},
     cloudIDate:{value:'2026-08-20'},
+    cloudIDueDate:{value:'2026-08-30'},
     cloudINo:{value:'INV-ADV'},
     cloudIAmount:{value:'1000'},
-    cloudSaveInvoiceBtn:{disabled:false,textContent:'Падаан нэмэх'}
+    cloudIDiscount:{value:'0'},
+    cloudIDiscountDeadline:{value:''},
+    cloudSaveInvoiceBtn:{disabled:false,textContent:'Ноорог хадгалах'},
+    cloudConfirmInvoiceBtn:{disabled:false,textContent:'Баталгаажуулах'}
   };
 
   function makeClient(identity,label){
@@ -53,7 +57,7 @@ function createHarness(options={}){
         eq(column,value){filters.push([column,value]);return query;},
         limit(){return query;},
         order(){return query;},
-        in(){return query;},
+        in(column,value){filters.push([column,value]);return query;},
         maybeSingle(){
           return Promise.resolve({
             data:table==='suppliers'?{id:supplierId,name:'Empty Supplier'}:null,
@@ -62,11 +66,6 @@ function createHarness(options={}){
         },
         insert(payload){
           operation='insert';
-          if(table==='invoices'){
-            state.invoices.add(payload.id);
-            insertStarted.resolve();
-            if(insertGate)return insertGate.promise.then(()=>({error:null}));
-          }
           if(table==='invoice_images')state.imageRows.add(payload.invoice_id);
           return Promise.resolve({error:null});
         },
@@ -78,11 +77,7 @@ function createHarness(options={}){
             state.cleanup.push({label,identity,table,filters:[...filters]});
             if(identity!==userId){
               result={data:null,error:{message:'RLS denied cleanup'}};
-            }else if(table==='invoice_images'){
-              state.imageRows.delete(filters.find(item=>item[0]==='invoice_id')?.[1]);
-            }else if(table==='invoices'){
-              state.invoices.delete(filters.find(item=>item[0]==='id')?.[1]);
-            }
+            }else if(table==='invoice_images')state.imageRows.clear();
           }
           return Promise.resolve(result).then(resolve,reject);
         }
@@ -92,6 +87,22 @@ function createHarness(options={}){
 
     return {
       from,
+      rpc(name,args){
+        if(name==='save_invoice_draft'){
+          const first=!state.invoices.has(args.p_invoice_id);
+          state.invoices.add(args.p_invoice_id);
+          if(first){insertStarted.resolve();if(insertGate)return insertGate.promise.then(()=>({data:[{invoice_id:args.p_invoice_id,invoice_status:'draft'}],error:null}));}
+          return Promise.resolve({data:[{invoice_id:args.p_invoice_id,invoice_status:'draft'}],error:null});
+        }
+        if(name==='delete_invoice_draft'){
+          state.cleanup.push({label,identity,table:'invoices',filters:[['id',args.p_invoice_id]]});
+          if(identity!==userId)return Promise.resolve({data:null,error:{message:'RLS denied cleanup'}});
+          state.invoices.delete(args.p_invoice_id);
+          return Promise.resolve({data:true,error:null});
+        }
+        if(name==='confirm_invoice')return Promise.resolve({data:[{invoice_id:args.p_invoice_id,invoice_status:'confirmed'}],error:null});
+        return Promise.resolve({data:null,error:{message:'Unexpected RPC '+name}});
+      },
       storage:{
         from:()=>({
           upload:async objectPath=>{
@@ -218,7 +229,7 @@ function createHarness(options={}){
     );
     assert.equal(test.state.invoices.size,0,'the old-user invoice must be compensated after shared auth changes');
     const databaseCleanup=test.state.cleanup.filter(item=>item.table!=='storage');
-    assert.deepEqual(databaseCleanup.map(item=>item.table),['invoice_images','invoices']);
+    assert.deepEqual(databaseCleanup.map(item=>item.table),['invoices']);
     assert.ok(databaseCleanup.every(item=>item.label==='operation'&&item.identity==='user-1'),'cleanup must run as the original user');
     assert.equal(test.saved().companies[0].invoices.length,0,'a rejected cross-user save must not update local state');
     assert.match(test.state.notices.at(-1),/хэрэглэгч солигдсон/);

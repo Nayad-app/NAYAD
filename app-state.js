@@ -19,9 +19,10 @@
       company.debt=company.invoices.reduce((sum,invoice)=>{
         const amount=Math.max(Number(invoice.amount)||0,0);
         const paid=Math.min(Math.max(Number(invoice.paid)||0,0),amount);
+        invoice.status=invoice.status||'confirmed';
         invoice.amount=amount;
         invoice.paid=paid;
-        return sum+(amount-paid);
+        return sum+(invoice.status==='confirmed'?(amount-paid):0);
       },0);
     }
     return state;

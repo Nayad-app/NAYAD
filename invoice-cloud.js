@@ -53,7 +53,7 @@
   }
   function applyPaymentToInvoices(company,amount){
     let left=Number(amount)||0;
-    const invoices=[...(company?.invoices||[])].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    const invoices=[...(company?.invoices||[])].filter(i=>(i.status||'confirmed')==='confirmed').sort((a,b)=>String(a.effective_due_date||a.due_date||a.date||'').localeCompare(String(b.effective_due_date||b.due_date||b.date||'')));
     for(const invoice of invoices){
       if(left<=0)break;
       const balance=Math.max((Number(invoice.amount)||0)-(Number(invoice.paid)||0),0);
@@ -63,7 +63,7 @@
   }
   function setCompanyRemainingBalance(company,remaining){
     if(!company||!Number.isFinite(Number(remaining)))return;
-    const invoices=[...(company.invoices||[])].sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    const invoices=[...(company.invoices||[])].filter(i=>(i.status||'confirmed')==='confirmed').sort((a,b)=>String(a.effective_due_date||a.due_date||a.date||'').localeCompare(String(b.effective_due_date||b.due_date||b.date||'')));
     const total=invoices.reduce((sum,i)=>sum+(Number(i.amount)||0),0);
     let paidTotal=Math.max(total-Number(remaining),0);
     for(const invoice of invoices){
@@ -170,7 +170,7 @@
        Read the affected supplier directly after the transactional RPC, then
        replace the visible invoice balances with that authoritative snapshot. */
     const {data:rows,error}=await sb.from('invoices')
-      .select('id,supplier_id,invoice_no,invoice_date,amount,paid,image_url')
+      .select('id,supplier_id,invoice_no,invoice_date,due_date,amount,paid,image_url,status,discount_percent,discount_deadline,confirmed_at,created_at')
       .eq('supplier_id',supplierId)
       .order('invoice_date',{ascending:true});
     if(error)throw error;
@@ -188,6 +188,12 @@
         no:row.invoice_no||'',
         amount:Number(row.amount)||0,
         paid:Number(row.paid)||0,
+        due_date:row.due_date||null,
+        status:row.status||'confirmed',
+        discount_percent:Number(row.discount_percent)||0,
+        discount_deadline:row.discount_deadline||null,
+        confirmed_at:row.confirmed_at||null,
+        created_at:row.created_at||null,
         image_url:row.image_url||previous.image_url||'',
         supabase_synced:true
       };
@@ -397,49 +403,64 @@
     renderPending();
   }
 
-  window.invoice=function(id){
+  window.invoice=function(id,draftId){
     if(invoiceSaving){notify('Өмнөх падаан хадгалагдаж байна.');return;}
     cloudCompanyId=id;
     const company=currentCompany(id);
     if(!company){notify('Нийлүүлэгч олдсонгүй.');return;}
+    const draft=(company.invoices||[]).find(item=>String(item.id)===String(draftId||'')&&item.status==='draft')||null;
     cloudCompanyTarget={
       localId:company.id,
       supplierId:company.supabase_supplier_id||null,
       name:company.name||'',
       storeId:window.__nayadActiveStoreId||window.__nayadActiveStore?.id||null,
-      userId:window.__nayadUser?.id||null
+      userId:window.__nayadUser?.id||null,
+      invoiceId:draft?.id||null,
+      draft:draft?{...draft}:null
     };
     clearPending();
     reorderBound=false;
-    openSheet(`<h2>Падаан нэмэх</h2><div class="card"><b>${esc(company.name)}</b></div>
-      <div class="field"><label>Огноо</label><input id="cloudIDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
-      <div class="field"><label>Падааны дугаар</label><input id="cloudINo" placeholder="INV-0001"></div>
-      <div class="field"><label>Нийт дүн</label><input id="cloudIAmount" type="number" inputmode="decimal" min="0" step="1" placeholder="0"></div>
+    const today=new Date().toISOString().slice(0,10);
+    openSheet(`<h2>${draft?'Падааны ноорог засах':'Падаан нэмэх'}</h2><div class="card"><b>${esc(company.name)}</b>${draft?'<span class="sub">Ноорог — өр, тайлан, сануулгад ороогүй</span>':''}</div>
+      <div class="field"><label>Падааны огноо</label><input id="cloudIDate" type="date" value="${esc(draft?.date||today)}"></div>
+      <div class="field"><label>Төлөх хугацаа</label><input id="cloudIDueDate" type="date" value="${esc(draft?.due_date||'')}"></div>
+      <div class="field"><label>Падааны дугаар</label><input id="cloudINo" value="${esc(draft?.no||'')}" placeholder="INV-0001"></div>
+      <div class="field"><label>Нийт дүн</label><input id="cloudIAmount" type="number" inputmode="decimal" min="0" step="1" value="${Number(draft?.amount)||''}" placeholder="0"></div>
+      <div class="field"><label>Хугацаандаа төлөх хөнгөлөлт (%) — заавал биш</label><input id="cloudIDiscount" type="number" inputmode="decimal" min="0" max="99.99" step="0.01" value="${Number(draft?.discount_percent)||''}" placeholder="Жишээ: 4"></div>
+      <div class="field"><label>Хөнгөлөлтийн эцсийн өдөр — заавал биш</label><input id="cloudIDiscountDeadline" type="date" value="${esc(draft?.discount_deadline||'')}"></div>
       <div class="field"><label>Падааны зураг — заавал биш, олон хуудас нэмэх боломжтой</label>
         <div class="imageTools"><button type="button" class="secondary" onclick="document.getElementById('cloudGalleryInput').click()">🖼️ Зураг сонгох</button><button type="button" class="secondary" onclick="document.getElementById('cloudCameraInput').click()">📷 Камераар авах</button></div>
         <input id="cloudGalleryInput" type="file" accept="image/*" multiple class="hide"><input id="cloudCameraInput" type="file" accept="image/*" capture="environment" class="hide">
         <div class="sub" style="margin-top:7px">Зүүн талын ☷ тэмдэг дээр дараад шууд дээш/доош чирж дарааллыг солино.</div><div id="cloudImageList" class="imageList"></div>
       </div>
-      <div class="actions"><button class="secondary" onclick="window.__cancelCloudInvoice()">Болих</button><button id="cloudSaveInvoiceBtn" class="primary" onclick="window.__saveCloudInvoice()">Падаан нэмэх</button></div>`);
+      <div class="actions"><button class="secondary" onclick="window.__cancelCloudInvoice()">Болих</button><button id="cloudSaveInvoiceBtn" class="secondary" onclick="window.__saveCloudInvoice('draft')">Ноорог хадгалах</button></div>
+      <button id="cloudConfirmInvoiceBtn" class="primary full" style="margin-top:9px" onclick="window.__saveCloudInvoice('confirmed')">Баталгаажуулах</button>`);
     document.getElementById('cloudGalleryInput').onchange=function(){addFiles([...this.files]);this.value=''};
     document.getElementById('cloudCameraInput').onchange=function(){addFiles([...this.files]);this.value=''};
     renderPending();
   };
   window.__cancelCloudInvoice=function(){if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}cloudCompanyTarget=null;clearPending();close();};
 
-  window.__saveCloudInvoice=async function(){
+  window.__saveCloudInvoice=async function(saveMode='draft'){
     if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}
     const amount=Number(val('cloudIAmount'));
     const date=val('cloudIDate')||new Date().toISOString().slice(0,10);
+    const dueDate=val('cloudIDueDate')||null;
     const no=val('cloudINo')||('INV-'+Date.now().toString().slice(-6));
-    if(!amount || amount<0){notify('Нийт дүн оруулна уу.');return;}
+    const discountPercent=Number(val('cloudIDiscount'))||0;
+    const discountDeadline=val('cloudIDiscountDeadline')||null;
+    const shouldConfirm=saveMode==='confirmed';
+    if(amount<0 || (shouldConfirm&&!amount)){notify('Нийт дүн оруулна уу.');return;}
+    if(shouldConfirm&&!dueDate){notify('Төлөх хугацаа оруулна уу.');return;}
+    if(discountPercent>0&&!discountDeadline){notify('Хөнгөлөлтийн эцсийн өдрийг оруулна уу.');return;}
     if(window.__nayadCriticalOperation){notify('Өмнөх хадгалалт дууссаны дараа дахин оролдоно уу.');return;}
     const target=cloudCompanyTarget?{...cloudCompanyTarget}:{localId:cloudCompanyId,supplierId:null,name:'',storeId:window.__nayadActiveStoreId||null,userId:window.__nayadUser?.id||null};
     const pendingFiles=pending.map(item=>({file:item.file,name:item.name||''}));
     let operationUserId=target.userId||window.__nayadUser?.id||null;
     const operationToken='invoice:'+crypto.randomUUID();
-    const btn=document.getElementById('cloudSaveInvoiceBtn'); if(btn){btn.disabled=true;btn.textContent='Хадгалж байна...';}
-    let invoiceId=null, supplierId=null, storeId=null, uploaded=[], remoteComplete=false;
+    const btn=document.getElementById(shouldConfirm?'cloudConfirmInvoiceBtn':'cloudSaveInvoiceBtn'); if(btn){btn.disabled=true;btn.textContent='Хадгалж байна...';}
+    let invoiceId=target.invoiceId||null, supplierId=null, storeId=null, uploaded=[], remoteComplete=false;
+    const createdDraft=!target.invoiceId;
     invoiceSaving=true;
     window.__nayadCriticalOperation=operationToken;
     try{
@@ -466,8 +487,13 @@
           );
           if(!company)throw new Error('Нийлүүлэгч олдсонгүй.');
           const supplier=await ensureSupplier(storeRow,company,{requireExistingId:Boolean(target.supplierId),client:writeClient}); supplierId=supplier.id;
-          invoiceId=crypto.randomUUID();
-          const {error:invoiceError}=await writeClient.from('invoices').insert({id:invoiceId,store_id:storeId,supplier_id:supplierId,invoice_no:no,invoice_date:date,amount,paid:0,image_url:null});
+          invoiceId=invoiceId||crypto.randomUUID();
+          const draftArgs={
+            p_invoice_id:invoiceId,p_supplier_id:supplierId,p_invoice_no:no,p_invoice_date:date,
+            p_due_date:dueDate,p_amount:amount,p_discount_percent:discountPercent,
+            p_discount_deadline:discountDeadline,p_image_url:null
+          };
+          const {error:invoiceError}=await writeClient.rpc('save_invoice_draft',draftArgs);
           if(invoiceError)throw new Error('Падаан хадгалахад алдаа: '+invoiceError.message);
           const imageUrls=[];
           for(let i=0;i<pendingFiles.length;i++){
@@ -484,7 +510,14 @@
             const {error:rowError}=await writeClient.from('invoice_images').insert({id:crypto.randomUUID(),invoice_id:invoiceId,image_url:imageUrl,image_path:path,page_number:i+1});
             if(rowError)throw new Error(`${i+1}-р зургийн мэдээлэл хадгалахад алдаа: ${rowError.message}`);
           }
-          if(imageUrls[0]){const {error:updateError}=await writeClient.from('invoices').update({image_url:imageUrls[0]}).eq('id',invoiceId);if(updateError)throw new Error('Падааны зураг холбоход алдаа: '+updateError.message);}
+          if(imageUrls[0]){
+            const {error:updateError}=await writeClient.rpc('save_invoice_draft',{...draftArgs,p_image_url:imageUrls[0]});
+            if(updateError)throw new Error('Падааны зураг холбоход алдаа: '+updateError.message);
+          }
+          if(shouldConfirm){
+            const {error:confirmError}=await writeClient.rpc('confirm_invoice',{p_invoice_id:invoiceId});
+            if(confirmError)throw new Error('Падаан баталгаажуулахад алдаа: '+confirmError.message);
+          }
 
           const verifiedSession=(await sb.auth.getSession()).data?.session;
           if(!verifiedSession||String(verifiedSession.user?.id||'')!==String(operationUserId))throw new Error('Нэвтэрсэн хэрэглэгч солигдсон байна. Падааныг хадгалсангүй.');
@@ -501,11 +534,18 @@
             &&(!c.supabase_supplier_id||String(c.supabase_supplier_id)===String(supplierId))
           );
           if(cidx<0)cidx=local.companies.findIndex(c=>String(c.name||'').trim().toLowerCase()===companyName&&(!c.supabase_supplier_id||String(c.supabase_supplier_id)===String(supplierId)));
-          const inv={id:invoiceId,date,no,amount,paid:0,image_url:imageUrls[0]||'',image_urls:imageUrls,image_paths:uploaded,image_count:imageUrls.length,supabase_synced:true};
-          if(cidx>=0){local.companies[cidx].supabase_supplier_id=supplierId;local.companies[cidx].invoices=local.companies[cidx].invoices||[];local.companies[cidx].invoices.push(inv);}
+          const previousDraft=target.draft||{};
+          const inv={id:invoiceId,date,due_date:dueDate,no,amount,paid:Number(previousDraft.paid)||0,status:shouldConfirm?'confirmed':'draft',discount_percent:discountPercent,discount_deadline:discountDeadline,image_url:imageUrls[0]||previousDraft.image_url||'',image_urls:imageUrls.length?imageUrls:(previousDraft.image_urls||[]),image_paths:uploaded.length?uploaded:(previousDraft.image_paths||[]),image_count:imageUrls.length||(previousDraft.image_count||0),supabase_synced:true};
+          if(cidx>=0){
+            local.companies[cidx].supabase_supplier_id=supplierId;local.companies[cidx].invoices=local.companies[cidx].invoices||[];
+            const existingIndex=local.companies[cidx].invoices.findIndex(item=>String(item.id)===String(invoiceId));
+            if(existingIndex>=0)local.companies[cidx].invoices[existingIndex]=inv;else local.companies[cidx].invoices.push(inv);
+          }
           else{local.companies.push({...company,supabase_supplier_id:supplierId,invoices:[...(company.invoices||[]),inv]});}
           try{writeLocal(local);}catch(cacheError){console.warn('Invoice local cache:',cacheError);}
-          cloudCompanyTarget=null;clearPending();close();notify(imageUrls.length?`Падаан болон ${imageUrls.length} зураг cloud-д хадгалагдлаа.`:'Падаан зураггүйгээр хадгалагдлаа.');setTimeout(()=>location.reload(),500);
+          cloudCompanyTarget=null;clearPending();close();applyLocalData(local,true);
+          notify(shouldConfirm?'Падаан баталгаажиж, төлбөрийн дараалалд орлоо.':'Падааны ноорог хадгалагдлаа.');
+          setTimeout(()=>window.__nayadStartCloudSync?.({reason:'invoice-saved',force:true}).catch(()=>{}),0);
         }catch(error){
           /* Keep compensation under the same cloud lock. A following sync must
              never observe a half-created invoice or partially uploaded pages. */
@@ -514,10 +554,12 @@
             catch(cleanupError){console.warn('Invoice storage cleanup:',cleanupError);}
           }
           if(!remoteComplete&&invoiceId){
-            try{const result=await writeClient.from('invoice_images').delete().eq('invoice_id',invoiceId);if(result?.error)throw result.error;}
+            try{const result=uploaded.length?await writeClient.from('invoice_images').delete().in('image_path',uploaded):null;if(result?.error)throw result.error;}
             catch(cleanupError){console.warn('Invoice image rows cleanup:',cleanupError);}
-            try{const result=await writeClient.from('invoices').delete().eq('id',invoiceId);if(result?.error)throw result.error;}
-            catch(cleanupError){console.warn('Invoice row cleanup:',cleanupError);}
+            if(createdDraft){
+              try{const result=await writeClient.rpc('delete_invoice_draft',{p_invoice_id:invoiceId});if(result?.error)throw result.error;}
+              catch(cleanupError){console.warn('Invoice draft cleanup:',cleanupError);}
+            }
           }
           throw error;
         }
@@ -525,7 +567,7 @@
     }catch(e){
       console.error('NAYAD cloud invoice:',e);
       notify(e?.message||'Падаан хадгалахад алдаа гарлаа.');
-      if(btn){btn.disabled=false;btn.textContent='Падаан нэмэх';}
+      if(btn){btn.disabled=false;btn.textContent=shouldConfirm?'Баталгаажуулах':'Ноорог хадгалах';}
     }finally{
       invoiceSaving=false;
       if(window.__nayadCriticalOperation===operationToken)delete window.__nayadCriticalOperation;
@@ -538,10 +580,12 @@
     let storeRow; try{storeRow=await store()}catch(_){return;}
     const local=readLocal();local.companies=local.companies||[];local.payments=local.payments||[];
     await pushPendingPayments(storeRow,local);
-    const {data:invoices,error}=await sb.from('invoices').select('id,supplier_id,invoice_no,invoice_date,amount,paid,image_url').eq('store_id',storeRow.id).order('invoice_date',{ascending:true});
+    const {data:invoices,error}=await sb.from('invoices').select('id,supplier_id,invoice_no,invoice_date,due_date,amount,paid,image_url,status,discount_percent,discount_deadline,confirmed_at,created_at').eq('store_id',storeRow.id).order('invoice_date',{ascending:true});
     if(error||!invoices)return;
-    const {data:cloudPayments,error:paymentsError}=await sb.from('payments').select('id,supplier_id,payment_date,amount,method,note,created_at').eq('store_id',storeRow.id).order('created_at',{ascending:true});
+    const {data:cloudPayments,error:paymentsError}=await sb.from('payments').select('id,supplier_id,payment_date,amount,method,note,reference,status,created_at').eq('store_id',storeRow.id).order('created_at',{ascending:true});
     if(paymentsError)return;
+    const {data:agreements,error:agreementsError}=await sb.from('invoice_agreements').select('id,invoice_id,installment_no,installment_count,agreed_due_date,agreed_amount,note,contact_name,contact_phone,status,created_at').eq('store_id',storeRow.id).eq('status','active').order('installment_no',{ascending:true});
+    if(agreementsError)return;
     /* Companies without invoices or payments are still part of the active
        store. Loading only supplier IDs referenced by financial rows removed a
        newly-created company from local state while its first invoice sheet was
@@ -566,7 +610,9 @@
       const nextInvoices=remote.map(ri=>{
         const imgs=(images||[]).filter(im=>String(im.invoice_id)===String(ri.id)).sort((a,b)=>(a.page_number||1)-(b.page_number||1));
         const urls=imgs.map(x=>x.image_url).filter(Boolean); const paths=imgs.map(x=>x.image_path).filter(Boolean);
-        return {id:ri.id,date:ri.invoice_date,no:ri.invoice_no||'',amount:Number(ri.amount)||0,paid:Number(ri.paid)||0,image_url:ri.image_url||urls[0]||'',image_urls:urls,image_paths:paths,image_count:urls.length,supabase_synced:true};
+        const invoiceAgreements=(agreements||[]).filter(item=>String(item.invoice_id)===String(ri.id));
+        const effectiveDue=invoiceAgreements.length?invoiceAgreements.map(item=>item.agreed_due_date).sort()[0]:(ri.due_date||null);
+        return {id:ri.id,date:ri.invoice_date,due_date:ri.due_date||null,effective_due_date:effectiveDue,no:ri.invoice_no||'',amount:Number(ri.amount)||0,paid:Number(ri.paid)||0,status:ri.status||'confirmed',discount_percent:Number(ri.discount_percent)||0,discount_deadline:ri.discount_deadline||null,confirmed_at:ri.confirmed_at||null,created_at:ri.created_at||null,agreements:invoiceAgreements,image_url:ri.image_url||urls[0]||'',image_urls:urls,image_paths:paths,image_count:urls.length,supabase_synced:true};
       });
       c.invoices=nextInvoices;
       if(paymentGuard&&String(paymentGuard.supplierId)===String(s.id)){
@@ -579,7 +625,7 @@
     const syncedPayments=(cloudPayments||[]).map(p=>{
       const supplier=suppliers.find(s=>String(s.id)===String(p.supplier_id));
       const company=local.companies.find(c=>String(c.supabase_supplier_id)===String(p.supplier_id)||c.name===supplier?.name);
-      return {id:p.id,companyId:company?.id,company:supplier?.name||company?.name||'Нийлүүлэгч',supabase_supplier_id:p.supplier_id,amount:Number(p.amount)||0,date:p.payment_date,method:p.method||'Бусад',note:p.note||'',supabase_synced:true};
+      return {id:p.id,companyId:company?.id,company:supplier?.name||company?.name||'Нийлүүлэгч',supabase_supplier_id:p.supplier_id,amount:Number(p.amount)||0,date:p.payment_date,method:p.method||'Бусад',note:p.note||'',reference:p.reference||'',status:p.status||'posted',created_at:p.created_at||null,supabase_synced:true};
     });
     const nextPayments=[...syncedPayments,...pendingLocal];
     local.payments=nextPayments;
