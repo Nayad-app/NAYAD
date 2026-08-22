@@ -120,22 +120,11 @@
   function toastSafe(t){if(typeof toast==='function')toast(t);else alert(t)}
   function sheetSafe(s){if(typeof sheet==='function')sheet(s);else console.warn('NAYAD sheet not ready')}
 
-  function addShareButton(){
-    if(typeof page!=='undefined'&&page==='home')return;
-    if(document.querySelector('.storeShareBtn'))return;
-    const content=document.getElementById('content'); if(!content||document.getElementById('app')?.classList.contains('hide'))return;
-    const b=document.createElement('button');b.className='secondary storeShareBtn';b.innerHTML='👥 Дэлгүүрээ хуваалцах';b.onclick=showShare;
-    content.insertBefore(b,content.firstChild);
-  }
-
   window.showStoreShare=showShare;
   window.createStoreInvite=createStoreInvite;
   window.copyStoreInvite=copyStoreInvite;
 
-  const observer=new MutationObserver(()=>addShareButton());
   window.addEventListener('load',()=>{
-    observer.observe(document.body,{childList:true,subtree:true});
-    setTimeout(addShareButton,900);
     setTimeout(acceptInviteFromUrl,1200);
   });
   if(window.nayadSupabase){window.nayadSupabase.auth.onAuthStateChange(()=>setTimeout(acceptInviteFromUrl,500))}
