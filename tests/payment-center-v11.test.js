@@ -62,6 +62,7 @@ assert.ok(html.indexOf('Overdue Co')<html.indexOf('Upcoming Co'),'overdue invoic
 assert.ok(html.indexOf('Upcoming Co')<html.indexOf('Unknown Co'),'dated upcoming invoices must precede missing due dates');
 assert.doesNotMatch(html,/999,999 ₮[\s\S]*Өнөөдөр төлөх/,'draft amount must not enter payable summaries');
 assert.match(html,/4% хэмнэнэ/,'invoice-specific discount must be visible on the payment order');
+assert.match(html,/noticeButton[\s\S]*<svg viewBox="0 0 24 24"/,'payment center must render a modern SVG notification bell');
 
 const source=fs.readFileSync(path.join(root,'payment-center.js'),'utf8');
 assert.match(source,/onchange="togglePaymentAllocation\(this\)"/,'checking another invoice must trigger allocation defaulting');
@@ -71,6 +72,8 @@ assert.match(source,/window\.showInvoiceDetails=function\(invoiceId\)/,'an invoi
 assert.match(source,/window\.editConfirmedInvoice=function\(invoiceId\)/,'an unpaid confirmed invoice needs a correction form');
 assert.match(source,/revise_confirmed_invoice/,'the correction form must use the audited database RPC');
 assert.match(source,/onclick="window\.showInvoiceDetails/,'payment order rows must be tappable for details');
+assert.match(source,/html\.nightMode \.dueRow\{background:#1D1D1B/,'payment order cards must remain dark in Night mode');
+assert.match(source,/html\.nightMode \.dueDetails b\{color:#F4F4EF/,'supplier names must stay readable in Night mode');
 
 let paymentSheet='';
 context.window.sheet=html=>{paymentSheet=html;};
