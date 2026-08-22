@@ -49,6 +49,7 @@ vm.runInContext(`
   function sync(){}
   function render(){}
 `,context);
+vm.runInContext(fs.readFileSync(path.join(root,'money-input.js'),'utf8'),context,{filename:'money-input.js'});
 vm.runInContext(fs.readFileSync(path.join(root,'payment-center.js'),'utf8'),context,{filename:'payment-center.js'});
 
 const html=vm.runInContext('payments()',context);
@@ -78,7 +79,17 @@ state.companies.push({id:5,name:'Invoice Discount Co',color:'green',invoices:[{
   status:'confirmed',discount_percent:3,discount_deadline:'2026-08-31',discount_taken:0
 }]});
 context.window.payment(5);
-assert.match(paymentSheet,/value="1000000"/,'a 3% invoice discount must remain 45,000 after a 455,000 partial payment');
+assert.match(paymentSheet,/value="1,000,000"/,'a 3% invoice discount must remain 45,000 after a 455,000 partial payment');
+assert.match(paymentSheet,/data-money-input/,'payment amounts must opt in to grouped monetary input');
+
+const groupedInput={value:'1,000,000.00',disabled:false};
+const groupedCheck={checked:true,dataset:{invoice:'inv-invoice-discount'}};
+const groupedTotal={textContent:''};
+context.document.querySelectorAll=selector=>selector==='.allocationCheck'?[groupedCheck]:[];
+context.document.querySelector=selector=>selector.includes('inv-invoice-discount')?groupedInput:null;
+context.document.getElementById=id=>id==='paymentCenterTotal'?groupedTotal:null;
+assert.equal(context.window.recalculatePaymentTotal(),1000000,'grouped payment text must remain an exact numeric amount');
+assert.match(groupedTotal.textContent,/1,000,000|1 000 000|1 000 000/,'the visible total must remain grouped');
 
 vm.runInContext('sync()',context);
 assert.equal(vm.runInContext('data.companies.find(c=>c.id===4).debt',context),0,'draft invoice must not create debt');

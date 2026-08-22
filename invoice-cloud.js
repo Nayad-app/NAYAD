@@ -20,6 +20,14 @@
   function queueCloudSync(task){return window.__nayadQueueCloudSync(task);}
 
   function client(){ return window.nayadSupabase || window.sb || null; }
+  function moneyInputValue(value){
+    if(typeof window.__nayadParseMoneyInput==='function')return window.__nayadParseMoneyInput(value);
+    const parsed=Number(String(value??'').replace(/,/g,''));return Number.isFinite(parsed)?parsed:0;
+  }
+  function moneyInputText(value){
+    if(typeof window.__nayadFormatMoneyInput==='function')return window.__nayadFormatMoneyInput(value);
+    return String(value??'');
+  }
   function operationClient(session,fallback){
     const library=window.supabase;
     const url=(typeof SUPABASE_URL!=='undefined'&&SUPABASE_URL)||fallback?.supabaseUrl||'';
@@ -253,7 +261,7 @@
 
   window.savePayment=async function(){
     const company=currentCompany(val('pCompany'));
-    const amount=Number(val('pAmount'));
+    const amount=moneyInputValue(val('pAmount'));
     const date=val('pDate')||new Date().toISOString().slice(0,10);
     const method=val('pMethod')||'Бусад';
     if(!company){notify('Нийлүүлэгч олдсонгүй.');return;}
@@ -431,7 +439,7 @@
       <div class="field"><label>Падааны огноо</label><input id="cloudIDate" type="date" value="${esc(draft?.date||today)}"></div>
       <div class="field"><label>Төлөх хугацаа</label><input id="cloudIDueDate" type="date" value="${esc(draft?.due_date||'')}"></div>
       <div class="field"><label>Падааны дугаар</label><input id="cloudINo" value="${esc(draft?.no||'')}" placeholder="INV-0001"></div>
-      <div class="field"><label>Нийт дүн</label><input id="cloudIAmount" type="number" inputmode="decimal" min="0" step="1" value="${Number(draft?.amount)||''}" placeholder="0"></div>
+      <div class="field"><label>Нийт дүн</label><input id="cloudIAmount" data-money-input type="text" inputmode="decimal" autocomplete="off" value="${moneyInputText(Number(draft?.amount)||'')}" placeholder="0"></div>
       <div class="field"><label>Хугацаандаа төлөх хөнгөлөлт (%) — заавал биш</label><input id="cloudIDiscount" type="number" inputmode="decimal" min="0" max="99.99" step="0.01" value="${Number(draft?.discount_percent)||''}" placeholder="Жишээ: 4"></div>
       <div class="field"><label>Хөнгөлөлтийн эцсийн өдөр — заавал биш</label><input id="cloudIDiscountDeadline" type="date" value="${esc(draft?.discount_deadline||'')}"></div>
       <div class="field"><label>Падааны зураг — заавал биш, олон хуудас нэмэх боломжтой</label>
@@ -449,7 +457,7 @@
 
   window.__saveCloudInvoice=async function(saveMode='draft'){
     if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}
-    const amount=Number(val('cloudIAmount'));
+    const amount=moneyInputValue(val('cloudIAmount'));
     const date=val('cloudIDate')||new Date().toISOString().slice(0,10);
     const dueDate=val('cloudIDueDate')||null;
     const no=val('cloudINo')||('INV-'+Date.now().toString().slice(-6));

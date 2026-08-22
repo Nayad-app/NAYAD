@@ -10,6 +10,14 @@
   function state(){return window.__nayadState?.read?.()||{companies:[],payments:[]};}
   function esc(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));}
   function amount(value){return new Intl.NumberFormat('mn-MN',{maximumFractionDigits:2}).format(Number(value)||0)+' ₮';}
+  function moneyInputValue(value){
+    if(typeof window.__nayadParseMoneyInput==='function')return window.__nayadParseMoneyInput(value);
+    const parsed=Number(String(value??'').replace(/,/g,''));return Number.isFinite(parsed)?parsed:0;
+  }
+  function moneyInputText(value){
+    if(typeof window.__nayadFormatMoneyInput==='function')return window.__nayadFormatMoneyInput(value);
+    return String(value??'');
+  }
   function today(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ulaanbaatar'}).format(new Date());}
   function dateLabel(value){if(!value)return 'Хугацаа оруулаагүй';const [y,m,d]=String(value).split('-');return `${y}.${m}.${d}`;}
   function daysBetween(from,to){
@@ -131,7 +139,7 @@
     const focus=focusInvoiceId?String(focusInvoiceId):'';
     open(`<h2>Төлбөр бүртгэх</h2><div class="paySupplierCard"><b>${esc(company.name)}</b><span>${esc(company.bank||'Банк сонгоогүй')}${company.bankAccount?' · '+esc(company.bankAccount):''}</span></div>
       <div class="paymentSectionTitle"><span>ТӨЛӨГДӨӨГҮЙ ПАДААНУУД</span><small>Дүнг гараар өөрчилж болно</small></div>
-      <div id="allocationList">${invoices.map((invoice,index)=>{const discount=discountInfo(invoice),checked=focus?String(invoice.id)===focus:index===0;return `<label class="allocationRow"><input class="allocationCheck" type="checkbox" data-invoice="${esc(invoice.id)}" ${checked?'checked':''} onchange="togglePaymentAllocation(this)"><span><b>${esc(invoice.no||'Дугааргүй')}</b><small>Төлөх өдөр ${dateLabel(dueOf(invoice))} · Үлдэгдэл ${amount(balanceOf(invoice))}</small>${discount.eligible?`<em>${discount.percent}% хөнгөлөлт · ${amount(discount.saving)} хэмнэнэ</em>`:''}</span><input class="allocationAmount" data-invoice="${esc(invoice.id)}" data-default-amount="${discount.cash}" type="number" min="0" max="${balanceOf(invoice)}" step="0.01" value="${checked?discount.cash:0}" oninput="recalculatePaymentTotal()"></label>`;}).join('')}</div>
+      <div id="allocationList">${invoices.map((invoice,index)=>{const discount=discountInfo(invoice),checked=focus?String(invoice.id)===focus:index===0;return `<label class="allocationRow"><input class="allocationCheck" type="checkbox" data-invoice="${esc(invoice.id)}" ${checked?'checked':''} onchange="togglePaymentAllocation(this)"><span><b>${esc(invoice.no||'Дугааргүй')}</b><small>Төлөх өдөр ${dateLabel(dueOf(invoice))} · Үлдэгдэл ${amount(balanceOf(invoice))}</small>${discount.eligible?`<em>${discount.percent}% хөнгөлөлт · ${amount(discount.saving)} хэмнэнэ</em>`:''}</span><input class="allocationAmount" data-money-input data-invoice="${esc(invoice.id)}" data-default-amount="${discount.cash}" type="text" inputmode="decimal" autocomplete="off" value="${moneyInputText(checked?discount.cash:0)}" oninput="recalculatePaymentTotal()"></label>`;}).join('')}</div>
       <div class="payTotal"><span>Нийт төлөх дүн</span><b id="paymentCenterTotal">0 ₮</b></div>
       <div class="field"><label>Төлбөрийн арга</label><select id="pcMethod"><option>Банк</option><option>Бэлэн мөнгө</option><option>QPay</option><option>Карт</option><option>Бусад</option></select></div>
       <div class="field"><label>Огноо</label><input id="pcDate" type="date" value="${today()}"></div>
@@ -145,7 +153,7 @@
     let total=0;
     document.querySelectorAll('.allocationCheck').forEach(check=>{
       const input=document.querySelector(`.allocationAmount[data-invoice="${check.dataset.invoice}"]`);
-      if(input){input.disabled=!check.checked;if(check.checked)total+=Math.max(Number(input.value)||0,0);}
+      if(input){input.disabled=!check.checked;if(check.checked)total+=Math.max(moneyInputValue(input.value),0);}
     });
     const target=document.getElementById('paymentCenterTotal');if(target)target.textContent=amount(total);
     return total;
@@ -155,8 +163,8 @@
      amount remains editable, so a partial/manual payment is still possible. */
   window.togglePaymentAllocation=function(check){
     const input=document.querySelector(`.allocationAmount[data-invoice="${check.dataset.invoice}"]`);
-    if(check.checked&&input&&Math.max(Number(input.value)||0,0)===0){
-      input.value=input.dataset.defaultAmount||input.max||0;
+    if(check.checked&&input&&Math.max(moneyInputValue(input.value),0)===0){
+      input.value=moneyInputText(input.dataset.defaultAmount||0);
     }
     return window.recalculatePaymentTotal();
   };
@@ -166,7 +174,7 @@
     const allocations=[];
     document.querySelectorAll('.allocationCheck:checked').forEach(check=>{
       const input=document.querySelector(`.allocationAmount[data-invoice="${check.dataset.invoice}"]`);
-      const cash=Math.max(Number(input?.value)||0,0);if(cash>0)allocations.push({invoice_id:check.dataset.invoice,amount:cash});
+      const cash=Math.max(moneyInputValue(input?.value),0);if(cash>0)allocations.push({invoice_id:check.dataset.invoice,amount:cash});
     });
     const total=allocations.reduce((sum,item)=>sum+item.amount,0);if(!total){notify('Төлөх дүн оруулна уу.');return;}
     const selectedInvoices=allocations.map(item=>invoiceById(item.invoice_id)).filter(Boolean);
@@ -215,7 +223,7 @@
       <div class="field"><label>Падааны огноо</label><input id="reviseInvoiceDate" type="date" value="${esc(invoice.date||today())}"></div>
       <div class="field"><label>Төлөх хугацаа</label><input id="reviseInvoiceDueDate" type="date" value="${esc(invoice.due_date||'')}"></div>
       <div class="field"><label>Падааны дугаар</label><input id="reviseInvoiceNo" maxlength="120" value="${esc(invoice.no||'')}"></div>
-      <div class="field"><label>Нийт дүн</label><input id="reviseInvoiceAmount" type="number" inputmode="decimal" min="0.01" step="0.01" value="${Number(invoice.amount)||''}"></div>
+      <div class="field"><label>Нийт дүн</label><input id="reviseInvoiceAmount" data-money-input type="text" inputmode="decimal" autocomplete="off" value="${moneyInputText(Number(invoice.amount)||'')}"></div>
       <div class="field"><label>Хугацаандаа төлөх хөнгөлөлт (%) — заавал биш</label><input id="reviseInvoiceDiscount" type="number" inputmode="decimal" min="0" max="99.99" step="0.01" value="${Number(invoice.discount_percent)||''}"></div>
       <div class="field"><label>Хөнгөлөлтийн эцсийн өдөр — заавал биш</label><input id="reviseInvoiceDiscountDeadline" type="date" value="${esc(invoice.discount_deadline||'')}"></div>
       <div class="field"><label>Засварын шалтгаан</label><textarea id="reviseInvoiceReason" maxlength="300" placeholder="Жишээ: Падааны дүн буруу оруулсан"></textarea></div>
@@ -226,7 +234,7 @@
     const invoice=invoiceById(invoiceId);if(!invoice)return;
     const input=id=>document.getElementById(id)?.value||'';
     const invoiceDate=input('reviseInvoiceDate'),dueDate=input('reviseInvoiceDueDate'),invoiceNo=input('reviseInvoiceNo').trim();
-    const invoiceAmount=Number(input('reviseInvoiceAmount')),discountPercent=Number(input('reviseInvoiceDiscount'))||0;
+    const invoiceAmount=moneyInputValue(input('reviseInvoiceAmount')),discountPercent=Number(input('reviseInvoiceDiscount'))||0;
     const discountDeadline=input('reviseInvoiceDiscountDeadline')||null,reason=input('reviseInvoiceReason').trim();
     if(!invoiceDate||!dueDate||!Number.isFinite(invoiceAmount)||invoiceAmount<=0){notify('Огноо, төлөх хугацаа болон зөв дүн оруулна уу.');return;}
     if(dueDate<invoiceDate){notify('Төлөх хугацаа падааны өдрөөс өмнө байж болохгүй.');return;}
@@ -247,11 +255,11 @@
 
   window.showInvoiceAgreement=function(invoiceId){
     const invoice=invoiceById(invoiceId),company=companyForInvoice(invoiceId);if(!invoice||!company)return;
-    open(`<h2>Төлбөрийн тохиролцоо</h2><div class="agreementWarning"><b>${esc(company.name)}</b><span>${esc(invoice.no||'Дугааргүй')} · Үлдэгдэл ${amount(balanceOf(invoice))}</span><span>Анхны хугацаа: ${dateLabel(invoice.due_date)}</span></div><div class="field"><label>Шинэ төлөх огноо</label><input id="agreementDue" type="date" min="${today()}"></div><div class="field"><label>Тохиролцсон дүн</label><input id="agreementAmount" type="number" min="1" max="${balanceOf(invoice)}" value="${balanceOf(invoice)}"></div><div class="field"><label>Холбогдох хүн — заавал биш</label><input id="agreementContact"></div><div class="field"><label>Утас — заавал биш</label><input id="agreementPhone" type="tel"></div><div class="field"><label>Тайлбар</label><textarea id="agreementNote" maxlength="200" placeholder="Жишээ: Бараа нийлүүлэлт хойшилсон тул хугацааг сунгав."></textarea></div><div class="agreementInfo">Шинэ огноогоор сануулна. Анхны хугацаа түүхэнд хадгалагдана.</div><div class="actions"><button class="secondary" onclick="closeSheet()">Болих</button><button id="agreementSaveBtn" class="primary" onclick="saveInvoiceAgreement('${esc(invoiceId)}')">Тохиролцоо хадгалах</button></div>`);
+    open(`<h2>Төлбөрийн тохиролцоо</h2><div class="agreementWarning"><b>${esc(company.name)}</b><span>${esc(invoice.no||'Дугааргүй')} · Үлдэгдэл ${amount(balanceOf(invoice))}</span><span>Анхны хугацаа: ${dateLabel(invoice.due_date)}</span></div><div class="field"><label>Шинэ төлөх огноо</label><input id="agreementDue" type="date" min="${today()}"></div><div class="field"><label>Тохиролцсон дүн</label><input id="agreementAmount" data-money-input type="text" inputmode="decimal" autocomplete="off" value="${moneyInputText(balanceOf(invoice))}"></div><div class="field"><label>Холбогдох хүн — заавал биш</label><input id="agreementContact"></div><div class="field"><label>Утас — заавал биш</label><input id="agreementPhone" type="tel"></div><div class="field"><label>Тайлбар</label><textarea id="agreementNote" maxlength="200" placeholder="Жишээ: Бараа нийлүүлэлт хойшилсон тул хугацааг сунгав."></textarea></div><div class="agreementInfo">Шинэ огноогоор сануулна. Анхны хугацаа түүхэнд хадгалагдана.</div><div class="actions"><button class="secondary" onclick="closeSheet()">Болих</button><button id="agreementSaveBtn" class="primary" onclick="saveInvoiceAgreement('${esc(invoiceId)}')">Тохиролцоо хадгалах</button></div>`);
   };
 
   window.saveInvoiceAgreement=async function(invoiceId){
-    const due=document.getElementById('agreementDue')?.value,agreedAmount=Number(document.getElementById('agreementAmount')?.value)||0;
+    const due=document.getElementById('agreementDue')?.value,agreedAmount=moneyInputValue(document.getElementById('agreementAmount')?.value);
     if(!due||agreedAmount<=0){notify('Шинэ огноо, тохиролцсон дүнг оруулна уу.');return;}
     const button=document.getElementById('agreementSaveBtn');if(button)button.disabled=true;
     try{

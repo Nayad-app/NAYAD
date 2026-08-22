@@ -29,7 +29,7 @@ const context={
 
 const swSource=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-assert.match(swSource,/const CACHE = "nayad-v83";/,'the invoice-level discount fix must invalidate the installed app shell');
+assert.match(swSource,/const CACHE = "nayad-v84";/,'money input formatting must invalidate the installed app shell');
 assert.match(swSource,/\.\/store-switcher\.js\?v=58/);
 assert.match(indexSource,/\.\/store-switcher\.js\?v=58/,'index and service worker must load the same store switcher');
 assert.match(swSource,/\.\/store-recovery\.js\?v=54/);
@@ -38,17 +38,19 @@ assert.match(swSource,/\.\/auth-guard\.js\?v=56/);
 assert.match(indexSource,/\.\/auth-guard\.js\?v=56/,'auth guard must be loaded directly, not only injected by the service worker');
 assert.match(swSource,/\.\/cloud-runtime\.js\?v=58/);
 assert.match(indexSource,/\.\/cloud-runtime\.js\?v=58/,'index and service worker must load the same cloud runtime');
-assert.match(swSource,/\.\/invoice-cloud\.js\?v=67/);
-assert.match(indexSource,/\.\/invoice-cloud\.js\?v=67/,'index and service worker must load the same invoice code');
-assert.match(swSource,/\.\/payment-center\.js\?v=4/);
-assert.match(indexSource,/\.\/payment-center\.js\?v=4/,'index and service worker must load the same payment center');
+assert.match(swSource,/\.\/money-input\.js\?v=1/);
+assert.match(indexSource,/\.\/money-input\.js\?v=1/,'index and service worker must load the money formatter');
+assert.match(swSource,/\.\/invoice-cloud\.js\?v=68/);
+assert.match(indexSource,/\.\/invoice-cloud\.js\?v=68/,'index and service worker must load the same invoice code');
+assert.match(swSource,/\.\/payment-center\.js\?v=5/);
+assert.match(indexSource,/\.\/payment-center\.js\?v=5/,'index and service worker must load the same payment center');
 assert.match(swSource,/\.\/supplier-cloud\.js\?v=57/);
 assert.match(indexSource,/\.\/supplier-cloud\.js\?v=57/,'index and service worker must load the same supplier code');
 
 vm.createContext(context);
 vm.runInContext(swSource,context,{filename:'sw.js'});
 
-const legacyHtml='<body><script src="./store-switcher.js?v=57"></script><script src="./invoice-cloud.js?v=66"></script></body>';
+const legacyHtml='<body><script src="./store-switcher.js?v=57"></script><script src="./invoice-cloud.js?v=67"></script></body>';
 const patchedOnce=context.patchDocument(legacyHtml);
 const patchedTwice=context.patchDocument(patchedOnce);
 for(const asset of ['./store-recovery.js?v=54','./auth-guard.js?v=56','./cloud-runtime.js?v=58']){
@@ -57,8 +59,9 @@ for(const asset of ['./store-recovery.js?v=54','./auth-guard.js?v=56','./cloud-r
 assert.ok(
   patchedTwice.indexOf('./store-switcher.js?v=58')<patchedTwice.indexOf('./store-recovery.js?v=54')&&
   patchedTwice.indexOf('./store-recovery.js?v=54')<patchedTwice.indexOf('./auth-guard.js?v=56')&&
-  patchedTwice.indexOf('./auth-guard.js?v=56')<patchedTwice.indexOf('./cloud-runtime.js?v=58')&&
-  patchedTwice.indexOf('./cloud-runtime.js?v=58')<patchedTwice.indexOf('./invoice-cloud.js?v=67'),
+  patchedTwice.indexOf('./auth-guard.js?v=56')<patchedTwice.indexOf('./money-input.js?v=1')&&
+  patchedTwice.indexOf('./money-input.js?v=1')<patchedTwice.indexOf('./cloud-runtime.js?v=58')&&
+  patchedTwice.indexOf('./cloud-runtime.js?v=58')<patchedTwice.indexOf('./invoice-cloud.js?v=68'),
   'legacy documents must receive the same safe store/auth/cloud script order'
 );
 
