@@ -36,6 +36,7 @@
     switch:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/><path d="m19 7-3 3M5 17l3-3"/></svg>',
     share:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.5A4.5 4.5 0 0 1 8 13h2a4.5 4.5 0 0 1 4.5 4.5V19M18 8v6M15 11h6"/></svg>',
     settings:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20v-1.5A5.5 5.5 0 0 1 11 13h2a5.5 5.5 0 0 1 5.5 5.5V20"/></svg>',
+    report:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 3.2a8.8 8.8 0 1 0 9.8 9.8H11Z"/><path d="M14 3.2a7 7 0 0 1 6.8 6.8H14Z"/></svg>',
     moon:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15.3A8 8 0 0 1 8.7 4 8 8 0 1 0 20 15.3Z"/></svg>',
     crown:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 8 4 4 4-7 4 7 4-4-2 10H6Z"/><path d="M6 21h12"/></svg>',
     logout:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8V5.5A2.5 2.5 0 0 0 11.5 3h-6A2.5 2.5 0 0 0 3 5.5v13A2.5 2.5 0 0 0 5.5 21h6a2.5 2.5 0 0 0 2.5-2.5V16"/><path d="M10 12h11M17 8l4 4-4 4"/></svg>'
@@ -73,7 +74,7 @@
     const storeName=esc(store?.name||'Дэлгүүр');
     const storeRole=roleLabel(store?.role);
     const avatar=p.avatar?`<img class="profileMenuAvatar" src="${esc(p.avatar)}" alt="">`:`<div class="profileMenuAvatar">${esc(initial(p.name))}</div>`;
-    return `<div class="profileMenuLayout"><div class="profileMenuHeader"><b id="profileMenuTitle">Цэс</b><button class="profileMenuClose" type="button" onclick="closeProfileMenu()" aria-label="Цэс хаах"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="profileMenuUser">${avatar}<div class="profileMenuUserMeta"><b>${esc(p.name||'Нэр тодорхойгүй')}</b><span>${contact}</span></div></div><div class="profileMenuSectionTitle">ДЭЛГҮҮР</div><div class="profileMenuStore"><span class="profileMenuStoreIcon">${ICONS.store}</span><div class="profileMenuStoreMeta"><small>ИДЭВХТЭЙ ДЭЛГҮҮР</small><b data-profile-store-name>${storeName}</b>${storeRole?`<span>${storeRole}</span>`:''}</div></div><div class="profileMenuActions" style="margin-top:9px">${action(ICONS.switch,'Дэлгүүр солих','Өөрийн болон хуваалцсан дэлгүүрүүд','store')}${action(ICONS.share,'Дэлгүүр хуваалцах','Гишүүн урих, хамтран ажиллах','share')}</div><div class="profileMenuSectionTitle">ХАРАГДАЦ</div><div class="profileMenuActions">${themeControl()}</div><div style="margin-top:12px">${upgradeControl()}</div><div class="profileMenuSectionTitle">ПРОФАЙЛ</div><div class="profileMenuActions">${action(ICONS.settings,'Профайлын тохиргоо','Утасны дугаар болон бүртгэл','settings')}</div><div class="profileMenuSpacer"></div><button class="profileMenuLogout" type="button" onclick="profileMenuAction('logout')">${ICONS.logout}<span>Гарах</span></button></div>`;
+    return `<div class="profileMenuLayout"><div class="profileMenuHeader"><b id="profileMenuTitle">Цэс</b><button class="profileMenuClose" type="button" onclick="closeProfileMenu()" aria-label="Цэс хаах"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="profileMenuUser">${avatar}<div class="profileMenuUserMeta"><b>${esc(p.name||'Нэр тодорхойгүй')}</b><span>${contact}</span></div></div><div class="profileMenuSectionTitle">ДЭЛГҮҮР</div><div class="profileMenuStore"><span class="profileMenuStoreIcon">${ICONS.store}</span><div class="profileMenuStoreMeta"><small>ИДЭВХТЭЙ ДЭЛГҮҮР</small><b data-profile-store-name>${storeName}</b>${storeRole?`<span>${storeRole}</span>`:''}</div></div><div class="profileMenuActions" style="margin-top:9px">${action(ICONS.switch,'Дэлгүүр солих','Өөрийн болон хуваалцсан дэлгүүрүүд','store')}${action(ICONS.share,'Дэлгүүр хуваалцах','Гишүүн урих, хамтран ажиллах','share')}</div><div class="profileMenuSectionTitle">ХАРАГДАЦ</div><div class="profileMenuActions">${themeControl()}</div><div style="margin-top:12px">${upgradeControl()}</div><div class="profileMenuSectionTitle">САНХҮҮ</div><div class="profileMenuActions">${action(ICONS.report,'Тайлан','Өглөг болон хугацааны тайлан','reports')}</div><div class="profileMenuSectionTitle">ПРОФАЙЛ</div><div class="profileMenuActions">${action(ICONS.settings,'Профайлын тохиргоо','Утасны дугаар болон бүртгэл','settings')}</div><div class="profileMenuSpacer"></div><button class="profileMenuLogout" type="button" onclick="profileMenuAction('logout')">${ICONS.logout}<span>Гарах</span></button></div>`;
   }
 
   function ensureRoot(){
@@ -130,6 +131,7 @@
       store:window.showNayadStorePicker,
       share:window.showStoreShare,
       subscription:window.showNayadSubscription,
+      reports:function(){if(typeof page!=='undefined')page='reports';window.render?.();},
       settings:window.showProfileDetails,
       logout:window.confirmLogout
     };
