@@ -94,6 +94,7 @@ assert.match(drawer.innerHTML,/Дэлгүүр солих/);
 assert.match(drawer.innerHTML,/Дэлгүүр хуваалцах/);
 assert.match(drawer.innerHTML,/Профайлын тохиргоо/);
 assert.match(drawer.innerHTML,/Night mode/);
+assert.match(drawer.innerHTML,/Plus багц руу ахиулах/);
 assert.match(drawer.innerHTML,/Унтраалттай/);
 assert.ok(
   drawer.innerHTML.indexOf('profileMenuSpacer')<drawer.innerHTML.indexOf("profileMenuAction('logout')"),
@@ -135,5 +136,7 @@ assert.match(indexSource,/class="homeActiveStore"/,'home must keep a compact act
 assert.doesNotMatch(indexSource,/class="homeShareBtn"|class="logoutIconButton"/,'home/header must not keep the old standalone actions');
 assert.doesNotMatch(storeSource,/storeSwitcherButton/,'large active-store switcher must be removed');
 assert.doesNotMatch(shareSource,/function addShareButton/,'sharing must only be exposed through the profile drawer');
+assert.match(indexSource,/\.\/profile-menu\.js\?v=3/,'profile drawer must include the Plus entry');
+assert.match(indexSource,/\.\/subscription\.js\?v=1/,'subscription flow must load after the app modules');
 
 console.log('profile-menu: PASS — store/profile actions live in the right drawer with logout at the bottom');
