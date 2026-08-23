@@ -65,8 +65,12 @@
       sales_rep:String(x.sales||'').trim()||null,
       sales_phone:String(x.salesPhone||'').trim()||null,
       org_phone:String(x.orgPhone||'').trim()||null,
+      contact_type:(x.contactType==='person'||x.contactType==='organization')?x.contactType:'organization',
+      contact_phone:String(x.phone||x.contactPhone||x.orgPhone||'').trim()||null,
+      contact_note:String(x.note||'').trim()||null,
       bank_name:String(x.bank||'').trim()||null,
       bank_account:String(x.bankAccount||'').trim()||null,
+      bank_account_holder:String(x.bankAccountHolder||'').trim()||null,
       is_active:x.status!=='inactive'
     };
   }
@@ -114,9 +118,9 @@
     window.saveCompany=async function(){
       const name=val('newName'); if(!name){toastMsg('Компанийн нэр оруулна уу.');return;}
       if(duplicateLocalSupplier(name)){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
-      const bank=val('newBank'),bankAccount=val('newBankAccount').toUpperCase();
-      if((bank&&!bankAccount)||(!bank&&bankAccount)){toastMsg('Банк болон дансны дугаарыг хоёуланг нь оруулна уу.');return;}
-      const draft={name,reg:val('newReg'),address:val('newAddress'),director:val('newDirector'),directorPhone:val('newDirectorPhone'),sales:val('newSales'),salesPhone:val('newSalesPhone'),orgPhone:val('newOrgPhone'),bank,bankAccount,status:'active'};
+      const bank=val('newBank'),bankAccount=val('newBankAccount').toUpperCase(),bankAccountHolder=val('newBankAccountHolder');
+      if(!bank||!bankAccount||!bankAccountHolder){toastMsg('Банк, дансны дугаар, данс эзэмшигчийн нэрийг бөглөнө үү.');return;}
+      const draft={contactType:val('newContactType'),name,phone:val('newPhone'),reg:'',address:val('newAddress'),director:val('newDirector'),directorPhone:val('newDirectorPhone'),sales:val('newSales'),salesPhone:val('newSalesPhone'),orgPhone:'',note:val('newNote'),bank,bankAccount,bankAccountHolder,status:'active'};
       try{
         await queueSupplierMutation(async()=>{
           const store=await myStore();
@@ -142,9 +146,9 @@
       try{
         const target=(typeof selected!=='undefined'&&selected)?selected:null;
         if(!target){originalSaveEdit();return;}
-        const draft={...target,name:val('eName')||target.name,reg:val('eReg'),address:val('eAddress'),director:val('eDirector'),directorPhone:val('eDirectorPhone'),sales:val('eSales'),salesPhone:val('eSalesPhone'),orgPhone:val('eOrgPhone'),bank:val('eBank'),bankAccount:val('eBankAccount').toUpperCase(),status:val('eStatus')||'active'};
+        const draft={...target,contactType:val('eContactType'),name:val('eName')||target.name,phone:val('ePhone'),reg:'',address:val('eAddress'),director:val('eDirector'),directorPhone:val('eDirectorPhone'),sales:val('eSales'),salesPhone:val('eSalesPhone'),orgPhone:'',note:val('eNote'),bank:val('eBank'),bankAccount:val('eBankAccount').toUpperCase(),bankAccountHolder:val('eBankAccountHolder'),status:val('eStatus')||'active'};
         if(duplicateLocalSupplier(draft.name,target.id)){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
-        if((draft.bank&&!draft.bankAccount)||(!draft.bank&&draft.bankAccount)){toastMsg('Банк болон дансны дугаарыг хоёуланг нь оруулна уу.');return;}
+        if(!draft.bank||!draft.bankAccount||!draft.bankAccountHolder){toastMsg('Банк, дансны дугаар, данс эзэмшигчийн нэрийг бөглөнө үү.');return;}
         await queueSupplierMutation(async()=>{
           const cloud=await ensureCloudSupplier(draft);
           target.supabase_supplier_id=cloud.id;
@@ -206,7 +210,7 @@
     const session=(await c.auth.getSession()).data?.session; if(!session)return;
     const store=await myStore();
 
-    const r=await c.from('suppliers').select('id,name,reg_no,address,director,director_phone,sales_rep,sales_phone,org_phone,bank_name,bank_account,is_active').eq('store_id',store.id).order('created_at',{ascending:true});
+    const r=await c.from('suppliers').select('id,name,reg_no,address,director,director_phone,sales_rep,sales_phone,org_phone,contact_type,contact_phone,contact_note,bank_name,bank_account,bank_account_holder,is_active').eq('store_id',store.id).order('created_at',{ascending:true});
     if(r.error)throw r.error;
     const d=readLocal(); d.companies=d.companies||[]; let changed=false;
     const companiesAtSyncStart=new Set(d.companies.map(company=>String(company.id)));
@@ -218,7 +222,7 @@
         local={id:Date.now()+Math.floor(Math.random()*1000000),name:s.name,color:'green',status:s.is_active===false?'inactive':'active',invoices:[]};
         d.companies.push(local); changed=true;
       }
-      const next={supabase_supplier_id:s.id,name:s.name,reg:s.reg_no||'',address:s.address||'',director:s.director||'',directorPhone:s.director_phone||'',sales:s.sales_rep||'',salesPhone:s.sales_phone||'',orgPhone:s.org_phone||'',bank:s.bank_name||'',bankAccount:s.bank_account||'',status:s.is_active===false?'inactive':'active'};
+      const next={supabase_supplier_id:s.id,name:s.name,contactType:(s.contact_type==='person'||s.contact_type==='organization')?s.contact_type:'organization',reg:'',phone:s.contact_phone||s.org_phone||'',address:s.address||'',director:s.director||'',directorPhone:s.director_phone||'',sales:s.sales_rep||'',salesPhone:s.sales_phone||'',orgPhone:s.org_phone||'',note:s.contact_note||'',bank:s.bank_name||'',bankAccount:s.bank_account||'',bankAccountHolder:s.bank_account_holder||'',status:s.is_active===false?'inactive':'active'};
       for(const [k,v] of Object.entries(next)){if(local[k]!==v){local[k]=v;changed=true;}}
       local.invoices=local.invoices||[];
     }

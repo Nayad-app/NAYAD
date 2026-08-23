@@ -22,8 +22,8 @@ function deferred(){
 }
 
 const values={
-  newName:'maximus',newReg:'',newAddress:'',newDirector:'',newDirectorPhone:'',
-  newSales:'',newSalesPhone:'',newOrgPhone:'',newBank:'',newBankAccount:''
+  newContactType:'organization',newName:'maximus',newPhone:'70000000',newAddress:'',newDirector:'',newDirectorPhone:'',
+  newSales:'',newSalesPhone:'',newNote:'',newBank:'ХААН банк',newBankAccount:'5000000000',newBankAccountHolder:'maximus'
 };
 
 function supplierQuery(){
