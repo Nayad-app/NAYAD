@@ -7,11 +7,18 @@ const source=fs.readFileSync(path.join(__dirname,'..','contact-types.js'),'utf8'
 let sheetHtml='';
 const values={};
 const data={companies:[],payments:[]};
+const typeButtons=['person','organization'].map(type=>{
+  const button={dataset:{contactType:type},selected:false,attributes:{}};
+  button.classList={toggle(name,value){if(name==='selected')button.selected=Boolean(value);}};
+  button.setAttribute=(name,value)=>{button.attributes[name]=value;};
+  return button;
+});
 const context={
   console,document:{
     head:{appendChild(){}},
     getElementById:id=>id==='nayadContactTypeStyle'?null:{value:values[id]||''},
-    createElement:()=>({id:'',textContent:'',appendChild(){}})
+    createElement:()=>({id:'',textContent:'',appendChild(){}}),
+    querySelectorAll:selector=>selector==='.contactTypeOption'?typeButtons:[]
   },
   setTimeout:()=>1,
   window:null,
@@ -38,7 +45,14 @@ assert.match(sheetHtml,/Хувь хүн/);
 assert.match(sheetHtml,/Байгууллага/);
 assert.match(sheetHtml,/contactTypeOption/);
 assert.match(sheetHtml,/contactTypeIcon/);
+assert.doesNotMatch(sheetHtml,/Хувийн харилцагч/);
+assert.doesNotMatch(sheetHtml,/Дэлгүүр, компани/);
 assert.match(source,/\.contactTypeOption\{appearance:none;background:transparent;border:0/);
+context.selectContactType('person');
+assert.equal(typeButtons[0].selected,true);
+assert.equal(typeButtons[0].attributes['aria-pressed'],'true');
+assert.equal(typeButtons[1].selected,false);
+assert.match(source,/\.contactTypeOption\.selected \.contactTypeIcon/);
 
 context.showContactForm('person');
 assert.match(sheetHtml,/Хувь хүн бүртгэх/);
@@ -65,4 +79,4 @@ assert.match(companiesHtml,/contactListRow/);
 assert.doesNotMatch(companiesHtml,/class="card"/);
 assert.match(source,/window\.filter=filterContacts/);
 
-console.log('contact-types: PASS — minimal type picker, forms and divider list are wired');
+console.log('contact-types: PASS — yellow selected state, concise picker, forms and divider list are wired');
