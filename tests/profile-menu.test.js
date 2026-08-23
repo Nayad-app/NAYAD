@@ -142,7 +142,7 @@ const indexSource=fs.readFileSync(path.join(projectRoot,'index.html'),'utf8');
 const storeSource=fs.readFileSync(path.join(projectRoot,'store-switcher.js'),'utf8');
 const shareSource=fs.readFileSync(path.join(projectRoot,'share.js'),'utf8');
 assert.match(indexSource,/id="profileMenuButton"[\s\S]*onclick="showProfileMenu\(\)"/,'header must use the hamburger menu');
-assert.match(indexSource,/html\.nightMode \.headerMenuButton\{background:#2A2A27;color:#F3F3EE/,'Night mode hamburger icon must remain visible');
+assert.match(indexSource,/html\.nightMode \.headerMenuButton\{background:#2D2E2B;color:#F0F0EB/,'Night mode hamburger icon must remain visible on the charcoal surface');
 assert.match(indexSource,/class="homeActiveStore"/,'home must keep a compact active-store label');
 assert.doesNotMatch(indexSource,/class="homeShareBtn"|class="logoutIconButton"/,'home/header must not keep the old standalone actions');
 assert.doesNotMatch(storeSource,/storeSwitcherButton/,'large active-store switcher must be removed');
