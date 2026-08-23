@@ -1,0 +1,2 @@
+[functions.phone-login]
+verify_jwt = false
