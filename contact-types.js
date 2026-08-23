@@ -24,11 +24,13 @@
       .contactTypeHint{color:var(--muted);font-size:12px;font-weight:700;margin:5px 0 12px}
       .contactTypePicker{display:flex;justify-content:center;gap:48px;margin:8px 0 4px}
       .contactTypeOption{appearance:none;background:transparent;border:0;padding:10px 2px;display:flex;flex-direction:column;align-items:center;gap:9px;color:var(--text);min-width:92px}
-      .contactTypeOption:active .contactTypeIcon{transform:scale(.94);border-color:#F0B900;background:var(--yellow-soft)}
+      .contactTypeOption:active .contactTypeIcon{transform:scale(.94)}
       .contactTypeIcon{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line);transition:transform .15s ease,border-color .15s ease,background .15s ease}
       .contactTypeOption svg{width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-      .contactTypeOption.person .contactTypeIcon{color:#20A85A}.contactTypeOption.organization .contactTypeIcon{color:#6F7470}
-      .contactTypeOption b{font-size:13px}.contactTypeOption small{color:var(--muted);font-size:10px}
+      .contactTypeOption.person .contactTypeIcon{color:#20A85A}.contactTypeOption.organization .contactTypeIcon{color:#8B8F8B}
+      .contactTypeOption b{font-size:13px}
+      .contactTypeOption.selected .contactTypeIcon,.contactTypeOption.person.selected .contactTypeIcon,.contactTypeOption.organization.selected .contactTypeIcon{background:var(--yellow);border-color:var(--yellow);color:#111;transform:scale(.96)}
+      .contactTypeOption.selected b{color:var(--yellow)}
       .contactAvatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}
       .contactAvatar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
       .contactAvatar.person{background:var(--green-soft);color:var(--green)}.contactAvatar.organization{background:#F0F1EF;color:#6F7470}
@@ -41,9 +43,16 @@
       .contactListEmpty{padding:14px 2px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
     `;document.head.appendChild(style);
   }
+  let contactTypeSelectionTimer=0;
+  function selectContactType(type){
+    const kind=validType(type),options=[...document.querySelectorAll('.contactTypeOption')];
+    options.forEach(option=>{const chosen=option.dataset.contactType===kind;option.classList.toggle('selected',chosen);option.setAttribute('aria-pressed',String(chosen));});
+    if(contactTypeSelectionTimer&&typeof window.clearTimeout==='function')window.clearTimeout(contactTypeSelectionTimer);
+    contactTypeSelectionTimer=window.setTimeout(()=>{const modal=document.getElementById('modal');if(modal?.classList?.contains?.('hide'))return;showContactForm(kind);},160);
+  }
   function showContactTypePicker(){
     injectStyle();
-    window.sheet(`<h2>Харилцагч бүртгэх</h2><div class="contactTypeHint">Харилцагчийн төрөл</div><div class="contactTypePicker"><button type="button" class="contactTypeOption person" onclick="showContactForm('person')"><span class="contactTypeIcon">${icon(PERSON)}</span><b>Хувь хүн</b><small>Хувийн харилцагч</small></button><button type="button" class="contactTypeOption organization" onclick="showContactForm('organization')"><span class="contactTypeIcon">${icon(ORGANIZATION)}</span><b>Байгууллага</b><small>Дэлгүүр, компани</small></button></div>`);
+    window.sheet(`<h2>Харилцагч бүртгэх</h2><div class="contactTypeHint">Харилцагчийн төрөл</div><div class="contactTypePicker"><button type="button" class="contactTypeOption person" data-contact-type="person" aria-pressed="false" onclick="selectContactType('person')"><span class="contactTypeIcon">${icon(PERSON)}</span><b>Хувь хүн</b></button><button type="button" class="contactTypeOption organization" data-contact-type="organization" aria-pressed="false" onclick="selectContactType('organization')"><span class="contactTypeIcon">${icon(ORGANIZATION)}</span><b>Байгууллага</b></button></div>`);
   }
   function showContactForm(type,contact={}){
     injectStyle();
@@ -114,6 +123,6 @@
     if(data.companies.some(c=>c!==selected&&String(c.name||'').trim().toLowerCase()===draft.name.toLowerCase()))return window.toast('Ийм нэртэй харилцагч бүртгэлтэй байна.');
     Object.assign(selected,draft,{status:fieldValue('eStatus')||'active'});window.save();window.closeSheet();page='companies';window.render();window.toast('Мэдээлэл шинэчлэгдлээ.');
   }
-  window.addCompany=showContactTypePicker;window.showContactTypePicker=showContactTypePicker;window.showContactForm=showContactForm;window.card=card;window.companies=companies;window.filter=filterContacts;window.company=company;window.saveCompany=saveCompany;window.editCompany=editCompany;window.saveEdit=saveEdit;
+  window.addCompany=showContactTypePicker;window.showContactTypePicker=showContactTypePicker;window.selectContactType=selectContactType;window.showContactForm=showContactForm;window.card=card;window.companies=companies;window.filter=filterContacts;window.company=company;window.saveCompany=saveCompany;window.editCompany=editCompany;window.saveEdit=saveEdit;
   injectStyle();
 })();
