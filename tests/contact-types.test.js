@@ -37,6 +37,8 @@ context.showContactTypePicker();
 assert.match(sheetHtml,/Хувь хүн/);
 assert.match(sheetHtml,/Байгууллага/);
 assert.match(sheetHtml,/contactTypeOption/);
+assert.match(sheetHtml,/contactTypeIcon/);
+assert.match(source,/\.contactTypeOption\{appearance:none;background:transparent;border:0/);
 
 context.showContactForm('person');
 assert.match(sheetHtml,/Хувь хүн бүртгэх/);
@@ -57,5 +59,10 @@ assert.match(card,/Хувь хүн/);
 assert.match(card,/<svg/);
 const orgCard=vm.runInContext('card({id:2,name:"MCS",contactType:"organization",invoices:[],debt:0})',context);
 assert.match(orgCard,/Байгууллага/);
+data.companies.push({id:3,name:'Minimal',contactType:'organization',status:'active',invoices:[],debt:0});
+const companiesHtml=context.companies();
+assert.match(companiesHtml,/contactListRow/);
+assert.doesNotMatch(companiesHtml,/class="card"/);
+assert.match(source,/window\.filter=filterContacts/);
 
-console.log('contact-types: PASS — type picker, conditional forms and list labels are wired');
+console.log('contact-types: PASS — minimal type picker, forms and divider list are wired');

@@ -22,11 +22,12 @@
     if(document.getElementById('nayadContactTypeStyle'))return;
     const style=document.createElement('style');style.id='nayadContactTypeStyle';style.textContent=`
       .contactTypeHint{color:var(--muted);font-size:12px;font-weight:700;margin:5px 0 12px}
-      .contactTypePicker{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0 4px}
-      .contactTypeOption{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 10px 18px;display:flex;flex-direction:column;align-items:center;gap:9px;color:var(--text)}
-      .contactTypeOption:active{border-color:#F0B900;background:var(--yellow-soft)}
-      .contactTypeOption svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-      .contactTypeOption.person svg{color:#20A85A}.contactTypeOption.organization svg{color:#6F7470}
+      .contactTypePicker{display:flex;justify-content:center;gap:48px;margin:8px 0 4px}
+      .contactTypeOption{appearance:none;background:transparent;border:0;padding:10px 2px;display:flex;flex-direction:column;align-items:center;gap:9px;color:var(--text);min-width:92px}
+      .contactTypeOption:active .contactTypeIcon{transform:scale(.94);border-color:#F0B900;background:var(--yellow-soft)}
+      .contactTypeIcon{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line);transition:transform .15s ease,border-color .15s ease,background .15s ease}
+      .contactTypeOption svg{width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+      .contactTypeOption.person .contactTypeIcon{color:#20A85A}.contactTypeOption.organization .contactTypeIcon{color:#6F7470}
       .contactTypeOption b{font-size:13px}.contactTypeOption small{color:var(--muted);font-size:10px}
       .contactAvatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto}
       .contactAvatar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -34,11 +35,15 @@
       .contactTypeText{font-size:10px;color:var(--muted);margin-left:5px}
       .contactDetailType{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:700}
       .contactDetailType svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+      .contactList{margin:0 0 14px}
+      .contactListRow{padding:14px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+      .contactListRow:last-child{border-bottom:0}
+      .contactListEmpty{padding:14px 2px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
     `;document.head.appendChild(style);
   }
   function showContactTypePicker(){
     injectStyle();
-    window.sheet(`<h2>Харилцагч бүртгэх</h2><div class="contactTypeHint">Харилцагчийн төрөл</div><div class="contactTypePicker"><button type="button" class="contactTypeOption person" onclick="showContactForm('person')">${icon(PERSON)}<b>Хувь хүн</b><small>Хувийн харилцагч</small></button><button type="button" class="contactTypeOption organization" onclick="showContactForm('organization')">${icon(ORGANIZATION)}<b>Байгууллага</b><small>Дэлгүүр, компани</small></button></div>`);
+    window.sheet(`<h2>Харилцагч бүртгэх</h2><div class="contactTypeHint">Харилцагчийн төрөл</div><div class="contactTypePicker"><button type="button" class="contactTypeOption person" onclick="showContactForm('person')"><span class="contactTypeIcon">${icon(PERSON)}</span><b>Хувь хүн</b><small>Хувийн харилцагч</small></button><button type="button" class="contactTypeOption organization" onclick="showContactForm('organization')"><span class="contactTypeIcon">${icon(ORGANIZATION)}</span><b>Байгууллага</b><small>Дэлгүүр, компани</small></button></div>`);
   }
   function showContactForm(type,contact={}){
     injectStyle();
@@ -69,9 +74,22 @@
     const c=contact||{},type=validType(c.contactType);
     return `<div class="card" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(type)}<div><b>${esc(c.name)}</b><span>${typeLabel(type)}<span class="contactTypeText">· ${c.invoices?.length||0} падаан</span></span></div></div><div class="amount redText">${window.money(c.debt)}${pay?`<br><button class="primary" style="padding:6px 9px;margin-top:5px" onclick="event.stopPropagation();payment(${c.id})">Төлөх</button>`:''}</div></div></div>`;
   }
+  function contactListRow(contact){
+    const c=contact||{},type=validType(c.contactType);
+    return `<div class="contactListRow" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(type)}<div><b>${esc(c.name)}</b><span>${typeLabel(type)}<span class="contactTypeText">· ${c.invoices?.length||0} падаан</span></span></div></div><div class="amount redText">${window.money(c.debt)}</div></div></div>`;
+  }
+  const emptyList=message=>`<div class="contactListEmpty">${message}</div>`;
   function companies(){
     window.sync();const active=data.companies.filter(c=>c.status!=='inactive'),inactive=data.companies.filter(c=>c.status==='inactive');
-    return `<div class="row"><div><div class="hello">Өглөгийн бүртгэл</div><div class="name">Харилцагчид</div></div><button class="primary" onclick="addCompany()">＋</button></div><input class="search" placeholder="⌕ Харилцагч хайх..." oninput="filter(this.value)"><div class="title">ИДЭВХТЭЙ</div><div id="list">${active.map(c=>card(c)).join('')||'<div class="card sub">Идэвхтэй харилцагч алга.</div>'}</div><div class="title">ИДЭВХГҮЙ</div><div id="inactiveList">${inactive.map(c=>card(c)).join('')||'<div class="card sub">Идэвхгүй харилцагч алга.</div>'}</div>`;
+    return `<div class="row"><div><div class="hello">Өглөгийн бүртгэл</div><div class="name">Харилцагчид</div></div><button class="primary" onclick="addCompany()">＋</button></div><input class="search" placeholder="⌕ Харилцагч хайх..." oninput="filter(this.value)"><div class="title">ИДЭВХТЭЙ</div><div id="list" class="contactList">${active.map(contactListRow).join('')||emptyList('Идэвхтэй харилцагч алга.')}</div><div class="title">ИДЭВХГҮЙ</div><div id="inactiveList" class="contactList">${inactive.map(contactListRow).join('')||emptyList('Идэвхгүй харилцагч алга.')}</div>`;
+  }
+  function filterContacts(query){
+    const q=String(query||'').trim().toLowerCase();
+    const matches=data.companies.filter(c=>String(c.name||'').toLowerCase().includes(q));
+    const active=matches.filter(c=>c.status!=='inactive'),inactive=matches.filter(c=>c.status==='inactive');
+    const activeList=document.getElementById('list'),inactiveList=document.getElementById('inactiveList');
+    if(activeList)activeList.innerHTML=active.map(contactListRow).join('')||emptyList('Илэрц олдсонгүй.');
+    if(inactiveList)inactiveList.innerHTML=inactive.map(contactListRow).join('')||emptyList('Илэрц олдсонгүй.');
   }
   function company(id){
     selected=data.companies.find(c=>c.id===id);if(!selected)return;window.sync();const c=selected,type=validType(c.contactType),person=type===PERSON;
@@ -96,6 +114,6 @@
     if(data.companies.some(c=>c!==selected&&String(c.name||'').trim().toLowerCase()===draft.name.toLowerCase()))return window.toast('Ийм нэртэй харилцагч бүртгэлтэй байна.');
     Object.assign(selected,draft,{status:fieldValue('eStatus')||'active'});window.save();window.closeSheet();page='companies';window.render();window.toast('Мэдээлэл шинэчлэгдлээ.');
   }
-  window.addCompany=showContactTypePicker;window.showContactTypePicker=showContactTypePicker;window.showContactForm=showContactForm;window.card=card;window.companies=companies;window.company=company;window.saveCompany=saveCompany;window.editCompany=editCompany;window.saveEdit=saveEdit;
+  window.addCompany=showContactTypePicker;window.showContactTypePicker=showContactTypePicker;window.showContactForm=showContactForm;window.card=card;window.companies=companies;window.filter=filterContacts;window.company=company;window.saveCompany=saveCompany;window.editCompany=editCompany;window.saveEdit=saveEdit;
   injectStyle();
 })();
