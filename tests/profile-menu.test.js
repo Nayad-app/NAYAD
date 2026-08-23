@@ -89,14 +89,22 @@ assert.equal(root.classList.contains('open'),true,'hamburger button must open th
 assert.equal(root.attributes['aria-hidden'],'false');
 assert.equal(menuButton.attributes['aria-expanded'],'true');
 assert.equal(body.classList.contains('profileMenuOpen'),true);
-assert.match(drawer.innerHTML,/Namka store/);
 assert.match(drawer.innerHTML,/Дэлгүүр солих/);
 assert.match(drawer.innerHTML,/Дэлгүүр хуваалцах/);
-assert.match(drawer.innerHTML,/Профайлын тохиргоо/);
+assert.match(drawer.innerHTML,/Холбоо барих/);
+assert.match(drawer.innerHTML,/7223 1380/);
+assert.match(drawer.innerHTML,/profileMenuAction\('settings'\)/);
+assert.doesNotMatch(drawer.innerHTML,/Профайлын тохиргоо.*profileMenuAction\('settings'\)/);
 assert.match(drawer.innerHTML,/Night mode/);
 assert.match(drawer.innerHTML,/Plus багц руу ахиулах/);
 assert.match(drawer.innerHTML,/Тайлан/);
-assert.match(drawer.innerHTML,/Унтраалттай/);
+assert.doesNotMatch(drawer.innerHTML,/Унтраалттай/);
+assert.ok(drawer.innerHTML.indexOf('Дэлгүүр солих')<drawer.innerHTML.indexOf('Дэлгүүр хуваалцах'));
+assert.ok(drawer.innerHTML.indexOf('Дэлгүүр хуваалцах')<drawer.innerHTML.indexOf('Night mode'));
+assert.ok(drawer.innerHTML.indexOf('Night mode')<drawer.innerHTML.indexOf('Plus багц руу ахиулах'));
+assert.ok(drawer.innerHTML.indexOf('Plus багц руу ахиулах')<drawer.innerHTML.indexOf('Тайлан'));
+assert.ok(drawer.innerHTML.indexOf('Тайлан')<drawer.innerHTML.indexOf('Холбоо барих'));
+assert.ok(drawer.innerHTML.indexOf('Холбоо барих')<drawer.innerHTML.indexOf('Гарах'));
 assert.ok(
   drawer.innerHTML.indexOf('profileMenuSpacer')<drawer.innerHTML.indexOf("profileMenuAction('logout')"),
   'logout must remain at the bottom of the drawer'
@@ -115,10 +123,10 @@ context.window.showProfileMenu();
 context.window.profileMenuAction('theme');
 assert.deepEqual(themeCalls,['night']);
 assert.equal(root.classList.contains('open'),true,'theme toggle must keep the drawer open');
-assert.match(drawer.innerHTML,/Идэвхтэй/);
+assert.match(drawer.innerHTML,/aria-pressed="true"/);
 context.window.profileMenuAction('theme');
 assert.deepEqual(themeCalls,['night','light']);
-assert.match(drawer.innerHTML,/Унтраалттай/);
+assert.match(drawer.innerHTML,/aria-pressed="false"/);
 context.window.showProfileMenu();
 context.window.profileMenuAction('logout');
 assert.equal(logoutCalls,1);
@@ -137,7 +145,7 @@ assert.match(indexSource,/class="homeActiveStore"/,'home must keep a compact act
 assert.doesNotMatch(indexSource,/class="homeShareBtn"|class="logoutIconButton"/,'home/header must not keep the old standalone actions');
 assert.doesNotMatch(storeSource,/storeSwitcherButton/,'large active-store switcher must be removed');
 assert.doesNotMatch(shareSource,/function addShareButton/,'sharing must only be exposed through the profile drawer');
-assert.match(indexSource,/\.\/profile-menu\.js\?v=3/,'profile drawer must include the Plus entry');
+assert.match(indexSource,/\.\/profile-menu\.js\?v=4/,'profile drawer must include the minimal menu redesign');
 assert.match(indexSource,/\.\/subscription\.js\?v=1/,'subscription flow must load after the app modules');
 
 console.log('profile-menu: PASS — store/profile actions live in the right drawer with logout at the bottom');
