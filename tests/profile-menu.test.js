@@ -91,6 +91,8 @@ assert.equal(menuButton.attributes['aria-expanded'],'true');
 assert.equal(body.classList.contains('profileMenuOpen'),true);
 assert.match(drawer.innerHTML,/Дэлгүүр солих/);
 assert.match(drawer.innerHTML,/Дэлгүүр хуваалцах/);
+assert.match(drawer.innerHTML,/id="profileMenuTitle">Цэс</);
+assert.doesNotMatch(drawer.innerHTML,/profileMenuBrand/);
 assert.match(drawer.innerHTML,/Холбоо барих/);
 assert.match(drawer.innerHTML,/7223 1380/);
 assert.match(drawer.innerHTML,/profileMenuAction\('settings'\)/);
@@ -145,7 +147,7 @@ assert.match(indexSource,/class="homeActiveStore"/,'home must keep a compact act
 assert.doesNotMatch(indexSource,/class="homeShareBtn"|class="logoutIconButton"/,'home/header must not keep the old standalone actions');
 assert.doesNotMatch(storeSource,/storeSwitcherButton/,'large active-store switcher must be removed');
 assert.doesNotMatch(shareSource,/function addShareButton/,'sharing must only be exposed through the profile drawer');
-assert.match(indexSource,/\.\/profile-menu\.js\?v=4/,'profile drawer must include the minimal menu redesign');
+assert.match(indexSource,/\.\/profile-menu\.js\?v=5/,'profile drawer must include the minimal menu redesign');
 assert.match(indexSource,/\.\/subscription\.js\?v=1/,'subscription flow must load after the app modules');
 
 console.log('profile-menu: PASS — store/profile actions live in the right drawer with logout at the bottom');
