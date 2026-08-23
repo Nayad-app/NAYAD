@@ -1,4 +1,4 @@
-const CACHE = "nayad-v94";
+const CACHE = "nayad-v95";
 
 const ASSETS = [
   "./",
@@ -17,7 +17,7 @@ const ASSETS = [
   "./auth-guard.js?v=56",
   "./mobile-fix.js?v=46",
   "./share.js?v=39",
-  "./profile-menu.js?v=4",
+  "./profile-menu.js?v=5",
   "./subscription.js?v=1",
   "./invoice-cloud.js?v=68",
   "./supplier-cloud.js?v=57",
@@ -76,7 +76,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=58");
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=56");
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=39");
-  patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=4");
+  patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=5");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=1");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=68");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=57");
@@ -84,7 +84,7 @@ function patchDocument(html){
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=68","./money-input.js?v=1");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=59","./store-recovery.js?v=54");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=54","./auth-guard.js?v=56");
-  patched=injectScriptAfter(patched,"./share.js?v=39","./profile-menu.js?v=4");
+  patched=injectScriptAfter(patched,"./share.js?v=39","./profile-menu.js?v=5");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=1");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=68","./payment-center.js?v=7");
