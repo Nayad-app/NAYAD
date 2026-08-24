@@ -1,4 +1,4 @@
-const CACHE = "nayad-v99";
+const CACHE = "nayad-v100";
 
 const ASSETS = [
   "./",
