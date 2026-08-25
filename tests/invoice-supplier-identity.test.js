@@ -38,8 +38,8 @@ const elements={
   cloudIAmount:{value:'1000000'},
   cloudIDiscount:{value:'4'},
   cloudIDiscountDeadline:{value:'2026-08-25'},
-  cloudSaveInvoiceBtn:{disabled:false,textContent:'Ноорог хадгалах'},
-  cloudConfirmInvoiceBtn:{disabled:false,textContent:'Баталгаажуулах'}
+  cloudINote:{value:'Туршилтын тэмдэглэл'},
+  cloudConfirmInvoiceBtn:{disabled:false,textContent:'ПАДААН БҮРТГЭХ'}
 };
 
 const supplierRow={
@@ -111,7 +111,7 @@ context.window.nayadSupabase={
   auth:{getSession:async()=>({data:{session:{user:{id:userId}}},error:null})},
   rpc:async(name,args)=>{
     if(name==='save_invoice_draft'){draftSaves.push(args);return {data:[{invoice_id:args.p_invoice_id,invoice_status:'draft'}],error:null};}
-    if(name==='confirm_invoice')return {data:[{invoice_id:args.p_invoice_id,invoice_status:'confirmed'}],error:null};
+    if(name==='confirm_invoice_with_note')return {data:[{invoice_id:args.p_invoice_id,invoice_status:'confirmed'}],error:null};
     if(name==='delete_invoice_draft')return {data:true,error:null};
     throw new Error('Unexpected RPC: '+name);
   },

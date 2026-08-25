@@ -44,8 +44,8 @@ function createHarness(options={}){
     cloudIAmount:{value:'1000'},
     cloudIDiscount:{value:'0'},
     cloudIDiscountDeadline:{value:''},
-    cloudSaveInvoiceBtn:{disabled:false,textContent:'Ноорог хадгалах'},
-    cloudConfirmInvoiceBtn:{disabled:false,textContent:'Баталгаажуулах'}
+    cloudINote:{value:''},
+    cloudConfirmInvoiceBtn:{disabled:false,textContent:'ПАДААН БҮРТГЭХ'}
   };
 
   function makeClient(identity,label){
@@ -100,7 +100,7 @@ function createHarness(options={}){
           state.invoices.delete(args.p_invoice_id);
           return Promise.resolve({data:true,error:null});
         }
-        if(name==='confirm_invoice')return Promise.resolve({data:[{invoice_id:args.p_invoice_id,invoice_status:'confirmed'}],error:null});
+        if(name==='confirm_invoice_with_note')return Promise.resolve({data:[{invoice_id:args.p_invoice_id,invoice_status:'confirmed'}],error:null});
         return Promise.resolve({data:null,error:{message:'Unexpected RPC '+name}});
       },
       storage:{

@@ -7,7 +7,7 @@ const root=path.resolve(__dirname,'..');
 const state={
   companies:[
     {id:1,name:'Overdue Co',color:'red',invoices:[{id:'inv-overdue',no:'OLD-1',date:'2026-08-01',due_date:'2026-08-20',amount:100000,paid:0,status:'confirmed'}]},
-    {id:2,name:'Upcoming Co',color:'green',invoices:[{id:'inv-upcoming',no:'NEXT-1',date:'2026-08-10',due_date:'2026-08-24',amount:50000,paid:0,status:'confirmed',discount_percent:4,discount_deadline:'2026-08-24'}]},
+    {id:2,name:'Upcoming Co',color:'green',invoices:[{id:'inv-upcoming',no:'NEXT-1',date:'2026-08-10',due_date:'2099-08-24',amount:50000,paid:0,status:'confirmed',discount_percent:4,discount_deadline:'2099-08-24'}]},
     {id:3,name:'Unknown Co',color:'blue',invoices:[{id:'inv-unknown',no:'NO-DUE',date:'2026-08-11',due_date:null,amount:25000,paid:0,status:'confirmed'}]},
     {id:4,name:'Draft Co',color:'purple',invoices:[{id:'inv-draft',no:'DRAFT-1',date:'2026-08-21',due_date:'2026-08-23',amount:999999,paid:0,status:'draft'}]}
   ],
@@ -54,9 +54,9 @@ vm.runInContext(fs.readFileSync(path.join(root,'payment-center.js'),'utf8'),cont
 
 const html=vm.runInContext('payments()',context);
 assert.match(html,/Төлбөрийн төв/);
-assert.match(html,/НООРОГ ПАДААН/);
+assert.doesNotMatch(html,/НООРОГ ПАДААН/);
 assert.match(html,/Төлөх өдөр 2026\.08\.20/);
-assert.match(html,/Төлөх өдөр 2026\.08\.24/);
+assert.match(html,/Төлөх өдөр 2099\.08\.24/);
 assert.match(html,/Хугацаа оруулаагүй/);
 assert.ok(html.indexOf('Overdue Co')<html.indexOf('Upcoming Co'),'overdue invoices must be first');
 assert.ok(html.indexOf('Upcoming Co')<html.indexOf('Unknown Co'),'dated upcoming invoices must precede missing due dates');
@@ -69,8 +69,10 @@ assert.match(source,/onchange="togglePaymentAllocation\(this\)"/,'checking anoth
 assert.match(source,/data-default-amount="\$\{discount\.cash\}"/,'each invoice needs a full-payment default amount');
 assert.match(source,/window\.togglePaymentAllocation=function\(check\)/,'a checked zero-value invoice must receive its default payment amount');
 assert.match(source,/window\.showInvoiceDetails=async function\(invoiceId\)/,'an invoice row must open a detail view');
-assert.match(source,/window\.editConfirmedInvoice=function\(invoiceId\)/,'an unpaid confirmed invoice needs a correction form');
-assert.match(source,/revise_confirmed_invoice/,'the correction form must use the audited database RPC');
+assert.match(source,/window\.editConfirmedInvoice=function\(invoiceId\)/,'a confirmed invoice needs an edit form');
+assert.match(source,/edit_confirmed_invoice/,'the edit form must use the audited database RPC');
+assert.match(source,/if\(invoiceAmount<paid\)/,'the browser must reject totals below the already-paid amount');
+assert.match(source,/p_images:newImages\.length\?newImages:null/,'invoice image replacement must be committed through the edit RPC');
 assert.match(source,/onclick="window\.showInvoiceDetails/,'payment order rows must be tappable for details');
 assert.match(source,/html\.nightMode \.dueRow\{background:#1D1D1B/,'payment order cards must remain dark in Night mode');
 assert.match(source,/html\.nightMode \.dueDetails b\{color:#F4F4EF/,'supplier names must stay readable in Night mode');
@@ -97,4 +99,4 @@ assert.match(groupedTotal.textContent,/1,000,000|1 000 000|1 000 000/,'the vis
 vm.runInContext('sync()',context);
 assert.equal(vm.runInContext('data.companies.find(c=>c.id===4).debt',context),0,'draft invoice must not create debt');
 
-console.log('payment-center-v11: PASS — due ordering, drafts and invoice-level discounts are correct');
+console.log('payment-center-v11: PASS — due ordering, direct invoices, edits and invoice-level discounts are correct');

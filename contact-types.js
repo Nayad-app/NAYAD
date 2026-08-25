@@ -37,10 +37,16 @@
       .contactTypeText{font-size:10px;color:var(--muted);margin-left:5px}
       .contactDetailType{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:700}
       .contactDetailType svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-      .contactList{margin:0 0 14px}
-      .contactListRow{padding:14px 2px;border-bottom:1px solid var(--line);cursor:pointer}
-      .contactListRow:last-child{border-bottom:0}
-      .contactListEmpty{padding:14px 2px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line)}
+      .contactListHead{margin-bottom:18px}.contactStoreMeta{display:block;margin-top:7px;color:var(--muted);font-size:12px;font-weight:650}
+      .contactSearch{position:relative;margin-bottom:12px}.contactSearch svg{position:absolute;left:15px;top:50%;width:20px;height:20px;transform:translateY(-50%);fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round}.contactSearch .search{padding-left:45px;margin:0}
+      .contactFilters{display:flex;gap:8px;overflow-x:auto;padding:0 0 4px;scrollbar-width:none}.contactFilters::-webkit-scrollbar{display:none}.contactFilter{flex:0 0 auto;padding:9px 16px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);font-size:12px;font-weight:750}.contactFilter.selected{background:var(--yellow);border-color:var(--yellow);color:#111}
+      .contactListTitle{margin:18px 3px 10px;color:var(--muted);font-size:10px;font-weight:850;letter-spacing:.25px}.contactList{display:flex;flex-direction:column;gap:9px;margin:0 0 14px}
+      .contactListRow{position:relative;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:17px;box-shadow:var(--shadow-sm);cursor:pointer}.contactListRow.inactive{opacity:.72}.contactListRow:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+      .contactListMain{display:grid;grid-template-columns:42px minmax(0,1fr) 18px;gap:10px;align-items:center}.contactListIdentity{min-width:0}.contactListIdentity b,.contactListIdentity span{display:block}.contactListIdentity b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}.contactListIdentity span{margin-top:4px;color:var(--muted);font-size:10px}.contactListArrow{width:9px;height:9px;border-right:2px solid var(--muted);border-top:2px solid var(--muted);transform:rotate(45deg)}
+      .contactListBalance{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}.contactListBalance small{color:var(--muted);font-size:10px}.contactListBalance b{font-size:14px}.contactListBalance b.hasDebt{color:var(--red)}
+      .contactInactiveBadge{display:inline-block!important;margin-left:5px!important;color:var(--muted)!important;font-size:9px!important}.contactListEmpty{padding:25px 14px;color:var(--muted);font-size:12px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:17px}
+      .contactAddButton{width:100%;margin-top:13px;padding:15px;border:0;border-radius:15px;background:var(--yellow);color:#111;font-size:13px;font-weight:850}
+      html.nightMode .contactListRow,html.nightMode .contactFilter,html.nightMode .contactListEmpty{background:#1D1D1B;border-color:#3C3C38}html.nightMode .contactFilter.selected{background:var(--yellow);border-color:var(--yellow);color:#111}
     `;document.head.appendChild(style);
   }
   let contactTypeSelectionTimer=0;
@@ -83,22 +89,43 @@
     const c=contact||{},type=validType(c.contactType);
     return `<div class="card" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(type)}<div><b>${esc(c.name)}</b><span>${typeLabel(type)}<span class="contactTypeText">· ${c.invoices?.length||0} падаан</span></span></div></div><div class="amount redText">${window.money(c.debt)}${pay?`<br><button class="primary" style="padding:6px 9px;margin-top:5px" onclick="event.stopPropagation();payment(${c.id})">Төлөх</button>`:''}</div></div></div>`;
   }
+  const phoneLabel=value=>{
+    const digits=String(value||'').replace(/\D/g,'').replace(/^976(?=\d{8}$)/,'');
+    return digits.length===8?digits.slice(0,4)+' '+digits.slice(4):String(value||'').trim();
+  };
   function contactListRow(contact){
-    const c=contact||{},type=validType(c.contactType);
-    return `<div class="contactListRow" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(type)}<div><b>${esc(c.name)}</b><span>${typeLabel(type)}<span class="contactTypeText">· ${c.invoices?.length||0} падаан</span></span></div></div><div class="amount redText">${window.money(c.debt)}</div></div></div>`;
+    const c=contact||{},type=validType(c.contactType),debt=Math.max(Number(c.debt)||0,0),phone=phoneLabel(c.phone);
+    return `<div class="contactListRow ${c.status==='inactive'?'inactive':''}" role="button" tabindex="0" onclick="company(${c.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();company(${c.id})}"><div class="contactListMain">${avatar(type)}<div class="contactListIdentity"><b>${esc(c.name)}</b><span>${typeLabel(type)}${phone?' · '+esc(phone):''}${c.status==='inactive'?'<i class="contactInactiveBadge">· Идэвхгүй</i>':''}</span></div><span class="contactListArrow" aria-hidden="true"></span></div><div class="contactListBalance"><small>${debt?'Нийт үлдэгдэл':'Тооцоогүй'}</small>${debt?`<b class="hasDebt">${window.money(debt)}</b>`:''}</div></div>`;
   }
   const emptyList=message=>`<div class="contactListEmpty">${message}</div>`;
+  let contactListType='all',contactListQuery='';
+  function filteredContacts(){
+    const q=contactListQuery.trim().toLowerCase().replace(/\s/g,'');
+    return (data.companies||[]).filter(contact=>{
+      const type=validType(contact.contactType);
+      if(contactListType!=='all'&&type!==contactListType)return false;
+      if(!q)return true;
+      const searchable=[contact.name,contact.phone,contact.directorPhone,contact.salesPhone].map(value=>String(value||'').toLowerCase().replace(/\s/g,'')).join(' ');
+      return searchable.includes(q);
+    }).sort((a,b)=>(a.status==='inactive')-(b.status==='inactive')||String(a.name||'').localeCompare(String(b.name||''),'mn'));
+  }
+  function renderContactList(){
+    const list=document.getElementById('contactUnifiedList');if(!list)return;
+    const matches=filteredContacts();list.innerHTML=matches.map(contactListRow).join('')||emptyList('Илэрц олдсонгүй.');
+  }
   function companies(){
-    window.sync();const active=data.companies.filter(c=>c.status!=='inactive'),inactive=data.companies.filter(c=>c.status==='inactive');
-    return `<div class="row"><div><div class="hello">Өглөгийн бүртгэл</div><div class="name">Харилцагчид</div></div><button class="primary" onclick="addCompany()">＋</button></div><input class="search" placeholder="⌕ Харилцагч хайх..." oninput="filter(this.value)"><div class="title">ИДЭВХТЭЙ</div><div id="list" class="contactList">${active.map(contactListRow).join('')||emptyList('Идэвхтэй харилцагч алга.')}</div><div class="title">ИДЭВХГҮЙ</div><div id="inactiveList" class="contactList">${inactive.map(contactListRow).join('')||emptyList('Идэвхгүй харилцагч алга.')}</div>`;
+    window.sync();
+    const storeName=window.__nayadActiveStore?.name||'Сонгосон дэлгүүр',count=(data.companies||[]).length;
+    const filters=[['all','Бүгд'],[PERSON,'Хувь хүн'],[ORGANIZATION,'Байгууллага']];
+    return `<div class="contactListHead"><div class="name">Харилцагчид</div><span class="contactStoreMeta">${esc(storeName)} · ${count} харилцагч</span></div><div class="contactSearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m15.5 15.5 5 5"></path></svg><input class="search" value="${esc(contactListQuery)}" placeholder="Нэр эсвэл утасны дугаараар хайх" oninput="filter(this.value)"></div><div class="contactFilters">${filters.map(([value,label])=>`<button type="button" class="contactFilter ${contactListType===value?'selected':''}" data-contact-filter="${value}" onclick="setContactListFilter('${value}')">${label}</button>`).join('')}</div><div class="contactListTitle">НЭГДСЭН ЖАГСААЛТ</div><div id="contactUnifiedList" class="contactList">${filteredContacts().map(contactListRow).join('')||emptyList('Харилцагч бүртгэгдээгүй байна.')}</div><button type="button" class="contactAddButton" onclick="addCompany()">+ ХАРИЛЦАГЧ НЭМЭХ</button>`;
   }
   function filterContacts(query){
-    const q=String(query||'').trim().toLowerCase();
-    const matches=data.companies.filter(c=>String(c.name||'').toLowerCase().includes(q));
-    const active=matches.filter(c=>c.status!=='inactive'),inactive=matches.filter(c=>c.status==='inactive');
-    const activeList=document.getElementById('list'),inactiveList=document.getElementById('inactiveList');
-    if(activeList)activeList.innerHTML=active.map(contactListRow).join('')||emptyList('Илэрц олдсонгүй.');
-    if(inactiveList)inactiveList.innerHTML=inactive.map(contactListRow).join('')||emptyList('Илэрц олдсонгүй.');
+    contactListQuery=String(query||'');renderContactList();
+  }
+  function setContactListFilter(type){
+    contactListType=type==='all'?'all':validType(type);
+    document.querySelectorAll('[data-contact-filter]').forEach(button=>button.classList.toggle('selected',button.dataset.contactFilter===contactListType));
+    renderContactList();
   }
   function company(id){
     selected=data.companies.find(c=>c.id===id);if(!selected)return;window.sync();const c=selected,type=validType(c.contactType),person=type===PERSON;
@@ -107,7 +134,8 @@
       :`<div class="invoice"><div><small>Утас</small><b>${esc(c.phone||'—')}</b></div>${window.tel(c.phone)}</div><div class="invoice"><div><small>Хаяг</small><b>${esc(c.address||'—')}</b></div></div><div class="invoice"><div><small>Захирал</small><b>${esc(c.director||'—')}</b></div>${window.tel(c.directorPhone)}</div><div class="invoice"><div><small>Худалдааны төлөөлөгч</small><b>${esc(c.sales||'—')}</b></div>${window.tel(c.salesPhone)}</div>`;
     const note=c.note?`<div class="invoice"><div><small>Нэмэлт тэмдэглэл</small><b>${esc(c.note)}</b></div></div>`:'';
     const bank=`<div class="invoice"><div><small>Банк</small><b>${esc(c.bank||'—')}</b></div></div><div class="invoice"><div><small>Дансны дугаар</small><b>${esc(c.bankAccount||'—')}</b></div></div><div class="invoice"><div><small>Данс эзэмшигчийн нэр</small><b>${esc(c.bankAccountHolder||'—')}</b></div></div>`;
-    document.getElementById('content').innerHTML=`<button class="back" onclick="page='companies';render()">← Буцах</button><div class="center">${avatar(type)}<h2 style="margin:8px 0 2px">${esc(c.name)}</h2><div>${companyIconLabel(c)}</div><div class="sub">${c.status==='inactive'?'⚪ Идэвхгүй':'🟢 Идэвхтэй'}</div><div class="bigAmount">${window.money(c.debt)}</div><div class="sub">Нийт өр</div></div><div class="sectionTitle">Харилцагчийн мэдээлэл</div><div class="card">${details}${note}${bank}</div><div class="sectionTitle">Падаанууд</div><div class="card">${(c.invoices||[]).map(i=>{const count=Array.isArray(i.image_urls)?i.image_urls.length:(i.image_url?1:0);return `<div class="invoice" onclick="viewInvoiceImages('${String(i.id||'').replace(/'/g,"\\'")}')" style="cursor:${count?'pointer':'default'}"><div><small>${esc(i.date)} · ${esc(i.no)}</small><b>${window.money(i.amount)}</b>${count?`<span style="display:block;color:#777;font-size:10px;margin-top:4px">🖼 ${count} хуудастай зураг · үзэх</span>`:'<span style="display:block;color:#aaa;font-size:10px;margin-top:4px">Зураггүй</span>'}</div><div class="${i.amount-i.paid>0?'redText':'greenText'}">${i.amount-i.paid>0?window.money(i.amount-i.paid):'Төлөгдсөн'}</div></div>`}).join('')}</div><button class="primary full" onclick="invoice(${c.id})">＋ Падаан нэмэх</button><button class="secondary full" onclick="payment(${c.id})">Төлбөр бүртгэх</button><button type="button" class="secondary full" onclick="event.stopPropagation();window.editCompany(Number(${c.id}))">✎ Мэдээлэл засах</button>`;
+    const visibleInvoices=(c.invoices||[]).filter(invoice=>(invoice.status||'confirmed')!=='draft');
+    document.getElementById('content').innerHTML=`<button class="back" onclick="page='companies';render()">← Буцах</button><div class="center">${avatar(type)}<h2 style="margin:8px 0 2px">${esc(c.name)}</h2><div>${companyIconLabel(c)}</div><div class="sub">${c.status==='inactive'?'⚪ Идэвхгүй':'🟢 Идэвхтэй'}</div><div class="bigAmount">${window.money(c.debt)}</div><div class="sub">Нийт өр</div></div><div class="sectionTitle">Харилцагчийн мэдээлэл</div><div class="card">${details}${note}${bank}</div><div class="sectionTitle">Падаанууд</div><div class="card">${visibleInvoices.length?visibleInvoices.map(i=>{const count=Array.isArray(i.image_urls)?i.image_urls.length:(i.image_url?1:0),balance=Math.max((Number(i.amount)||0)-(Number(i.paid)||0),0);return `<div class="invoice invoiceClickable" role="button" tabindex="0" onclick="window.showInvoiceDetails('${String(i.id||'').replace(/'/g,"\\'")}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.showInvoiceDetails('${String(i.id||'').replace(/'/g,"\\'")}')}"><div><small>${esc(i.date)} · ${esc(i.no||'Дугааргүй')}</small><b>${window.money(i.amount)}</b>${count?`<span style="display:block;color:var(--muted);font-size:10px;margin-top:4px">🖼 ${count} хуудастай зураг</span>`:'<span style="display:block;color:var(--muted);font-size:10px;margin-top:4px">Зураггүй</span>'}</div><div class="${balance>0?'redText':'greenText'}">${balance>0?window.money(balance):'Төлөгдсөн'}<small class="detailHint">Дэлгэрэнгүй →</small></div></div>`}).join(''):'<div class="sub">Падаан алга.</div>'}</div><button class="primary full" onclick="invoice(${c.id})">＋ Падаан нэмэх</button><button class="secondary full" onclick="payment(${c.id})">Төлбөр бүртгэх</button><button type="button" class="secondary full" onclick="event.stopPropagation();window.editCompany(Number(${c.id}))">✎ Мэдээлэл засах</button>`;
   }
   function readContact(prefix){
     return {contactType:validType(fieldValue(prefix+'ContactType')),name:fieldValue(prefix+'Name'),phone:fieldValue(prefix+'Phone'),address:fieldValue(prefix+'Address'),director:fieldValue(prefix+'Director'),directorPhone:fieldValue(prefix+'DirectorPhone'),sales:fieldValue(prefix+'Sales'),salesPhone:fieldValue(prefix+'SalesPhone'),note:fieldValue(prefix+'Note'),bank:fieldValue(prefix+'Bank'),bankAccount:fieldValue(prefix+'BankAccount').toUpperCase(),bankAccountHolder:fieldValue(prefix+'BankAccountHolder')};
@@ -123,6 +151,6 @@
     if(data.companies.some(c=>c!==selected&&String(c.name||'').trim().toLowerCase()===draft.name.toLowerCase()))return window.toast('Ийм нэртэй харилцагч бүртгэлтэй байна.');
     Object.assign(selected,draft,{status:fieldValue('eStatus')||'active'});window.save();window.closeSheet();page='companies';window.render();window.toast('Мэдээлэл шинэчлэгдлээ.');
   }
-  window.addCompany=showContactTypePicker;window.showContactTypePicker=showContactTypePicker;window.selectContactType=selectContactType;window.showContactForm=showContactForm;window.card=card;window.companies=companies;window.filter=filterContacts;window.company=company;window.saveCompany=saveCompany;window.editCompany=editCompany;window.saveEdit=saveEdit;
+  window.addCompany=showContactTypePicker;window.showContactTypePicker=showContactTypePicker;window.selectContactType=selectContactType;window.showContactForm=showContactForm;window.card=card;window.companies=companies;window.filter=filterContacts;window.setContactListFilter=setContactListFilter;window.company=company;window.saveCompany=saveCompany;window.editCompany=editCompany;window.saveEdit=saveEdit;
   injectStyle();
 })();

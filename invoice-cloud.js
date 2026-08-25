@@ -178,7 +178,7 @@
        Read the affected supplier directly after the transactional RPC, then
        replace the visible invoice balances with that authoritative snapshot. */
     const {data:rows,error}=await sb.from('invoices')
-      .select('id,supplier_id,invoice_no,invoice_date,due_date,amount,paid,image_url,status,discount_percent,discount_deadline,confirmed_at,created_at')
+      .select('id,supplier_id,invoice_no,invoice_date,due_date,amount,paid,image_url,status,discount_percent,discount_deadline,note,confirmed_at,created_at')
       .eq('supplier_id',supplierId)
       .order('invoice_date',{ascending:true});
     if(error)throw error;
@@ -205,6 +205,7 @@
         status:row.status||'confirmed',
         discount_percent:Number(row.discount_percent)||0,
         discount_deadline:row.discount_deadline||null,
+        note:row.note||'',
         discount_taken:discountTaken,
         confirmed_at:row.confirmed_at||null,
         created_at:row.created_at||null,
@@ -435,27 +436,27 @@
     clearPending();
     reorderBound=false;
     const today=new Date().toISOString().slice(0,10);
-    openSheet(`<h2>${draft?'Падааны ноорог засах':'Падаан нэмэх'}</h2><div class="card"><b>${esc(company.name)}</b>${draft?'<span class="sub">Ноорог — өр, тайлан, сануулгад ороогүй</span>':''}</div>
+    openSheet(`<h2>${draft?'Падаан засах':'Падаан нэмэх'}</h2><div class="card"><b>${esc(company.name)}</b></div>
       <div class="field"><label>Падааны огноо</label><input id="cloudIDate" type="date" value="${esc(draft?.date||today)}"></div>
       <div class="field"><label>Төлөх хугацаа</label><input id="cloudIDueDate" type="date" value="${esc(draft?.due_date||'')}"></div>
       <div class="field"><label>Падааны дугаар</label><input id="cloudINo" value="${esc(draft?.no||'')}" placeholder="INV-0001"></div>
       <div class="field"><label>Нийт дүн</label><input id="cloudIAmount" data-money-input type="text" inputmode="decimal" autocomplete="off" value="${moneyInputText(Number(draft?.amount)||'')}" placeholder="0"></div>
       <div class="field"><label>Хугацаандаа төлөх хөнгөлөлт (%) — заавал биш</label><input id="cloudIDiscount" type="number" inputmode="decimal" min="0" max="99.99" step="0.01" value="${Number(draft?.discount_percent)||''}" placeholder="Жишээ: 4"></div>
       <div class="field"><label>Хөнгөлөлтийн эцсийн өдөр — заавал биш</label><input id="cloudIDiscountDeadline" type="date" value="${esc(draft?.discount_deadline||'')}"></div>
+      <div class="field"><label>Нэмэлт тэмдэглэл — заавал биш</label><textarea id="cloudINote" maxlength="500" placeholder="Шаардлагатай зүйлээ тэмдэглэнэ үү">${esc(draft?.note||'')}</textarea></div>
       <div class="field"><label>Падааны зураг — заавал биш, олон хуудас нэмэх боломжтой</label>
         <div class="imageTools"><button type="button" class="secondary" onclick="document.getElementById('cloudGalleryInput').click()">🖼️ Зураг сонгох</button><button type="button" class="secondary" onclick="document.getElementById('cloudCameraInput').click()">📷 Камераар авах</button></div>
         <input id="cloudGalleryInput" type="file" accept="image/*" multiple class="hide"><input id="cloudCameraInput" type="file" accept="image/*" capture="environment" class="hide">
         <div class="sub" style="margin-top:7px">Зүүн талын ☷ тэмдэг дээр дараад шууд дээш/доош чирж дарааллыг солино.</div><div id="cloudImageList" class="imageList"></div>
       </div>
-      <div class="actions"><button class="secondary" onclick="window.__cancelCloudInvoice()">Болих</button><button id="cloudSaveInvoiceBtn" class="secondary" onclick="window.__saveCloudInvoice('draft')">Ноорог хадгалах</button></div>
-      <button id="cloudConfirmInvoiceBtn" class="primary full" style="margin-top:9px" onclick="window.__saveCloudInvoice('confirmed')">Баталгаажуулах</button>`);
+      <div class="actions"><button class="secondary" onclick="window.__cancelCloudInvoice()">Болих</button><button id="cloudConfirmInvoiceBtn" class="primary" onclick="window.__saveCloudInvoice()">ПАДААН БҮРТГЭХ</button></div>`);
     document.getElementById('cloudGalleryInput').onchange=function(){addFiles([...this.files]);this.value=''};
     document.getElementById('cloudCameraInput').onchange=function(){addFiles([...this.files]);this.value=''};
     renderPending();
   };
   window.__cancelCloudInvoice=function(){if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}cloudCompanyTarget=null;clearPending();close();};
 
-  window.__saveCloudInvoice=async function(saveMode='draft'){
+  window.__saveCloudInvoice=async function(){
     if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}
     const amount=moneyInputValue(val('cloudIAmount'));
     const date=val('cloudIDate')||new Date().toISOString().slice(0,10);
@@ -463,16 +464,17 @@
     const no=val('cloudINo')||('INV-'+Date.now().toString().slice(-6));
     const discountPercent=Number(val('cloudIDiscount'))||0;
     const discountDeadline=val('cloudIDiscountDeadline')||null;
-    const shouldConfirm=saveMode==='confirmed';
-    if(amount<0 || (shouldConfirm&&!amount)){notify('Нийт дүн оруулна уу.');return;}
-    if(shouldConfirm&&!dueDate){notify('Төлөх хугацаа оруулна уу.');return;}
+    const note=val('cloudINote').slice(0,500)||null;
+    if(!amount||amount<0){notify('Нийт дүн оруулна уу.');return;}
+    if(!dueDate){notify('Төлөх хугацаа оруулна уу.');return;}
+    if(dueDate<date){notify('Төлөх хугацаа падааны өдрөөс өмнө байж болохгүй.');return;}
     if(discountPercent>0&&!discountDeadline){notify('Хөнгөлөлтийн эцсийн өдрийг оруулна уу.');return;}
     if(window.__nayadCriticalOperation){notify('Өмнөх хадгалалт дууссаны дараа дахин оролдоно уу.');return;}
     const target=cloudCompanyTarget?{...cloudCompanyTarget}:{localId:cloudCompanyId,supplierId:null,name:'',storeId:window.__nayadActiveStoreId||null,userId:window.__nayadUser?.id||null};
     const pendingFiles=pending.map(item=>({file:item.file,name:item.name||''}));
     let operationUserId=target.userId||window.__nayadUser?.id||null;
     const operationToken='invoice:'+crypto.randomUUID();
-    const btn=document.getElementById(shouldConfirm?'cloudConfirmInvoiceBtn':'cloudSaveInvoiceBtn'); if(btn){btn.disabled=true;btn.textContent='Хадгалж байна...';}
+    const btn=document.getElementById('cloudConfirmInvoiceBtn'); if(btn){btn.disabled=true;btn.textContent='Хадгалж байна...';}
     let invoiceId=target.invoiceId||null, supplierId=null, storeId=null, uploaded=[], remoteComplete=false;
     const createdDraft=!target.invoiceId;
     invoiceSaving=true;
@@ -528,10 +530,8 @@
             const {error:updateError}=await writeClient.rpc('save_invoice_draft',{...draftArgs,p_image_url:imageUrls[0]});
             if(updateError)throw new Error('Падааны зураг холбоход алдаа: '+updateError.message);
           }
-          if(shouldConfirm){
-            const {error:confirmError}=await writeClient.rpc('confirm_invoice',{p_invoice_id:invoiceId});
-            if(confirmError)throw new Error('Падаан баталгаажуулахад алдаа: '+confirmError.message);
-          }
+          const {error:confirmError}=await writeClient.rpc('confirm_invoice_with_note',{p_invoice_id:invoiceId,p_note:note});
+          if(confirmError)throw new Error('Падаан бүртгэхэд алдаа: '+confirmError.message);
 
           const verifiedSession=(await sb.auth.getSession()).data?.session;
           if(!verifiedSession||String(verifiedSession.user?.id||'')!==String(operationUserId))throw new Error('Нэвтэрсэн хэрэглэгч солигдсон байна. Падааныг хадгалсангүй.');
@@ -549,7 +549,7 @@
           );
           if(cidx<0)cidx=local.companies.findIndex(c=>String(c.name||'').trim().toLowerCase()===companyName&&(!c.supabase_supplier_id||String(c.supabase_supplier_id)===String(supplierId)));
           const previousDraft=target.draft||{};
-          const inv={id:invoiceId,date,due_date:dueDate,no,amount,paid:Number(previousDraft.paid)||0,status:shouldConfirm?'confirmed':'draft',discount_percent:discountPercent,discount_deadline:discountDeadline,image_url:imageUrls[0]||previousDraft.image_url||'',image_urls:imageUrls.length?imageUrls:(previousDraft.image_urls||[]),image_paths:uploaded.length?uploaded:(previousDraft.image_paths||[]),image_count:imageUrls.length||(previousDraft.image_count||0),supabase_synced:true};
+          const inv={id:invoiceId,date,due_date:dueDate,no,amount,paid:Number(previousDraft.paid)||0,status:'confirmed',discount_percent:discountPercent,discount_deadline:discountDeadline,note:note||'',image_url:imageUrls[0]||previousDraft.image_url||'',image_urls:imageUrls.length?imageUrls:(previousDraft.image_urls||[]),image_paths:uploaded.length?uploaded:(previousDraft.image_paths||[]),image_count:imageUrls.length||(previousDraft.image_count||0),supabase_synced:true};
           if(cidx>=0){
             local.companies[cidx].supabase_supplier_id=supplierId;local.companies[cidx].invoices=local.companies[cidx].invoices||[];
             const existingIndex=local.companies[cidx].invoices.findIndex(item=>String(item.id)===String(invoiceId));
@@ -558,7 +558,7 @@
           else{local.companies.push({...company,supabase_supplier_id:supplierId,invoices:[...(company.invoices||[]),inv]});}
           try{writeLocal(local);}catch(cacheError){console.warn('Invoice local cache:',cacheError);}
           cloudCompanyTarget=null;clearPending();close();applyLocalData(local,true);
-          notify(shouldConfirm?'Падаан баталгаажиж, төлбөрийн дараалалд орлоо.':'Падааны ноорог хадгалагдлаа.');
+          notify('Падаан бүртгэгдлээ.');
           setTimeout(()=>window.__nayadStartCloudSync?.({reason:'invoice-saved',force:true}).catch(()=>{}),0);
         }catch(error){
           /* Keep compensation under the same cloud lock. A following sync must
@@ -581,7 +581,7 @@
     }catch(e){
       console.error('NAYAD cloud invoice:',e);
       notify(e?.message||'Падаан хадгалахад алдаа гарлаа.');
-      if(btn){btn.disabled=false;btn.textContent=shouldConfirm?'Баталгаажуулах':'Ноорог хадгалах';}
+      if(btn){btn.disabled=false;btn.textContent='ПАДААН БҮРТГЭХ';}
     }finally{
       invoiceSaving=false;
       if(window.__nayadCriticalOperation===operationToken)delete window.__nayadCriticalOperation;
@@ -594,7 +594,7 @@
     let storeRow; try{storeRow=await store()}catch(_){return;}
     const local=readLocal();local.companies=local.companies||[];local.payments=local.payments||[];
     await pushPendingPayments(storeRow,local);
-    const {data:invoices,error}=await sb.from('invoices').select('id,supplier_id,invoice_no,invoice_date,due_date,amount,paid,image_url,status,discount_percent,discount_deadline,confirmed_at,created_at').eq('store_id',storeRow.id).order('invoice_date',{ascending:true});
+    const {data:invoices,error}=await sb.from('invoices').select('id,supplier_id,invoice_no,invoice_date,due_date,amount,paid,image_url,status,discount_percent,discount_deadline,note,confirmed_at,created_at').eq('store_id',storeRow.id).order('invoice_date',{ascending:true});
     if(error||!invoices)return;
     const {data:cloudPayments,error:paymentsError}=await sb.from('payments').select('id,supplier_id,payment_date,amount,method,note,reference,status,created_at').eq('store_id',storeRow.id).order('created_at',{ascending:true});
     if(paymentsError)return;
@@ -632,7 +632,7 @@
         const effectiveDue=invoiceAgreements.length?invoiceAgreements.map(item=>item.agreed_due_date).sort()[0]:(ri.due_date||null);
         const postedAllocations=(allocations||[]).filter(item=>String(item.invoice_id)===String(ri.id)&&item.payments?.status==='posted');
         const discountTaken=postedAllocations.reduce((sum,item)=>sum+(Number(item.discount_amount)||0),0);
-        return {id:ri.id,date:ri.invoice_date,due_date:ri.due_date||null,effective_due_date:effectiveDue,no:ri.invoice_no||'',amount:Number(ri.amount)||0,paid:Number(ri.paid)||0,status:ri.status||'confirmed',discount_percent:Number(ri.discount_percent)||0,discount_deadline:ri.discount_deadline||null,discount_taken:discountTaken,confirmed_at:ri.confirmed_at||null,created_at:ri.created_at||null,agreements:invoiceAgreements,image_url:ri.image_url||urls[0]||'',image_urls:urls,image_paths:paths,image_count:urls.length,supabase_synced:true};
+        return {id:ri.id,date:ri.invoice_date,due_date:ri.due_date||null,effective_due_date:effectiveDue,no:ri.invoice_no||'',amount:Number(ri.amount)||0,paid:Number(ri.paid)||0,status:ri.status||'confirmed',discount_percent:Number(ri.discount_percent)||0,discount_deadline:ri.discount_deadline||null,discount_taken:discountTaken,note:ri.note||'',confirmed_at:ri.confirmed_at||null,created_at:ri.created_at||null,agreements:invoiceAgreements,image_url:ri.image_url||urls[0]||'',image_urls:urls,image_paths:paths,image_count:urls.length,supabase_synced:true};
       });
       c.invoices=nextInvoices;
       if(paymentGuard&&String(paymentGuard.supplierId)===String(s.id)){

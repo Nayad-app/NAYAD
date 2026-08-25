@@ -1,4 +1,4 @@
-const CACHE = "nayad-v100";
+const CACHE = "nayad-v101";
 
 const ASSETS = [
   "./",
@@ -19,11 +19,11 @@ const ASSETS = [
   "./share.js?v=39",
   "./profile-menu.js?v=5",
   "./subscription.js?v=1",
-  "./invoice-cloud.js?v=68",
+  "./invoice-cloud.js?v=69",
   "./supplier-cloud.js?v=57",
-  "./payment-center.js?v=7",
+  "./payment-center.js?v=8",
   "./loans.js?v=1",
-  "./contact-types.js?v=3",
+  "./contact-types.js?v=4",
   "./company-label.js"
 ];
 
@@ -61,7 +61,7 @@ function injectScriptBefore(html,anchorSrc,src){
 
 function injectCloudRuntimeBeforeCloudModules(html){
   if(html.includes("./cloud-runtime.js"))return html;
-  const invoiceTag='<script src="./invoice-cloud.js?v=68"></script>';
+  const invoiceTag='<script src="./invoice-cloud.js?v=69"></script>';
   if(html.includes(invoiceTag)){
     return html.replace(invoiceTag,`<script src="./cloud-runtime.js?v=58"></script>${invoiceTag}`);
   }
@@ -79,18 +79,18 @@ function patchDocument(html){
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=39");
   patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=5");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=1");
-  patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=68");
+  patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=69");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=57");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=1");
-  patched=injectScriptBefore(patched,"./invoice-cloud.js?v=68","./money-input.js?v=1");
+  patched=injectScriptBefore(patched,"./invoice-cloud.js?v=69","./money-input.js?v=1");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=59","./store-recovery.js?v=54");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=54","./auth-guard.js?v=56");
   patched=injectScriptAfter(patched,"./share.js?v=39","./profile-menu.js?v=5");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=1");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
-  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=68","./payment-center.js?v=7");
-  patched=injectScriptAfter(patched,"./payment-center.js?v=7","./loans.js?v=1");
-  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=57","./contact-types.js?v=3");
+  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=69","./payment-center.js?v=8");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=8","./loans.js?v=1");
+  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=57","./contact-types.js?v=4");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;
 }

@@ -77,6 +77,13 @@ data.companies.push({id:3,name:'Minimal',contactType:'organization',status:'acti
 const companiesHtml=context.companies();
 assert.match(companiesHtml,/contactListRow/);
 assert.doesNotMatch(companiesHtml,/class="card"/);
+assert.match(companiesHtml,/НЭГДСЭН ЖАГСААЛТ/);
+assert.match(companiesHtml,/Нэр эсвэл утасны дугаараар хайх/);
+assert.match(companiesHtml,/data-contact-filter="person"/);
+assert.match(companiesHtml,/data-contact-filter="organization"/);
+assert.match(companiesHtml,/ХАРИЛЦАГЧ НЭМЭХ/);
 assert.match(source,/window\.filter=filterContacts/);
+assert.match(source,/contact\.phone,contact\.directorPhone,contact\.salesPhone/,'search must include contact phone fields');
+assert.match(source,/window\.setContactListFilter=setContactListFilter/);
 
-console.log('contact-types: PASS — yellow selected state, concise picker, forms and divider list are wired');
+console.log('contact-types: PASS — contact picker, unified search, type filters and cards are wired');
