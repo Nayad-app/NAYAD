@@ -35,6 +35,8 @@
       .contactAvatar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
       .contactAvatar.person{background:var(--green-soft);color:var(--green)}.contactAvatar.organization{background:#F0F1EF;color:#6F7470}
       .contactTypeText{font-size:10px;color:var(--muted);margin-left:5px}
+      .homeInvoiceMeta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:10px;color:var(--muted)}
+      .homeInvoiceMeta b{color:var(--text);font-size:10px}.homeDueState{padding:3px 6px;border-radius:7px;font-size:9px;font-weight:800}.homeDueState.overdue{background:#fff0f0;color:#c33}.homeDueState.today,.homeDueState.soon{background:#fff4cc;color:#6a5200}.homeDueState.future{background:#f2f2ee;color:#666}
       .contactDetailType{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:700}
       .contactDetailType svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
       .contactListHead{margin-bottom:18px}.contactStoreMeta{display:block;margin-top:7px;color:var(--muted);font-size:12px;font-weight:650}
@@ -85,9 +87,24 @@
     window.sheet(`<h2>${title}</h2>${hidden}${fields}<div class="title" style="margin-top:20px">БАНКНЫ МЭДЭЭЛЭЛ</div>${bankFields(prefix,contact)}${status}${actions}${remove}`);
   }
   function companyIconLabel(contact){const type=validType(contact?.contactType);return `<span class="contactDetailType">${icon(type)}${typeLabel(type)}</span>`;}
+  function homeDue(invoice){return invoice?.effective_due_date||invoice?.due_date||'';}
+  function homeDate(value){if(!value)return 'Оруулаагүй';const parts=String(value).split('-');return parts.length===3?`${parts[0]}.${parts[1]}.${parts[2]}`:String(value);}
+  function homeDueMeta(value){
+    if(!value)return {kind:'future',label:'Хугацаа оруулаагүй'};
+    const now=new Date(),todayDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()),parts=String(value).split('-').map(Number),due=new Date(parts[0],parts[1]-1,parts[2]);
+    const days=Math.round((due-todayDate)/86400000);
+    if(days<0)return {kind:'overdue',label:`${Math.abs(days)} хоног хэтэрсэн`};
+    if(days===0)return {kind:'today',label:'Өнөөдөр төлөх'};
+    if(days===1)return {kind:'soon',label:'Маргааш төлөх'};
+    return {kind:days<=7?'soon':'future',label:`${days} хоногийн дараа`};
+  }
+  function homeDueInvoice(contact){
+    return (contact?.invoices||[]).filter(invoice=>(invoice.status||'confirmed')!=='draft'&&invoice.status!=='cancelled'&&Math.max((Number(invoice.amount)||0)-(Number(invoice.paid)||0),0)>0).sort((a,b)=>String(homeDue(a)||'9999-99-99').localeCompare(String(homeDue(b)||'9999-99-99')))[0]||null;
+  }
   function card(contact,pay=false){
-    const c=contact||{},type=validType(c.contactType);
-    return `<div class="card" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(type)}<div><b>${esc(c.name)}</b><span>${typeLabel(type)}<span class="contactTypeText">· ${c.invoices?.length||0} падаан</span></span></div></div><div class="amount redText">${window.money(c.debt)}${pay?`<br><button class="primary" style="padding:6px 9px;margin-top:5px" onclick="event.stopPropagation();payment(${c.id})">Төлөх</button>`:''}</div></div></div>`;
+    const c=contact||{},type=validType(c.contactType),invoice=homeDueInvoice(c),due=homeDue(invoice),meta=homeDueMeta(due);
+    const dueInfo=invoice?`<div class="homeInvoiceMeta"><span>${esc(invoice.no||'Дугааргүй')}</span><span>Төлөх өдөр <b>${esc(homeDate(due))}</b></span><span class="homeDueState ${meta.kind}">${esc(meta.label)}</span></div>`:'';
+    return `<div class="card" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(type)}<div><b>${esc(c.name)}</b><span>${typeLabel(type)}<span class="contactTypeText">· ${c.invoices?.length||0} падаан</span></span></div></div><div class="amount redText">${window.money(c.debt)}${pay?`<br><button class="primary" style="padding:6px 9px;margin-top:5px" onclick="event.stopPropagation();payment(${c.id})">Төлөх</button>`:''}</div></div>${dueInfo}</div>`;
   }
   const phoneLabel=value=>{
     const digits=String(value||'').replace(/\D/g,'').replace(/^976(?=\d{8}$)/,'');
