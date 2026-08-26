@@ -10,7 +10,7 @@
     : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V5.5A1.5 1.5 0 0 1 5.5 4h8A1.5 1.5 0 0 1 15 5.5V21M15 9h3.5A1.5 1.5 0 0 1 20 10.5V21M8 8h3M8 12h3M8 16h3M17 13h1M17 17h1M2 21h20"></path></svg>';
   const avatar=value=>`<div class="contactAvatar ${validType(value)}">${icon(value)}</div>`;
   const fieldValue=id=>typeof window.v==='function'?window.v(id):document.getElementById(id)?.value?.trim?.()||'';
-  const input=(id,label,value='',placeholder='',type='text')=>`<div class="field"><label for="${id}">${label}</label><input id="${id}" type="${type}" value="${esc(value)}" placeholder="${esc(placeholder)}"></div>`;
+  const input=(id,label,value='',placeholder='',type='text',hint='')=>`<div class="field"><label for="${id}">${label}</label><input id="${id}" type="${type}" value="${esc(value)}" placeholder="${esc(placeholder)}">${hint?`<small class="contactFieldHint">${esc(hint)}</small>`:''}</div>`;
   const area=(id,label,value='',placeholder='')=>`<div class="field"><label for="${id}">${label}</label><textarea id="${id}" placeholder="${esc(placeholder)}">${esc(value)}</textarea></div>`;
   const bankHolder=(id,value='')=>input(id,'Данс эзэмшигчийн нэр *',value,'Нэрээ оруулна уу');
   const bankFields=(prefix,contact)=>`${window.bankSelect(prefix+'Bank','Банк *',contact?.bank||'')}${window.bankAccountField(prefix+'BankAccount',contact?.bankAccount||'')}${bankHolder(prefix+'BankAccountHolder',contact?.bankAccountHolder||'')}`;
@@ -41,16 +41,15 @@
       .homeDebtMenu{position:absolute;z-index:35;right:0;top:calc(100% + 7px);width:min(295px,calc(100vw - 54px));max-height:min(440px,calc(100vh - 175px));overflow-y:auto;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:0 15px 35px rgba(0,0,0,.19);font-size:12px;font-weight:700;text-transform:none;letter-spacing:0}.homeDebtMenu button{width:100%;min-height:43px;padding:8px 10px;display:grid;grid-template-columns:29px minmax(0,1fr);align-items:center;gap:8px;border:0;border-radius:11px;background:transparent;color:var(--text);font-size:12px;font-weight:700;text-align:left}.homeDebtMenu button:active,.homeDebtMenu button:hover{background:var(--surface-2)}.homeDebtMenu button.active{font-weight:850}.homeDebtMenu button.active .homeDebtMenuIcon{color:#B88A00}.homeDebtMenuIcon{width:24px;height:24px;display:grid;place-items:center;color:var(--muted)}.homeDebtMenuIcon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.homeDebtMenuIcon svg text{fill:currentColor;stroke:none;font-size:8px;font-weight:850}.homeAlphaIcon{display:flex;flex-direction:column;align-items:center;font-size:8px;font-weight:900;line-height:.9}.homeUrgentEmpty{margin-bottom:10px;padding:24px 14px;color:var(--muted);font-size:11px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:17px}
       .contactDetailType{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:700}
       .contactDetailType svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-      .contactListHead{margin-bottom:18px}.contactStoreMeta{display:block;margin-top:7px;color:var(--muted);font-size:12px;font-weight:650}
-      .contactSearch{position:relative;margin-bottom:12px}.contactSearch svg{position:absolute;left:15px;top:50%;width:20px;height:20px;transform:translateY(-50%);fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round}.contactSearch .search{padding-left:45px;margin:0}
-      .contactFilters{display:flex;gap:8px;overflow-x:auto;padding:0 0 4px;scrollbar-width:none}.contactFilters::-webkit-scrollbar{display:none}.contactFilter{flex:0 0 auto;padding:9px 16px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);font-size:12px;font-weight:750}.contactFilter.selected{background:var(--yellow);border-color:var(--yellow);color:#111}
-      .contactListTitle{margin:18px 3px 10px;color:var(--muted);font-size:10px;font-weight:850;letter-spacing:.25px}.contactList{display:flex;flex-direction:column;gap:9px;margin:0 0 14px}
-      .contactListRow{position:relative;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:17px;box-shadow:var(--shadow-sm);cursor:pointer}.contactListRow.inactive{opacity:.72}.contactListRow:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
-      .contactListMain{display:grid;grid-template-columns:42px minmax(0,1fr) 18px;gap:10px;align-items:center}.contactListIdentity{min-width:0}.contactListIdentity b,.contactListIdentity span{display:block}.contactListIdentity b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}.contactListIdentity span{margin-top:4px;color:var(--muted);font-size:10px}.contactListArrow{width:9px;height:9px;border-right:2px solid var(--muted);border-top:2px solid var(--muted);transform:rotate(45deg)}
-      .contactListBalance{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}.contactListBalance small{color:var(--muted);font-size:10px}.contactListBalance b{font-size:14px}.contactListBalance b.hasDebt{color:var(--red)}
-      .contactInactiveBadge{display:inline-block!important;margin-left:5px!important;color:var(--muted)!important;font-size:9px!important}.contactListEmpty{padding:25px 14px;color:var(--muted);font-size:12px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:17px}
-      .contactAddButton{width:100%;margin-top:13px;padding:15px;border:0;border-radius:15px;background:var(--yellow);color:#111;font-size:13px;font-weight:850}
-      html.nightMode .contactListRow,html.nightMode .contactFilter,html.nightMode .contactListEmpty,html.nightMode .homeDebtMenu,html.nightMode .homeUrgentEmpty{background:#1D1D1B;border-color:#3C3C38}html.nightMode .contactFilter.selected{background:var(--yellow);border-color:var(--yellow);color:#111}html.nightMode .homeDebtMenu button:hover,html.nightMode .homeDebtMenu button:active,html.nightMode .homeDebtMenuToggle:hover{background:#292927}
+      .contactFieldHint{display:block;margin-top:6px;color:var(--muted);font-size:10px;line-height:1.4}
+      .contactListHead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}.contactListHead .name{flex:0 0 auto}.contactStoreMeta{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:10px;font-weight:650;text-align:right}
+      .contactSearchRow{position:relative;z-index:6;display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:9px;margin-bottom:10px;overflow:visible}.contactSearch{position:relative;min-width:0}.contactSearch>svg{position:absolute;left:15px;top:50%;width:20px;height:20px;transform:translateY(-50%);fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round}.contactSearch .search{height:48px;padding-left:45px;margin:0}
+      .contactFilterToggle{width:48px;height:48px;padding:0;display:grid;place-items:center;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}.contactFilterToggle:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}.contactFilterToggle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+      .contactFilterMenu{position:absolute;z-index:40;right:0;top:calc(100% + 7px);width:210px;padding:7px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:0 15px 35px rgba(0,0,0,.19)}.contactFilterMenu button{width:100%;min-height:42px;padding:7px 9px;display:grid;grid-template-columns:28px minmax(0,1fr) 16px;align-items:center;gap:8px;border:0;border-radius:10px;background:transparent;color:var(--text);font-size:12px;font-weight:750;text-align:left}.contactFilterMenu button:hover,.contactFilterMenu button:active{background:var(--surface-2)}.contactFilterMenu button.active{background:#FFF8DF;font-weight:850}.contactFilterMenuIcon{width:24px;height:24px;display:grid;place-items:center;color:var(--muted)}.contactFilterMenu button.active .contactFilterMenuIcon,.contactFilterCheck{color:#B88A00}.contactFilterMenuIcon svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}.contactFilterCheck{font-size:15px;font-weight:900;text-align:center}
+      .contactList{display:flex;flex-direction:column;gap:7px;margin:0 0 10px}.contactListRow{position:relative;min-height:58px;padding:8px 10px;background:var(--surface);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow-sm);cursor:pointer;box-sizing:border-box}.contactListRow.inactive{opacity:.72}.contactListRow:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+      .contactListMain{display:grid;grid-template-columns:36px minmax(0,1fr) 38px;gap:9px;align-items:center}.contactListMain .contactAvatar{width:36px;height:36px}.contactListMain .contactAvatar svg{width:20px;height:20px}.contactListIdentity{min-width:0}.contactListIdentity b,.contactListIdentity span{display:block}.contactListIdentity b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.contactListDebt{margin-top:3px;color:#D85B5B;font-size:10px;font-weight:750}.contactCallButton{width:36px;height:36px;display:grid;place-items:center;border-radius:50%;background:#20A44B;color:#fff;text-decoration:none}.contactCallButton:hover,.contactCallButton:active{background:#16863C}.contactCallButton:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}.contactCallButton svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.contactCallPlaceholder{width:36px;height:36px}
+      .contactListEmpty{padding:25px 14px;color:var(--muted);font-size:12px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:17px}.contactAddButton{width:100%;margin-top:10px;padding:14px;border:0;border-radius:15px;background:var(--yellow);color:#111;font-size:13px;font-weight:850}
+      html.nightMode .contactListRow,html.nightMode .contactFilterToggle,html.nightMode .contactFilterMenu,html.nightMode .contactListEmpty,html.nightMode .homeDebtMenu,html.nightMode .homeUrgentEmpty{background:#1D1D1B;border-color:#3C3C38}html.nightMode .contactAvatar.organization{background:#2B2C29;color:#A9ACA8}html.nightMode .contactFilterMenu button.active{background:#332F20}html.nightMode .contactFilterMenu button:hover,html.nightMode .contactFilterMenu button:active,html.nightMode .homeDebtMenu button:hover,html.nightMode .homeDebtMenu button:active,html.nightMode .homeDebtMenuToggle:hover{background:#292927}
     `;document.head.appendChild(style);
   }
   let contactTypeSelectionTimer=0;
@@ -80,7 +79,7 @@
         +input(prefix+'Director','Захирал',contact.director||'','Нэрээ оруулна уу')
         +input(prefix+'DirectorPhone','Захирлын утас',contact.directorPhone||'','Утасны дугаараа оруулна уу','tel')
         +input(prefix+'Sales','Худалдааны төлөөлөгч',contact.sales||'','Нэрээ оруулна уу')
-        +input(prefix+'SalesPhone','ХТ-ийн утас',contact.salesPhone||'','Утасны дугаараа оруулна уу','tel')
+        +input(prefix+'SalesPhone','ХТ-ийн утас',contact.salesPhone||'','Утасны дугаараа оруулна уу','tel','Харилцагчдын жагсаалтын ногоон залгах товч энэ дугаар руу шууд залгана.')
         +area(prefix+'Note','Нэмэлт тэмдэглэл',contact.note||'','Шаардлагатай зүйлээ тэмдэглэнэ үү');
     const status=contact.id?`<div class="field"><label for="eStatus">Төлөв</label><select id="eStatus"><option value="active" ${contact.status!=='inactive'?'selected':''}>Идэвхтэй</option><option value="inactive" ${contact.status==='inactive'?'selected':''}>Идэвхгүй</option></select></div>`:'';
     const hidden=`<input id="${prefix}ContactType" type="hidden" value="${kind}">`;
@@ -160,13 +159,17 @@
     const dueInfo=pay&&invoice?`<div class="homeInvoiceMeta"><span>${esc(invoice.no||'Дугааргүй')}</span><span>Төлөх өдөр <b>${esc(homeDate(due))}</b></span><span class="homeDueState ${meta.kind}">${esc(meta.label)}</span></div>`:'';
     return `<div class="card" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(type)}<div><b>${esc(c.name)}</b><span>${typeLabel(type)}<span class="contactTypeText">· ${c.invoices?.length||0} падаан</span></span></div></div><div class="amount redText">${window.money(c.debt)}${pay?`<br><button class="primary" style="padding:6px 9px;margin-top:5px" onclick="event.stopPropagation();payment(${c.id})">Төлөх</button>`:''}</div></div>${dueInfo}</div>`;
   }
-  const phoneLabel=value=>{
-    const digits=String(value||'').replace(/\D/g,'').replace(/^976(?=\d{8}$)/,'');
-    return digits.length===8?digits.slice(0,4)+' '+digits.slice(4):String(value||'').trim();
+  const contactCallPhone=contact=>validType(contact?.contactType)===PERSON?contact?.phone:contact?.salesPhone;
+  const contactCallHref=value=>{
+    const raw=String(value||'').trim(),digits=raw.replace(/\D/g,'');
+    if(!digits)return '';
+    return `${raw.startsWith('+')?'+':''}${digits}`;
   };
+  const contactCallIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 3.5 10 7.3 8.3 9.5c1.2 2.4 3.1 4.3 5.5 5.5l2.2-1.7 3.8 2.8c.5.4.7 1 .5 1.6l-.6 2c-.2.7-.9 1.2-1.7 1.2C10.2 20.9 3.1 13.8 3.1 6c0-.8.5-1.5 1.2-1.7l2-.6c.4-.1.7-.1.9-.2Z"></path></svg>';
   function contactListRow(contact){
-    const c=contact||{},type=validType(c.contactType),debt=Math.max(Number(c.debt)||0,0),phone=phoneLabel(c.phone);
-    return `<div class="contactListRow ${c.status==='inactive'?'inactive':''}" role="button" tabindex="0" onclick="company(${c.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();company(${c.id})}"><div class="contactListMain">${avatar(type)}<div class="contactListIdentity"><b>${esc(c.name)}</b><span>${typeLabel(type)}${phone?' · '+esc(phone):''}${c.status==='inactive'?'<i class="contactInactiveBadge">· Идэвхгүй</i>':''}</span></div><span class="contactListArrow" aria-hidden="true"></span></div><div class="contactListBalance"><small>${debt?'Нийт үлдэгдэл':'Тооцоогүй'}</small>${debt?`<b class="hasDebt">${window.money(debt)}</b>`:''}</div></div>`;
+    const c=contact||{},type=validType(c.contactType),debt=Math.max(Number(c.debt)||0,0),callHref=contactCallHref(contactCallPhone(c));
+    const call=callHref?`<a class="contactCallButton" href="tel:${esc(callHref)}" aria-label="${esc(c.name)} руу залгах" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()">${contactCallIcon}</a>`:'<span class="contactCallPlaceholder" aria-hidden="true"></span>';
+    return `<div class="contactListRow ${c.status==='inactive'?'inactive':''}" role="button" tabindex="0" onclick="company(${c.id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();company(${c.id})}"><div class="contactListMain">${avatar(type)}<div class="contactListIdentity"><b>${esc(c.name)}</b><span class="contactListDebt">${window.money(debt)}</span></div>${call}</div></div>`;
   }
   const emptyList=message=>`<div class="contactListEmpty">${message}</div>`;
   let contactListType='all',contactListQuery='';
@@ -184,18 +187,30 @@
     const list=document.getElementById('contactUnifiedList');if(!list)return;
     const matches=filteredContacts();list.innerHTML=matches.map(contactListRow).join('')||emptyList('Илэрц олдсонгүй.');
   }
+  function contactFilterIcon(type){
+    if(type==='all')return '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>';
+    return icon(type);
+  }
+  function contactFilterControls(){
+    const sliders='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M15 7h5M4 17h5M13 17h7"></path><circle cx="13" cy="7" r="2"></circle><circle cx="11" cy="17" r="2"></circle></svg>';
+    const filters=[['all','Бүгд'],[PERSON,'Хувь хүн'],[ORGANIZATION,'Байгууллага']];
+    const options=filters.map(([value,label])=>{const active=contactListType===value;return `<button type="button" role="menuitemradio" aria-checked="${active}" class="${active?'active':''}" data-contact-filter="${value}" onclick="event.stopPropagation();setContactListFilter('${value}')"><span class="contactFilterMenuIcon">${contactFilterIcon(value)}</span><span>${label}</span><span class="contactFilterCheck" aria-hidden="true">${active?'✓':''}</span></button>`;}).join('');
+    return `<button id="contactFilterToggle" class="contactFilterToggle" type="button" aria-label="Харилцагчийн төрлийг шүүх" aria-haspopup="menu" aria-expanded="false" onclick="toggleContactFilterMenu(event)">${sliders}</button><div id="contactFilterMenu" class="contactFilterMenu hide" role="menu" aria-label="Харилцагчийн төрөл" onclick="event.stopPropagation()">${options}</div>`;
+  }
+  function closeContactFilterMenu(){const menu=document.getElementById('contactFilterMenu'),button=document.getElementById('contactFilterToggle');menu?.classList.add('hide');button?.setAttribute('aria-expanded','false');}
+  function toggleContactFilterMenu(event){event?.stopPropagation?.();const menu=document.getElementById('contactFilterMenu'),button=document.getElementById('contactFilterToggle');if(!menu||!button)return;const opening=menu.classList.contains('hide');menu.classList.toggle('hide',!opening);button.setAttribute('aria-expanded',String(opening));}
   function companies(){
     window.sync();
     const storeName=window.__nayadActiveStore?.name||'Сонгосон дэлгүүр',count=(data.companies||[]).length;
-    const filters=[['all','Бүгд'],[PERSON,'Хувь хүн'],[ORGANIZATION,'Байгууллага']];
-    return `<div class="contactListHead"><div class="name">Харилцагчид</div><span class="contactStoreMeta">${esc(storeName)} · ${count} харилцагч</span></div><div class="contactSearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m15.5 15.5 5 5"></path></svg><input class="search" value="${esc(contactListQuery)}" placeholder="Нэр эсвэл утасны дугаараар хайх" oninput="filter(this.value)"></div><div class="contactFilters">${filters.map(([value,label])=>`<button type="button" class="contactFilter ${contactListType===value?'selected':''}" data-contact-filter="${value}" onclick="setContactListFilter('${value}')">${label}</button>`).join('')}</div><div class="contactListTitle">НЭГДСЭН ЖАГСААЛТ</div><div id="contactUnifiedList" class="contactList">${filteredContacts().map(contactListRow).join('')||emptyList('Харилцагч бүртгэгдээгүй байна.')}</div><button type="button" class="contactAddButton" onclick="addCompany()">+ ХАРИЛЦАГЧ НЭМЭХ</button>`;
+    return `<div class="contactListHead"><div class="name">Харилцагчид</div><span class="contactStoreMeta">${esc(storeName)} · ${count} харилцагч</span></div><div class="contactSearchRow"><div class="contactSearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m15.5 15.5 5 5"></path></svg><input class="search" value="${esc(contactListQuery)}" placeholder="Нэр эсвэл утасны дугаараар хайх" oninput="filter(this.value)"></div>${contactFilterControls()}</div><div id="contactUnifiedList" class="contactList">${filteredContacts().map(contactListRow).join('')||emptyList('Харилцагч бүртгэгдээгүй байна.')}</div><button type="button" class="contactAddButton" onclick="addCompany()">+ ХАРИЛЦАГЧ НЭМЭХ</button>`;
   }
   function filterContacts(query){
     contactListQuery=String(query||'');renderContactList();
   }
   function setContactListFilter(type){
     contactListType=type==='all'?'all':validType(type);
-    document.querySelectorAll('[data-contact-filter]').forEach(button=>button.classList.toggle('selected',button.dataset.contactFilter===contactListType));
+    document.querySelectorAll('[data-contact-filter]').forEach(button=>{const active=button.dataset.contactFilter===contactListType;button.classList.toggle('active',active);button.setAttribute('aria-checked',String(active));const check=button.querySelector?.('.contactFilterCheck');if(check)check.textContent=active?'✓':'';});
+    closeContactFilterMenu();
     renderContactList();
   }
   function company(id){
@@ -222,9 +237,9 @@
     if(data.companies.some(c=>c!==selected&&String(c.name||'').trim().toLowerCase()===draft.name.toLowerCase()))return window.toast('Ийм нэртэй харилцагч бүртгэлтэй байна.');
     Object.assign(selected,draft,{status:fieldValue('eStatus')||'active'});window.save();window.closeSheet();page='companies';window.render();window.toast('Мэдээлэл шинэчлэгдлээ.');
   }
-  document.addEventListener?.('click',event=>{if(!event.target?.closest?.('.homeUrgentHead'))closeHomeDebtMenu();});
-  document.addEventListener?.('keydown',event=>{if(event.key==='Escape')closeHomeDebtMenu();});
+  document.addEventListener?.('click',event=>{if(!event.target?.closest?.('.homeUrgentHead'))closeHomeDebtMenu();if(!event.target?.closest?.('.contactSearchRow'))closeContactFilterMenu();});
+  document.addEventListener?.('keydown',event=>{if(event.key==='Escape'){closeHomeDebtMenu();closeContactFilterMenu();}});
   window.__nayadHomeDebtList=homeDebtCompanies;window.__nayadHomeDebtControls=homeDebtControls;window.__nayadHomeDebtView=()=>homeDebtView;window.toggleHomeDebtMenu=toggleHomeDebtMenu;window.closeHomeDebtMenu=closeHomeDebtMenu;window.setHomeDebtView=setHomeDebtView;
-  window.addCompany=showContactTypePicker;window.showContactTypePicker=showContactTypePicker;window.selectContactType=selectContactType;window.showContactForm=showContactForm;window.card=card;window.companies=companies;window.filter=filterContacts;window.setContactListFilter=setContactListFilter;window.company=company;window.saveCompany=saveCompany;window.editCompany=editCompany;window.saveEdit=saveEdit;
+  window.addCompany=showContactTypePicker;window.showContactTypePicker=showContactTypePicker;window.selectContactType=selectContactType;window.showContactForm=showContactForm;window.card=card;window.companies=companies;window.filter=filterContacts;window.setContactListFilter=setContactListFilter;window.toggleContactFilterMenu=toggleContactFilterMenu;window.closeContactFilterMenu=closeContactFilterMenu;window.company=company;window.saveCompany=saveCompany;window.editCompany=editCompany;window.saveEdit=saveEdit;
   injectStyle();
 })();

@@ -7,6 +7,9 @@ const source=fs.readFileSync(path.join(__dirname,'..','contact-types.js'),'utf8'
 let sheetHtml='';
 const values={};
 const data={companies:[],payments:[]};
+const contactListNode={innerHTML:''};
+const contactFilterMenuNode={hidden:false,classList:{add(name){if(name==='hide')contactFilterMenuNode.hidden=true;},contains(name){return name==='hide'&&contactFilterMenuNode.hidden;},toggle(name,force){if(name==='hide')contactFilterMenuNode.hidden=Boolean(force);}}};
+const contactFilterToggleNode={attributes:{},setAttribute(name,value){this.attributes[name]=value;}};
 const typeButtons=['person','organization'].map(type=>{
   const button={dataset:{contactType:type},selected:false,attributes:{}};
   button.classList={toggle(name,value){if(name==='selected')button.selected=Boolean(value);}};
@@ -16,7 +19,7 @@ const typeButtons=['person','organization'].map(type=>{
 const context={
   console,document:{
     head:{appendChild(){}},
-    getElementById:id=>id==='nayadContactTypeStyle'?null:{value:values[id]||''},
+    getElementById:id=>id==='nayadContactTypeStyle'?null:id==='contactUnifiedList'?contactListNode:id==='contactFilterMenu'?contactFilterMenuNode:id==='contactFilterToggle'?contactFilterToggleNode:{value:values[id]||''},
     createElement:()=>({id:'',textContent:'',appendChild(){}}),
     querySelectorAll:selector=>selector==='.contactTypeOption'?typeButtons:[]
   },
@@ -66,6 +69,7 @@ assert.match(sheetHtml,/Захирал/);
 assert.match(sheetHtml,/Захирлын утас/);
 assert.match(sheetHtml,/Худалдааны төлөөлөгч/);
 assert.match(sheetHtml,/ХТ-ийн утас/);
+assert.match(sheetHtml,/ногоон залгах товч энэ дугаар руу шууд залгана/);
 assert.doesNotMatch(sheetHtml,/Регистр/);
 
 const card=vm.runInContext('card({id:1,name:"Бат",contactType:"person",invoices:[],debt:0})',context);
@@ -77,17 +81,34 @@ const dueCard=vm.runInContext('card({id:4,name:"Due customer",contactType:"organ
 assert.match(dueCard,/INV-2045/);
 assert.match(dueCard,/Төлөх өдөр <b>2099\.09\.01<\/b>/);
 assert.match(dueCard,/homeDueState future/);
-data.companies.push({id:3,name:'Minimal',contactType:'organization',status:'active',invoices:[],debt:0});
+data.companies.push({id:3,name:'Minimal',contactType:'organization',phone:'99112233',salesPhone:'88112233',status:'active',invoices:[],debt:0});
 const companiesHtml=context.companies();
 assert.match(companiesHtml,/contactListRow/);
 assert.doesNotMatch(companiesHtml,/class="card"/);
-assert.match(companiesHtml,/НЭГДСЭН ЖАГСААЛТ/);
+assert.doesNotMatch(companiesHtml,/НЭГДСЭН ЖАГСААЛТ/);
 assert.match(companiesHtml,/Нэр эсвэл утасны дугаараар хайх/);
+assert.match(companiesHtml,/contactSearchRow/);
+assert.match(companiesHtml,/contactFilterToggle/);
+assert.match(companiesHtml,/contactFilterMenu hide/);
 assert.match(companiesHtml,/data-contact-filter="person"/);
 assert.match(companiesHtml,/data-contact-filter="organization"/);
+assert.doesNotMatch(companiesHtml,/class="contactFilters"/,'type choices must live inside the anchored filter menu');
+assert.match(companiesHtml,/contactListIdentity"><b>Minimal<\/b><span class="contactListDebt">0 ₮<\/span>/);
+assert.match(companiesHtml,/href="tel:88112233"/,'organization call button must use only the sales representative phone');
+assert.doesNotMatch(companiesHtml,/href="tel:99112233"/,'organization call button must not fall back to the general phone');
+assert.doesNotMatch(companiesHtml,/contactListArrow|contactListBalance|Нийт үлдэгдэл/,'compact rows must show only the debt amount and call action');
 assert.match(companiesHtml,/ХАРИЛЦАГЧ НЭМЭХ/);
+data.companies.push({id:4,name:'Person',contactType:'person',phone:'+976 9900-2233',status:'active',invoices:[],debt:25});
+context.setContactListFilter('person');
+assert.match(contactListNode.innerHTML,/Person/);
+assert.match(contactListNode.innerHTML,/href="tel:\+97699002233"/,'person call button must use the person phone');
+assert.doesNotMatch(contactListNode.innerHTML,/Minimal/,'the anchored type filter must update the unified list');
+assert.equal(contactFilterMenuNode.hidden,true);
+assert.equal(contactFilterToggleNode.attributes['aria-expanded'],'false');
 assert.match(source,/window\.filter=filterContacts/);
 assert.match(source,/contact\.phone,contact\.directorPhone,contact\.salesPhone/,'search must include contact phone fields');
 assert.match(source,/window\.setContactListFilter=setContactListFilter/);
+assert.match(source,/\.contactCallButton\{width:36px;height:36px;[^}]*background:#20A44B;color:#fff/,'call action must use the approved green circle and white icon');
+assert.match(source,/if\(!event\.target\?\.closest\?\.\('\.contactSearchRow'\)\)closeContactFilterMenu/,'outside taps must close the contact dropdown');
 
-console.log('contact-types: PASS — contact picker, unified search, type filters and cards are wired');
+console.log('contact-types: PASS — compact cards, sales-rep calling and anchored type filter are wired');
