@@ -1,3 +1,4 @@
+// Force Pages to rebuild after the landing page update.
 const CACHE = "nayad-v107";
 
 const ASSETS = [
