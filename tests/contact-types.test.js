@@ -73,7 +73,7 @@ assert.match(card,/Хувь хүн/);
 assert.match(card,/<svg/);
 const orgCard=vm.runInContext('card({id:2,name:"MCS",contactType:"organization",invoices:[],debt:0})',context);
 assert.match(orgCard,/Байгууллага/);
-const dueCard=vm.runInContext('card({id:4,name:"Due customer",contactType:"organization",invoices:[{id:"i1",no:"INV-2045",due_date:"2099-09-01",amount:1000,paid:0}],debt:1000})',context);
+const dueCard=vm.runInContext('card({id:4,name:"Due customer",contactType:"organization",invoices:[{id:"i1",no:"INV-2045",due_date:"2099-09-01",amount:1000,paid:0}],debt:1000},true)',context);
 assert.match(dueCard,/INV-2045/);
 assert.match(dueCard,/Төлөх өдөр <b>2099\.09\.01<\/b>/);
 assert.match(dueCard,/homeDueState future/);

@@ -37,6 +37,8 @@
       .contactTypeText{font-size:10px;color:var(--muted);margin-left:5px}
       .homeInvoiceMeta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:10px;color:var(--muted)}
       .homeInvoiceMeta b{color:var(--text);font-size:10px}.homeDueState{padding:3px 6px;border-radius:7px;font-size:9px;font-weight:800}.homeDueState.overdue{background:#fff0f0;color:#c33}.homeDueState.today,.homeDueState.soon{background:#fff4cc;color:#6a5200}.homeDueState.future{background:#f2f2ee;color:#666}
+      .homeUrgentHead{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;overflow:visible}.homeDebtMenuToggle{width:35px;height:35px;padding:0;display:grid;place-items:center;border:0;border-radius:10px;background:transparent;color:var(--text)}.homeDebtMenuToggle:hover,.homeDebtMenuToggle:focus-visible{background:var(--surface-2)}.homeDebtMenuToggle:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}.homeDebtMenuToggle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+      .homeDebtMenu{position:absolute;z-index:35;right:0;top:calc(100% + 7px);width:min(295px,calc(100vw - 54px));max-height:min(440px,calc(100vh - 175px));overflow-y:auto;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:0 15px 35px rgba(0,0,0,.19);font-size:12px;font-weight:700;text-transform:none;letter-spacing:0}.homeDebtMenu button{width:100%;min-height:43px;padding:8px 10px;display:grid;grid-template-columns:29px minmax(0,1fr);align-items:center;gap:8px;border:0;border-radius:11px;background:transparent;color:var(--text);font-size:12px;font-weight:700;text-align:left}.homeDebtMenu button:active,.homeDebtMenu button:hover{background:var(--surface-2)}.homeDebtMenu button.active{font-weight:850}.homeDebtMenu button.active .homeDebtMenuIcon{color:#B88A00}.homeDebtMenuIcon{width:24px;height:24px;display:grid;place-items:center;color:var(--muted)}.homeDebtMenuIcon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.homeDebtMenuIcon svg text{fill:currentColor;stroke:none;font-size:8px;font-weight:850}.homeAlphaIcon{display:flex;flex-direction:column;align-items:center;font-size:8px;font-weight:900;line-height:.9}.homeUrgentEmpty{margin-bottom:10px;padding:24px 14px;color:var(--muted);font-size:11px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:17px}
       .contactDetailType{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:700}
       .contactDetailType svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
       .contactListHead{margin-bottom:18px}.contactStoreMeta{display:block;margin-top:7px;color:var(--muted);font-size:12px;font-weight:650}
@@ -48,7 +50,7 @@
       .contactListBalance{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}.contactListBalance small{color:var(--muted);font-size:10px}.contactListBalance b{font-size:14px}.contactListBalance b.hasDebt{color:var(--red)}
       .contactInactiveBadge{display:inline-block!important;margin-left:5px!important;color:var(--muted)!important;font-size:9px!important}.contactListEmpty{padding:25px 14px;color:var(--muted);font-size:12px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:17px}
       .contactAddButton{width:100%;margin-top:13px;padding:15px;border:0;border-radius:15px;background:var(--yellow);color:#111;font-size:13px;font-weight:850}
-      html.nightMode .contactListRow,html.nightMode .contactFilter,html.nightMode .contactListEmpty{background:#1D1D1B;border-color:#3C3C38}html.nightMode .contactFilter.selected{background:var(--yellow);border-color:var(--yellow);color:#111}
+      html.nightMode .contactListRow,html.nightMode .contactFilter,html.nightMode .contactListEmpty,html.nightMode .homeDebtMenu,html.nightMode .homeUrgentEmpty{background:#1D1D1B;border-color:#3C3C38}html.nightMode .contactFilter.selected{background:var(--yellow);border-color:var(--yellow);color:#111}html.nightMode .homeDebtMenu button:hover,html.nightMode .homeDebtMenu button:active,html.nightMode .homeDebtMenuToggle:hover{background:#292927}
     `;document.head.appendChild(style);
   }
   let contactTypeSelectionTimer=0;
@@ -87,23 +89,75 @@
     window.sheet(`<h2>${title}</h2>${hidden}${fields}<div class="title" style="margin-top:20px">БАНКНЫ МЭДЭЭЛЭЛ</div>${bankFields(prefix,contact)}${status}${actions}${remove}`);
   }
   function companyIconLabel(contact){const type=validType(contact?.contactType);return `<span class="contactDetailType">${icon(type)}${typeLabel(type)}</span>`;}
+  const HOME_DEBT_VIEW_KEY='NAYAD_HOME_DEBT_VIEW';
+  const validHomeDebtView=value=>['all','next7','next30','nearest','overdue','missing','debt','name-asc','name-desc'].includes(value)?value:'all';
+  let homeDebtView=(()=>{try{return validHomeDebtView(localStorage.getItem(HOME_DEBT_VIEW_KEY));}catch(_error){return 'all';}})();
   function homeDue(invoice){return invoice?.effective_due_date||invoice?.due_date||'';}
   function homeDate(value){if(!value)return 'Оруулаагүй';const parts=String(value).split('-');return parts.length===3?`${parts[0]}.${parts[1]}.${parts[2]}`:String(value);}
+  function homeDueDays(value){
+    if(!value)return null;const parts=String(value).split('-').map(Number);
+    if(parts.length!==3||!parts[0]||!parts[1]||!parts[2])return null;
+    const now=new Date(),todayDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()),due=new Date(parts[0],parts[1]-1,parts[2]);
+    if(Number.isNaN(due.getTime())||due.getFullYear()!==parts[0]||due.getMonth()!==parts[1]-1||due.getDate()!==parts[2])return null;
+    return Math.round((due-todayDate)/86400000);
+  }
   function homeDueMeta(value){
     if(!value)return {kind:'future',label:'Хугацаа оруулаагүй'};
-    const now=new Date(),todayDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()),parts=String(value).split('-').map(Number),due=new Date(parts[0],parts[1]-1,parts[2]);
-    const days=Math.round((due-todayDate)/86400000);
+    const days=homeDueDays(value);if(days===null)return {kind:'future',label:'Хугацаа оруулаагүй'};
     if(days<0)return {kind:'overdue',label:`${Math.abs(days)} хоног хэтэрсэн`};
     if(days===0)return {kind:'today',label:'Өнөөдөр төлөх'};
     if(days===1)return {kind:'soon',label:'Маргааш төлөх'};
     return {kind:days<=7?'soon':'future',label:`${days} хоногийн дараа`};
   }
+  function homeOpenInvoices(contact){
+    return (contact?.invoices||[]).filter(invoice=>(invoice.status||'confirmed')!=='draft'&&invoice.status!=='cancelled'&&Math.max((Number(invoice.amount)||0)-(Number(invoice.paid)||0),0)>0);
+  }
+  function homeInvoicesForView(contact){
+    const invoices=homeOpenInvoices(contact);
+    if(homeDebtView==='next7')return invoices.filter(invoice=>{const days=homeDueDays(homeDue(invoice));return days!==null&&days>=0&&days<=7;});
+    if(homeDebtView==='next30')return invoices.filter(invoice=>{const days=homeDueDays(homeDue(invoice));return days!==null&&days>=0&&days<=30;});
+    if(homeDebtView==='overdue')return invoices.filter(invoice=>{const days=homeDueDays(homeDue(invoice));return days!==null&&days<0;});
+    if(homeDebtView==='missing')return invoices.filter(invoice=>homeDueDays(homeDue(invoice))===null);
+    return invoices;
+  }
   function homeDueInvoice(contact){
-    return (contact?.invoices||[]).filter(invoice=>(invoice.status||'confirmed')!=='draft'&&invoice.status!=='cancelled'&&Math.max((Number(invoice.amount)||0)-(Number(invoice.paid)||0),0)>0).sort((a,b)=>String(homeDue(a)||'9999-99-99').localeCompare(String(homeDue(b)||'9999-99-99')))[0]||null;
+    return homeInvoicesForView(contact).sort((a,b)=>String(homeDue(a)||'9999-99-99').localeCompare(String(homeDue(b)||'9999-99-99')))[0]||null;
+  }
+  function homeDebtCompanies(companies){
+    let rows=(companies||[]).filter(contact=>(Number(contact.debt)||0)>0);
+    if(['next7','next30','overdue','missing'].includes(homeDebtView))rows=rows.filter(contact=>homeInvoicesForView(contact).length>0);
+    if(homeDebtView==='nearest'||['next7','next30','overdue'].includes(homeDebtView))rows.sort((a,b)=>String(homeDue(homeDueInvoice(a))||'9999-99-99').localeCompare(String(homeDue(homeDueInvoice(b))||'9999-99-99')));
+    else if(homeDebtView==='debt')rows.sort((a,b)=>(Number(b.debt)||0)-(Number(a.debt)||0));
+    else if(homeDebtView==='name-asc'||homeDebtView==='name-desc')rows.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'mn',{sensitivity:'base'})*(homeDebtView==='name-desc'?-1:1));
+    return rows;
+  }
+  function homeMenuIcon(kind){
+    if(kind==='all')return '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
+    if(kind==='next7'||kind==='next30')return `<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/><text x="12" y="18" text-anchor="middle">${kind==='next7'?'7':'1'}</text></svg>`;
+    if(kind==='nearest')return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+    if(kind==='overdue')return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg>';
+    if(kind==='missing')return '<svg viewBox="0 0 24 24"><path d="M5 12c2.5-4 5-4 7 0s4.5 4 7 0-2.5-4-7 0-4.5 4-7 0Z"/></svg>';
+    if(kind==='debt')return '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v4c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 10v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4M5 14v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4"/></svg>';
+    return '<span class="homeAlphaIcon"><b>A↓</b><b>Я↑</b></span>';
+  }
+  const homeMenuRows=()=>[
+    ['all','Бүгд'],['next7','7 хоногт төлөх'],['next30','1 сард төлөх'],['nearest','Төлөх хугацаа хамгийн ойр'],['overdue','Хугацаа хэтэрсэн'],['missing','Хугацаагүй'],['debt','Их өртэй'],['name',homeDebtView==='name-desc'?'Нэрээр Я–A':'Нэрээр A–Я']
+  ];
+  function homeDebtControls(){
+    const sliders='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M15 7h5M4 17h5M13 17h7"/><circle cx="13" cy="7" r="2"/><circle cx="11" cy="17" r="2"/></svg>';
+    const options=homeMenuRows().map(([value,label])=>{const active=value==='name'?homeDebtView.startsWith('name-'):homeDebtView===value;return `<button type="button" role="menuitemradio" aria-checked="${active}" class="${active?'active':''}" onclick="event.stopPropagation();setHomeDebtView('${value}')"><span class="homeDebtMenuIcon">${homeMenuIcon(value)}</span><span>${esc(label)}</span></button>`;}).join('');
+    return `<button id="homeDebtMenuToggle" class="homeDebtMenuToggle" type="button" aria-label="Яаралтай өрийг шүүх, эрэмбэлэх" aria-haspopup="menu" aria-expanded="false" onclick="toggleHomeDebtMenu(event)">${sliders}</button><div id="homeDebtMenu" class="homeDebtMenu hide" role="menu" aria-label="Яаралтай өрийг шүүх, эрэмбэлэх" onclick="event.stopPropagation()">${options}</div>`;
+  }
+  function closeHomeDebtMenu(){const menu=document.getElementById('homeDebtMenu'),button=document.getElementById('homeDebtMenuToggle');menu?.classList.add('hide');button?.setAttribute('aria-expanded','false');}
+  function toggleHomeDebtMenu(event){event?.stopPropagation?.();const menu=document.getElementById('homeDebtMenu'),button=document.getElementById('homeDebtMenuToggle');if(!menu||!button)return;const opening=menu.classList.contains('hide');menu.classList.toggle('hide',!opening);button.setAttribute('aria-expanded',String(opening));}
+  function setHomeDebtView(value){
+    homeDebtView=value==='name'?(homeDebtView==='name-asc'?'name-desc':'name-asc'):validHomeDebtView(value);
+    try{localStorage.setItem(HOME_DEBT_VIEW_KEY,homeDebtView);}catch(_error){}
+    closeHomeDebtMenu();window.render();
   }
   function card(contact,pay=false){
     const c=contact||{},type=validType(c.contactType),invoice=homeDueInvoice(c),due=homeDue(invoice),meta=homeDueMeta(due);
-    const dueInfo=invoice?`<div class="homeInvoiceMeta"><span>${esc(invoice.no||'Дугааргүй')}</span><span>Төлөх өдөр <b>${esc(homeDate(due))}</b></span><span class="homeDueState ${meta.kind}">${esc(meta.label)}</span></div>`:'';
+    const dueInfo=pay&&invoice?`<div class="homeInvoiceMeta"><span>${esc(invoice.no||'Дугааргүй')}</span><span>Төлөх өдөр <b>${esc(homeDate(due))}</b></span><span class="homeDueState ${meta.kind}">${esc(meta.label)}</span></div>`:'';
     return `<div class="card" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(type)}<div><b>${esc(c.name)}</b><span>${typeLabel(type)}<span class="contactTypeText">· ${c.invoices?.length||0} падаан</span></span></div></div><div class="amount redText">${window.money(c.debt)}${pay?`<br><button class="primary" style="padding:6px 9px;margin-top:5px" onclick="event.stopPropagation();payment(${c.id})">Төлөх</button>`:''}</div></div>${dueInfo}</div>`;
   }
   const phoneLabel=value=>{
@@ -168,6 +222,9 @@
     if(data.companies.some(c=>c!==selected&&String(c.name||'').trim().toLowerCase()===draft.name.toLowerCase()))return window.toast('Ийм нэртэй харилцагч бүртгэлтэй байна.');
     Object.assign(selected,draft,{status:fieldValue('eStatus')||'active'});window.save();window.closeSheet();page='companies';window.render();window.toast('Мэдээлэл шинэчлэгдлээ.');
   }
+  document.addEventListener?.('click',event=>{if(!event.target?.closest?.('.homeUrgentHead'))closeHomeDebtMenu();});
+  document.addEventListener?.('keydown',event=>{if(event.key==='Escape')closeHomeDebtMenu();});
+  window.__nayadHomeDebtList=homeDebtCompanies;window.__nayadHomeDebtControls=homeDebtControls;window.__nayadHomeDebtView=()=>homeDebtView;window.toggleHomeDebtMenu=toggleHomeDebtMenu;window.closeHomeDebtMenu=closeHomeDebtMenu;window.setHomeDebtView=setHomeDebtView;
   window.addCompany=showContactTypePicker;window.showContactTypePicker=showContactTypePicker;window.selectContactType=selectContactType;window.showContactForm=showContactForm;window.card=card;window.companies=companies;window.filter=filterContacts;window.setContactListFilter=setContactListFilter;window.company=company;window.saveCompany=saveCompany;window.editCompany=editCompany;window.saveEdit=saveEdit;
   injectStyle();
 })();
