@@ -1,5 +1,5 @@
-// Force Pages to rebuild after the landing page update.
-const CACHE = "nayad-v107";
+// Invalidate the installed app shell for the approved landing-page redesign.
+const CACHE = "nayad-v108";
 
 const ASSETS = [
   "./",
