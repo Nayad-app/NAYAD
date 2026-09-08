@@ -1,5 +1,5 @@
-// Invalidate the installed app shell for the approved landing-page redesign.
-const CACHE = "nayad-v108";
+// Invalidate the installed app shell after removing Google from the login screen.
+const CACHE = "nayad-v109";
 
 const ASSETS = [
   "./",
