@@ -20,6 +20,24 @@ const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (
   "'": "&#39;",
 }[character] ?? character));
 
+const permissionModules = ["customers", "invoices", "payments", "loans"] as const;
+const normalizePermissions = (value: unknown) => {
+  const legacyDefault: Record<string, unknown> = { customers: "view", invoices: "view", payments: "view", loans: "none" };
+  const source = value === undefined || value === null
+    ? legacyDefault
+    : value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const result: Record<string, "none" | "view" | "edit"> = {};
+  for (const module of permissionModules) {
+    const level = source[module];
+    result[module] = level === "view" || level === "edit" ? level : "none";
+  }
+  if (result.payments === "edit" && result.invoices === "none") result.invoices = "view";
+  if (result.customers === "none" && (result.invoices !== "none" || result.payments !== "none")) {
+    result.customers = "view";
+  }
+  return result;
+};
+
 async function rpc(url: string, apiKey: string, authorization: string, name: string, body: Record<string, unknown>) {
   const response = await fetch(`${url}/rest/v1/rpc/${name}`, {
     method: "POST",
@@ -104,16 +122,21 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const storeId = String(body?.store_id ?? "").trim();
     const email = String(body?.email ?? "").trim().toLowerCase();
+    const permissions = normalizePermissions(body?.permissions);
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(storeId)) {
       return json({ error: "Invalid store" }, 400);
     }
     if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return json({ error: "Invalid email" }, 400);
     }
+    if (!Object.values(permissions).some((level) => level === "view" || level === "edit")) {
+      return json({ error: "At least one permission is required" }, 400);
+    }
 
-    const invite = await rpc(supabaseUrl, apiKey, authorization, "create_store_invite", {
+    const invite = await rpc(supabaseUrl, apiKey, authorization, "create_store_invite_with_permissions", {
       p_store_id: storeId,
       p_email: email,
+      p_permissions: permissions,
     });
     const token = String(invite?.token ?? "");
     if (!token) throw new Error("Invite link was not created");

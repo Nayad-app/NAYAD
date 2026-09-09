@@ -38,10 +38,38 @@
   function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
   function active(){return runtimeBelongsTo()?window.__nayadActiveStore||null:null;}
   function roleLabel(role){return role==='owner'?'Эзэмшигч':'Гишүүн';}
+  const PERMISSION_MODULES=['customers','invoices','payments','loans'];
+  function normalizedPermissions(value,role=''){
+    const hasExplicit=value&&typeof value==='object';
+    const source=hasExplicit?value:(role==='owner'||role==='manager'
+      ?{customers:'edit',invoices:'edit',payments:'edit',loans:'edit'}
+      :role?{customers:'edit',invoices:'edit',payments:'edit',loans:'none'}:{});
+    const result={};
+    PERMISSION_MODULES.forEach(module=>{result[module]=['none','view','edit'].includes(source[module])?source[module]:'none';});
+    if(result.payments==='edit'&&result.invoices==='none')result.invoices='view';
+    if(result.customers==='none'&&(result.invoices!=='none'||result.payments!=='none'))result.customers='view';
+    return result;
+  }
+  function can(module,action='view'){
+    const store=active();
+    if(!store||!PERMISSION_MODULES.includes(module))return false;
+    if(store.role==='owner')return true;
+    if(action==='owner'||action==='delete')return false;
+    const level=normalizedPermissions(store.permissions,store.role)[module];
+    return action==='edit'?level==='edit':level==='view'||level==='edit';
+  }
+  function sanitizeStoreState(value){
+    const next=value&&typeof value==='object'?value:{companies:[],payments:[]};
+    if(active()?.role==='owner')return next;
+    if(!can('customers','view'))next.companies=[];
+    else if(!can('invoices','view'))next.companies=(next.companies||[]).map(company=>({...company,invoices:[],debt:0}));
+    if(!can('payments','view'))next.payments=[];
+    return next;
+  }
   const BUSINESS_TYPES=['Жижиглэн худалдаа','Бөөний худалдаа','Хоол, хүнс','Үйлчилгээ','Онлайн худалдаа','Бусад'];
   function businessTypeOptions(){return `<option value="">Сонгоно уу</option>${BUSINESS_TYPES.map(type=>`<option value="${esc(type)}">${esc(type)}</option>`).join('')}`;}
   function normalizeStores(rows){
-    return (rows||[]).map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',created_at:row.created_at})).filter(row=>row.id);
+    return (rows||[]).map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',permissions:normalizedPermissions(row.permissions,row.role||'member'),created_at:row.created_at})).filter(row=>row.id);
   }
   function clearRuntimeStoreState(){
     stores=[];
@@ -104,14 +132,16 @@
     const client=sb();if(!client)return [];
     if(!expectedUserId)return [];
     if(!await waitForSessionUser(client,expectedUserId))return [];
-    let result=await client.rpc('get_my_stores');
+    let result=await client.rpc('get_my_stores_with_permissions');
+    if(result.error&&(/PGRST202|42883|Could not find the function/i.test(String(result.error.code||'')+' '+String(result.error.message||''))))result=await client.rpc('get_my_stores');
     if(result.error)throw result.error;
     let rows=Array.isArray(result.data)?result.data:[];
     let ensured=null;
     if(!rows.some(row=>row?.role==='owner')){
       const made=await client.rpc('ensure_my_store');if(made.error)throw made.error;
       ensured=Array.isArray(made.data)?made.data[0]:made.data;
-      result=await client.rpc('get_my_stores');
+      result=await client.rpc('get_my_stores_with_permissions');
+      if(result.error&&(/PGRST202|42883|Could not find the function/i.test(String(result.error.code||'')+' '+String(result.error.message||''))))result=await client.rpc('get_my_stores');
       if(result.error)throw result.error;
       rows=Array.isArray(result.data)?result.data:[];
     }
@@ -180,19 +210,23 @@
     if(initializedFor!==userId()||!runtimeBelongsTo())return false;
     const next=stores.find(s=>String(s.id)===String(storeId));if(!next)return false;
     const changed=String(window.__nayadActiveStoreId||'')!==String(next.id);
+    const previous=active();
+    const permissionsChanged=!changed&&previous&&(
+      previous.role!==next.role||JSON.stringify(normalizedPermissions(previous.permissions,previous.role))!==JSON.stringify(normalizedPermissions(next.permissions,next.role))
+    );
     if(changed&&options.sync!==false&&window.__nayadCloudSyncQueue){
       await window.__nayadCloudSyncQueue.catch(()=>{});
     }
     window.__nayadActiveStoreId=next.id;window.__nayadActiveStore=next;
     if(activeKey())localStorage.setItem(activeKey(),next.id);
-    if(changed&&window.__nayadState){
-      const nextData=window.__nayadState.read();
+    if((changed||permissionsChanged)&&window.__nayadState){
+      const nextData=sanitizeStoreState(window.__nayadState.read());
       window.__nayadState.commit(nextData,{render:false});
-      try{if(typeof page!=='undefined')page='home';if(typeof selected!=='undefined')selected=null;}catch(_){}
+      try{if(changed&&typeof page!=='undefined')page='home';if(typeof selected!=='undefined')selected=null;}catch(_){}
     }
     if(typeof window.closeSheet==='function'&&options.close!==false)window.closeSheet();
     if(typeof window.render==='function')window.render();else renderBar();
-    if(changed&&options.sync!==false){
+    if((changed||permissionsChanged)&&options.sync!==false){
       if(typeof window.__nayadSyncInvoices==='function')await window.__nayadSyncInvoices();
       if(typeof window.__nayadSyncSuppliers==='function')await window.__nayadSyncSuppliers();
       if(typeof window.__nayadWatchCloudStore==='function')await window.__nayadWatchCloudStore();
@@ -202,10 +236,13 @@
 
   async function refreshStoresNow(options={}){
     const uid=await ensureCurrentUser();if(!uid)return [];
+    const previousStoreIds=runtimeBelongsTo(uid)?stores.map(store=>String(store.id)):[];
     const fetched=await fetchStores(uid);
     if(uid!==userId())return [];
     if(!fetched.length)return [];
     stores=fetched;initializedFor=uid;window.__nayadStores=stores;window.__nayadStoresUserId=uid;
+    const nextStoreIds=new Set(stores.map(store=>String(store.id)));
+    previousStoreIds.filter(id=>!nextStoreIds.has(id)).forEach(id=>localStorage.removeItem(`${DATA_PREFIX}${uid}:${id}`));
     const requested=options.selectStoreId;
     const remembered=localStorage.getItem(ACTIVE_PREFIX+uid);
     const current=window.__nayadActiveStoreId;
@@ -283,6 +320,8 @@
   window.__nayadPrepareUserStore=prepareUserStore;
   window.__nayadHydrateVerifiedStores=hydrateVerifiedStores;
   window.__nayadClearStoreRuntime=clearRuntimeStoreState;
+  window.__nayadCan=can;
+  window.__nayadNormalizePermissions=normalizedPermissions;
 
   /* Store initialization is intentionally NOT started from load/auth listeners.
      Every store resolution first reconciles window.__nayadUser with the current

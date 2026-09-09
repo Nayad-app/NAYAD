@@ -29,19 +29,19 @@ const context={
 
 const swSource=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-assert.match(swSource,/const CACHE = "nayad-v110";/,'the multi-store update must invalidate the installed app shell');
-assert.match(swSource,/\.\/store-switcher\.js\?v=60/);
-assert.match(indexSource,/\.\/store-switcher\.js\?v=60/,'index and service worker must load the same store switcher');
-assert.match(swSource,/\.\/store-recovery\.js\?v=54/);
-assert.match(indexSource,/\.\/store-recovery\.js\?v=54/,'store recovery must be loaded directly, not only injected by the service worker');
+assert.match(swSource,/const CACHE = "nayad-v111";/,'the member-permission update must invalidate the installed app shell');
+assert.match(swSource,/\.\/store-switcher\.js\?v=61/);
+assert.match(indexSource,/\.\/store-switcher\.js\?v=61/,'index and service worker must load the same store switcher');
+assert.match(swSource,/\.\/store-recovery\.js\?v=55/);
+assert.match(indexSource,/\.\/store-recovery\.js\?v=55/,'store recovery must be loaded directly, not only injected by the service worker');
 assert.match(swSource,/\.\/auth-guard\.js\?v=56/);
 assert.match(indexSource,/\.\/auth-guard\.js\?v=56/,'auth guard must be loaded directly, not only injected by the service worker');
 assert.match(swSource,/\.\/cloud-runtime\.js\?v=58/);
 assert.match(indexSource,/\.\/cloud-runtime\.js\?v=58/,'index and service worker must load the same cloud runtime');
 assert.match(swSource,/\.\/money-input\.js\?v=1/);
 assert.match(indexSource,/\.\/money-input\.js\?v=1/,'index and service worker must load the money formatter');
-assert.match(swSource,/\.\/invoice-cloud\.js\?v=69/);
-assert.match(indexSource,/\.\/invoice-cloud\.js\?v=69/,'index and service worker must load the same invoice code');
+assert.match(swSource,/\.\/invoice-cloud\.js\?v=70/);
+assert.match(indexSource,/\.\/invoice-cloud\.js\?v=70/,'index and service worker must load the same invoice code');
 assert.match(swSource,/\.\/payment-center\.js\?v=9/);
 assert.match(indexSource,/\.\/payment-center\.js\?v=9/,'index and service worker must load the same payment center');
 assert.match(swSource,/\.\/loans\.js\?v=2/);
@@ -50,12 +50,14 @@ assert.match(swSource,/\.\/contact-types\.js\?v=7/);
 assert.match(indexSource,/\.\/contact-types\.js\?v=7/,'index and service worker must load the contact type module');
 assert.match(swSource,/\.\/supplier-cloud\.js\?v=57/);
 assert.match(indexSource,/\.\/supplier-cloud\.js\?v=57/,'index and service worker must load the same supplier code');
-assert.match(swSource,/\.\/share\.js\?v=39/);
-assert.match(indexSource,/\.\/share\.js\?v=39/,'index and service worker must load the same sharing code');
+assert.match(swSource,/\.\/share\.js\?v=40/);
+assert.match(indexSource,/\.\/share\.js\?v=40/,'index and service worker must load the same sharing code');
 assert.match(swSource,/\.\/profile-menu\.js\?v=5/);
 assert.match(indexSource,/\.\/profile-menu\.js\?v=5/,'index and service worker must load the profile drawer');
 assert.match(swSource,/\.\/subscription\.js\?v=1/);
 assert.match(indexSource,/\.\/subscription\.js\?v=1/,'index and service worker must load the subscription flow');
+assert.match(swSource,/\.\/member-permissions\.js\?v=1/);
+assert.match(indexSource,/\.\/member-permissions\.js\?v=1/,'index and service worker must load the permission guard');
 
 vm.createContext(context);
 vm.runInContext(swSource,context,{filename:'sw.js'});
@@ -63,21 +65,22 @@ vm.runInContext(swSource,context,{filename:'sw.js'});
 const legacyHtml='<body><script src="./store-switcher.js?v=58"></script><script src="./share.js?v=38"></script><script src="./invoice-cloud.js?v=67"></script></body>';
 const patchedOnce=context.patchDocument(legacyHtml);
 const patchedTwice=context.patchDocument(patchedOnce);
-for(const asset of ['./store-recovery.js?v=54','./auth-guard.js?v=56','./cloud-runtime.js?v=58']){
+for(const asset of ['./store-recovery.js?v=55','./auth-guard.js?v=56','./cloud-runtime.js?v=58','./member-permissions.js?v=1']){
   assert.equal(patchedTwice.split(asset).length-1,1,`${asset} must be injected exactly once`);
 }
 assert.ok(
-  patchedTwice.indexOf('./store-switcher.js?v=60')<patchedTwice.indexOf('./store-recovery.js?v=54')&&
-  patchedTwice.indexOf('./store-recovery.js?v=54')<patchedTwice.indexOf('./auth-guard.js?v=56')&&
+  patchedTwice.indexOf('./store-switcher.js?v=61')<patchedTwice.indexOf('./store-recovery.js?v=55')&&
+  patchedTwice.indexOf('./store-recovery.js?v=55')<patchedTwice.indexOf('./auth-guard.js?v=56')&&
   patchedTwice.indexOf('./auth-guard.js?v=56')<patchedTwice.indexOf('./money-input.js?v=1')&&
   patchedTwice.indexOf('./money-input.js?v=1')<patchedTwice.indexOf('./cloud-runtime.js?v=58')&&
-  patchedTwice.indexOf('./cloud-runtime.js?v=58')<patchedTwice.indexOf('./invoice-cloud.js?v=69'),
+  patchedTwice.indexOf('./cloud-runtime.js?v=58')<patchedTwice.indexOf('./invoice-cloud.js?v=70'),
   'legacy documents must receive the same safe store/auth/cloud script order'
 );
 assert.equal(patchedTwice.split('./profile-menu.js?v=5').length-1,1,'profile drawer must be injected exactly once');
 assert.equal(patchedTwice.split('./subscription.js?v=1').length-1,1,'subscription flow must be injected exactly once');
+assert.ok(patchedTwice.indexOf('./subscription.js?v=1')<patchedTwice.indexOf('./member-permissions.js?v=1'),'permission guard must load after all feature modules');
 assert.equal(patchedTwice.split('./loans.js?v=2').length-1,1,'loan module must be injected exactly once');
-assert.ok(patchedTwice.indexOf('./share.js?v=39')<patchedTwice.indexOf('./profile-menu.js?v=5'),'profile drawer must load after sharing actions');
+assert.ok(patchedTwice.indexOf('./share.js?v=40')<patchedTwice.indexOf('./profile-menu.js?v=5'),'profile drawer must load after sharing actions');
 
 async function dispatch(request){
   let responsePromise;

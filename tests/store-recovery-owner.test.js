@@ -26,7 +26,7 @@ const context={
     createElement:()=>({className:'',innerHTML:''})
   },
   fetch:async url=>{
-    if(String(url).endsWith('/rpc/get_my_stores')){
+    if(String(url).endsWith('/rpc/get_my_stores_with_permissions')){
       listCalls++;
       return new Response(JSON.stringify(rows),{status:200,headers:{'content-type':'application/json'}});
     }

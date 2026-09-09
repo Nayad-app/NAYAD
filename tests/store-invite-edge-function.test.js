@@ -5,7 +5,9 @@ const path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'..','supabase','functions','send-store-invite','index.ts'),'utf8');
 
 assert.match(source,/Authorization.*bearer/i,'the caller must be authenticated');
-assert.match(source,/"create_store_invite"/,'the owner-checked RPC must create the invite');
+assert.match(source,/"create_store_invite_with_permissions"/,'the owner-checked RPC must create the invite with selected permissions');
+assert.match(source,/permissionModules = \["customers", "invoices", "payments", "loans"\]/,'all shareable modules must be normalized server-side');
+assert.match(source,/At least one permission is required/,'an empty permission set must be rejected');
 assert.match(source,/Deno\.env\.get\("RESEND_API_KEY"\)/,'the provider key must stay server-side');
 assert.match(source,/is_auth_email_registered/,'the Auth SMTP fallback must distinguish existing recipients server-side');
 assert.match(source,/shouldCreateUser:\s*false/,'existing recipients must not be duplicated by the magic-link fallback');

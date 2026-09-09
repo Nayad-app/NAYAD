@@ -9,12 +9,16 @@ const sharedId='store-shared';
 const values=new Map([
   [`NAYAD_ACTIVE_STORE:${userId}`,ownId],
   [`NAYAD_DATA_V4:${userId}:${ownId}`,JSON.stringify({companies:[{id:1,name:'OWN DATA',invoices:[]}],payments:[]})],
-  [`NAYAD_DATA_V4:${userId}:${sharedId}`,JSON.stringify({companies:[{id:2,name:'SHARED DATA',invoices:[]}],payments:[]})]
+  [`NAYAD_DATA_V4:${userId}:${sharedId}`,JSON.stringify({companies:[{id:2,name:'SHARED DATA',debt:500,invoices:[{id:'invoice-1',amount:500,paid:0}]}],payments:[{id:'payment-1',amount:100}]})]
 ]);
 let pickerHtml='';
 let renderedCompany='';
 let invoiceSyncs=0;
 let supplierSyncs=0;
+let membershipRows=[
+  {user_id:userId,id:ownId,role:'owner',permissions:{customers:'edit',invoices:'edit',payments:'edit',loans:'edit'},created_at:'2026-08-17',name:'tsendun store'},
+  {user_id:userId,id:sharedId,role:'manager',permissions:{customers:'edit',invoices:'edit',payments:'edit',loans:'none'},created_at:'2026-08-18',name:'NAYAD'}
+];
 let releasePendingCloud;
 const pendingCloud=new Promise(resolve=>{releasePendingCloud=resolve;});
 const content={firstChild:null,querySelector:()=>null,insertBefore(){}};
@@ -22,7 +26,7 @@ const app={classList:{contains:()=>false}};
 
 const context={
   console,Intl,setTimeout:fn=>{fn();return 1;},clearTimeout(){},
-  localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,String(value))},
+  localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,String(value)),removeItem:key=>values.delete(key)},
   document:{
     head:{insertAdjacentHTML(){}},
     getElementById:id=>id==='content'?content:id==='app'?app:null,
@@ -40,11 +44,8 @@ context.window.__nayadCloudSyncQueue=pendingCloud;
 context.window.nayadSupabase={
   auth:{getSession:async()=>({data:{session:{user:{id:userId}}},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
   rpc:async name=>{
-    assert.equal(name,'get_my_stores');
-    return {data:[
-      {user_id:userId,id:ownId,role:'owner',created_at:'2026-08-17',name:'tsendun store'},
-      {user_id:userId,id:sharedId,role:'member',created_at:'2026-08-18',name:'NAYAD'}
-    ],error:null};
+    assert.equal(name,'get_my_stores_with_permissions');
+    return {data:membershipRows,error:null};
   }
 };
 
@@ -86,5 +87,16 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
   await context.window.selectNayadStore(ownId);
   assert.equal(renderedCompany,'OWN DATA','switching back must restore owned store data');
   assert.equal(values.get(`NAYAD_ACTIVE_STORE:${userId}`),ownId);
+
+  await context.window.selectNayadStore(sharedId);
+  membershipRows=membershipRows.map(store=>store.id===sharedId?{...store,role:'staff',permissions:{customers:'view',invoices:'none',payments:'none',loans:'none'}}:store);
+  await context.window.__nayadRefreshStores({sync:false,close:false});
+  assert.equal(vm.runInContext('data.companies[0].invoices.length',context),0,'revoked invoice access must purge cached invoice rows immediately');
+  assert.equal(vm.runInContext('data.payments.length',context),0,'revoked payment access must purge cached payment rows immediately');
+
+  membershipRows=membershipRows.filter(store=>store.id!==sharedId);
+  await context.window.__nayadRefreshStores({sync:false,close:false});
+  assert.equal(context.window.__nayadActiveStoreId,ownId,'a removed member must return to an accessible owned store');
+  assert.equal(values.has(`NAYAD_DATA_V4:${userId}:${sharedId}`),false,'a removed store must be deleted from this browser cache');
   console.log('multi-store: PASS — two stores remain separate and switch safely');
 })().catch(error=>{console.error(error);process.exitCode=1;});

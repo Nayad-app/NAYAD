@@ -20,6 +20,21 @@
   function queueCloudSync(task){return window.__nayadQueueCloudSync(task);}
 
   function client(){ return window.nayadSupabase || window.sb || null; }
+  async function resolveInvoiceImageRows(rows,ttl=600,storageClient=client()){
+    const list=Array.isArray(rows)?rows:[];
+    const paths=list.map(row=>String(row?.image_path||'')).filter(Boolean);
+    if(!paths.length||typeof storageClient?.storage?.from!=='function')return list.map(row=>({...row,resolved_url:row?.image_url||''}));
+    const bucket=storageClient.storage.from('invoice-images');
+    if(typeof bucket.createSignedUrls!=='function')return list.map(row=>({...row,resolved_url:row?.image_url||''}));
+    const {data,error}=await bucket.createSignedUrls(paths,ttl);
+    if(error){console.warn('Invoice image signing:',error);return list.map(row=>({...row,resolved_url:row?.image_url||''}));}
+    const signed=new Map((data||[]).map(item=>[String(item?.path||''),item?.signedUrl||'']));
+    return list.map(row=>({...row,resolved_url:signed.get(String(row?.image_path||''))||row?.image_url||''}));
+  }
+  window.__nayadSignedInvoiceUrls=async function(rows,ttl=600){
+    const resolved=await resolveInvoiceImageRows(rows,ttl,client());
+    return resolved.map(row=>row.resolved_url).filter(Boolean);
+  };
   function moneyInputValue(value){
     if(typeof window.__nayadParseMoneyInput==='function')return window.__nayadParseMoneyInput(value);
     const parsed=Number(String(value??'').replace(/,/g,''));return Number.isFinite(parsed)?parsed:0;
@@ -118,6 +133,29 @@
   function notify(msg){ if(typeof window.toast==='function') window.toast(msg); else { const el=document.getElementById('toast'); if(el){el.textContent=msg;el.classList.remove('hide');setTimeout(()=>el.classList.add('hide'),2200)} } }
   function close(){ if(typeof window.closeSheet==='function') window.closeSheet(); else document.getElementById('modal')?.classList.add('hide'); }
   function openSheet(html){ if(typeof window.sheet==='function') window.sheet(html); else { const s=document.getElementById('sheet'); if(s){s.innerHTML=html;document.getElementById('modal')?.classList.remove('hide')} } }
+
+  window.viewInvoiceImages=async function(invoiceId){
+    const local=readLocal();let invoice=null;
+    for(const company of local.companies||[]){const found=(company.invoices||[]).find(item=>String(item.id)===String(invoiceId));if(found){invoice=found;break;}}
+    if(!invoice)return notify('Падаан олдсонгүй.');
+    let rows=[];
+    try{
+      const result=await client().from('invoice_images').select('image_url,image_path,page_number').eq('invoice_id',String(invoice.id)).order('page_number',{ascending:true});
+      if(result.error)throw result.error;rows=result.data||[];
+    }catch(error){console.warn('Invoice image read:',error);}
+    let urls=await window.__nayadSignedInvoiceUrls(rows,600);
+    if(!urls.length)urls=(invoice.image_urls||[]).filter(Boolean);
+    if(!urls.length)return notify('Энэ падаанд зураг оруулаагүй байна.');
+    let current=0;
+    function draw(){
+      const url=urls[current];window.__nayadOpenInvoiceImage=()=>window.open(url,'_blank');
+      const root=document.getElementById('sheet');if(!root)return;
+      root.innerHTML=`<div class="row"><h2 style="margin:0">Падааны зураг</h2><button class="secondary" onclick="closeSheet()">✕</button></div><div style="margin-top:15px;text-align:center"><div class="sub" style="margin-bottom:8px">${esc(invoice.no||'')}</div><div style="font-weight:900;margin-bottom:8px">${current+1} / ${urls.length}-р хуудас</div><img src="${esc(url)}" style="width:100%;max-height:65vh;object-fit:contain;border-radius:14px;border:1px solid #eee;background:#f7f7f5"></div><div class="viewerNav"><button class="secondary" ${current===0?'disabled':''} onclick="window.__invoicePrev()">←</button><span class="sub">Хуудсууд</span><button class="secondary" ${current===urls.length-1?'disabled':''} onclick="window.__invoiceNext()">→</button></div><button class="primary full" style="margin-top:12px" onclick="window.__nayadOpenInvoiceImage()">Зургийг бүтэн дэлгэцээр нээх</button>`;
+    }
+    window.__invoicePrev=()=>{if(current>0){current--;draw();}};
+    window.__invoiceNext=()=>{if(current<urls.length-1){current++;draw();}};
+    openSheet('');draw();
+  };
 
   async function store(){
     const sb=client(); if(!sb) throw new Error('Supabase холболт олдсонгүй.');
@@ -522,12 +560,14 @@
             uploaded.push(path);
             const {error:uploadError}=await writeClient.storage.from('invoice-images').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
             if(uploadError)throw new Error(`${i+1}-р зураг хадгалахад алдаа: ${uploadError.message}`);
-            const {data:urlData}=writeClient.storage.from('invoice-images').getPublicUrl(path); const imageUrl=urlData?.publicUrl||''; imageUrls.push(imageUrl);
-            const {error:rowError}=await writeClient.from('invoice_images').insert({id:crypto.randomUUID(),invoice_id:invoiceId,image_url:imageUrl,image_path:path,page_number:i+1});
+            const {data:urlData}=writeClient.storage.from('invoice-images').getPublicUrl(path); const storedImageUrl=urlData?.publicUrl||'';
+            const signedRows=await resolveInvoiceImageRows([{image_path:path,image_url:storedImageUrl}],3600,writeClient);const imageUrl=signedRows[0]?.resolved_url||'';imageUrls.push(imageUrl);
+            const {error:rowError}=await writeClient.from('invoice_images').insert({id:crypto.randomUUID(),invoice_id:invoiceId,image_url:storedImageUrl,image_path:path,page_number:i+1});
             if(rowError)throw new Error(`${i+1}-р зургийн мэдээлэл хадгалахад алдаа: ${rowError.message}`);
           }
           if(imageUrls[0]){
-            const {error:updateError}=await writeClient.rpc('save_invoice_draft',{...draftArgs,p_image_url:imageUrls[0]});
+            const {data:urlData}=writeClient.storage.from('invoice-images').getPublicUrl(uploaded[0]);
+            const {error:updateError}=await writeClient.rpc('save_invoice_draft',{...draftArgs,p_image_url:urlData?.publicUrl||null});
             if(updateError)throw new Error('Падааны зураг холбоход алдаа: '+updateError.message);
           }
           const {error:confirmError}=await writeClient.rpc('confirm_invoice_with_note',{p_invoice_id:invoiceId,p_note:note});
@@ -614,6 +654,7 @@
       .order('created_at',{ascending:true});
     if(suppliersError||!suppliers)return;
     const {data:images}=invoices.length?await sb.from('invoice_images').select('invoice_id,image_url,image_path,page_number').in('invoice_id',invoices.map(x=>x.id)).order('page_number',{ascending:true}):{data:[]};
+    const resolvedImages=await resolveInvoiceImageRows(images||[],3600,sb);
     /* A store snapshot is authoritative. Do not merge it into the previous
        browser list by name: an old/duplicated local supplier can otherwise
        survive on one device and make its balance differ from the other. */
@@ -626,8 +667,8 @@
       c.supabase_supplier_id=s.id;c.invoices=c.invoices||[];
       const remote=invoices.filter(i=>String(i.supplier_id)===String(s.id));
       const nextInvoices=remote.map(ri=>{
-        const imgs=(images||[]).filter(im=>String(im.invoice_id)===String(ri.id)).sort((a,b)=>(a.page_number||1)-(b.page_number||1));
-        const urls=imgs.map(x=>x.image_url).filter(Boolean); const paths=imgs.map(x=>x.image_path).filter(Boolean);
+        const imgs=resolvedImages.filter(im=>String(im.invoice_id)===String(ri.id)).sort((a,b)=>(a.page_number||1)-(b.page_number||1));
+        const urls=imgs.map(x=>x.resolved_url).filter(Boolean); const paths=imgs.map(x=>x.image_path).filter(Boolean);
         const invoiceAgreements=(agreements||[]).filter(item=>String(item.invoice_id)===String(ri.id));
         const effectiveDue=invoiceAgreements.length?invoiceAgreements.map(item=>item.agreed_due_date).sort()[0]:(ri.due_date||null);
         const postedAllocations=(allocations||[]).filter(item=>String(item.invoice_id)===String(ri.id)&&item.payments?.status==='posted');

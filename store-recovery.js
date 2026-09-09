@@ -30,6 +30,7 @@
       id:row.id,
       name:row.name||'NAYAD',
       role:row.role||'member',
+      permissions:typeof window.__nayadNormalizePermissions==='function'?window.__nayadNormalizePermissions(row.permissions,row.role):row.permissions,
       created_at:row.created_at
     })).filter(row=>row.id);
   }
@@ -67,9 +68,16 @@
     try{payload=text?JSON.parse(text):null;}catch(_){payload=null;}
     if(!response.ok){
       const message=payload?.message||payload?.error_description||text||('HTTP '+response.status);
-      throw new Error(message);
+      const error=new Error(message);error.code=payload?.code||'';throw error;
     }
     return payload;
+  }
+  async function listStoresWithExactToken(accessToken){
+    try{return (await rpcWithExactToken('get_my_stores_with_permissions',accessToken))||[];}
+    catch(error){
+      if(!/PGRST202|42883|Could not find the function/i.test(String(error?.code||'')+' '+String(error?.message||'')))throw error;
+      return (await rpcWithExactToken('get_my_stores',accessToken))||[];
+    }
   }
 
   async function prepareVerifiedStore(expectedUserId){
@@ -101,7 +109,7 @@
           return false;
         }
 
-        let rows=(await rpcWithExactToken('get_my_stores',accessToken))||[];
+        let rows=await listStoresWithExactToken(accessToken);
         if(rows.length){
           if(!rows.every(row=>String(row?.user_id||'')===String(expectedUserId))){
             console.warn('Store recovery rejected mismatched RPC identity.');
@@ -113,7 +121,7 @@
         if(!rows.some(row=>row?.role==='owner')&&!ensured){
           await rpcWithExactToken('ensure_my_store',accessToken);
           ensured=true;
-          rows=(await rpcWithExactToken('get_my_stores',accessToken))||[];
+          rows=await listStoresWithExactToken(accessToken);
           if(rows.length&&!rows.every(row=>String(row?.user_id||'')===String(expectedUserId))){
             console.warn('Store recovery rejected mismatched RPC identity after ensure.');
             await sleep(120+attempt*60);

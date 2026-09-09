@@ -8,7 +8,7 @@ const previousUserId='previous-user';
 const oldStoreId='tsendun-store';
 const newStoreId='new-empty-store';
 const sharedStoreId='shared-store';
-let membershipRows=[{user_id:newUserId,id:sharedStoreId,role:'staff',created_at:'2026-08-18',name:'Shared store'}];
+let membershipRows=[{user_id:newUserId,id:sharedStoreId,role:'staff',permissions:{customers:'view',invoices:'view',payments:'view',loans:'none'},created_at:'2026-08-18',name:'Shared store'}];
 let ensureCalls=0;
 let sessionChecks=0;
 let keepMembershipEmptyAfterEnsure=false;
@@ -39,9 +39,9 @@ context.window.closeSheet=()=>{};
 context.window.nayadSupabase={
   auth:{getSession:async()=>{sessionChecks++;return {data:{session:{user:{id:newUserId}}},error:null}},onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
   rpc:async name=>{
-    if(name==='get_my_stores')return {data:membershipRows,error:null};
+    if(name==='get_my_stores_with_permissions')return {data:membershipRows,error:null};
     assert.equal(name,'ensure_my_store');ensureCalls++;
-    if(!keepMembershipEmptyAfterEnsure)membershipRows=[{user_id:newUserId,id:newStoreId,role:'owner',created_at:'2026-08-18',name:'Namka store'},...membershipRows];
+    if(!keepMembershipEmptyAfterEnsure)membershipRows=[{user_id:newUserId,id:newStoreId,role:'owner',permissions:{customers:'edit',invoices:'edit',payments:'edit',loans:'edit'},created_at:'2026-08-18',name:'Namka store'},...membershipRows];
     return {data:[{id:newStoreId,name:'Namka store'}],error:null};
   }
 };
@@ -62,7 +62,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
 
 (async()=>{
   assert.match(indexHtml,/waitForStorePreparation/,'the app must wait for store isolation before rendering');
-  assert.match(indexHtml,/store-switcher\.js\?v=60[\s\S]*store-recovery\.js\?v=54[\s\S]*auth-guard\.js\?v=56/,'session recovery and auth guard must load directly after the store switcher');
+  assert.match(indexHtml,/store-switcher\.js\?v=61[\s\S]*store-recovery\.js\?v=55[\s\S]*auth-guard\.js\?v=56/,'session recovery and auth guard must load directly after the store switcher');
   const phoneLogin=indexHtml.match(/async function phoneLogin\(\)\{.*?\}\nasync function registerUser/s)?.[0]||'';
   const registerUser=indexHtml.match(/async function registerUser\(\)\{.*?\}\nasync function googleLogin/s)?.[0]||'';
   assert.match(phoneLogin,/await showAuthenticatedApp\(\)/,'password login must prepare the authenticated store before opening the app');

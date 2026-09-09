@@ -66,6 +66,7 @@ test('a created store becomes the active store without mixing the previous store
     rpc:async(name,args)=>{
       rpcCalls.push({name,args});
       if(name==='create_my_store')return {data:newStore,error:null};
+      if(name==='get_my_stores_with_permissions')return {data:null,error:{code:'PGRST202',message:'Could not find the function'}};
       if(name==='get_my_stores')return {data:[oldStore,newStore],error:null};
       throw new Error(`Unexpected RPC: ${name}`);
     }
