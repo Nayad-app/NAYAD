@@ -29,9 +29,9 @@ const context={
 
 const swSource=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-assert.match(swSource,/const CACHE = "nayad-v109";/,'the login cleanup must invalidate the installed app shell');
-assert.match(swSource,/\.\/store-switcher\.js\?v=59/);
-assert.match(indexSource,/\.\/store-switcher\.js\?v=59/,'index and service worker must load the same store switcher');
+assert.match(swSource,/const CACHE = "nayad-v110";/,'the multi-store update must invalidate the installed app shell');
+assert.match(swSource,/\.\/store-switcher\.js\?v=60/);
+assert.match(indexSource,/\.\/store-switcher\.js\?v=60/,'index and service worker must load the same store switcher');
 assert.match(swSource,/\.\/store-recovery\.js\?v=54/);
 assert.match(indexSource,/\.\/store-recovery\.js\?v=54/,'store recovery must be loaded directly, not only injected by the service worker');
 assert.match(swSource,/\.\/auth-guard\.js\?v=56/);
@@ -67,7 +67,7 @@ for(const asset of ['./store-recovery.js?v=54','./auth-guard.js?v=56','./cloud-r
   assert.equal(patchedTwice.split(asset).length-1,1,`${asset} must be injected exactly once`);
 }
 assert.ok(
-  patchedTwice.indexOf('./store-switcher.js?v=59')<patchedTwice.indexOf('./store-recovery.js?v=54')&&
+  patchedTwice.indexOf('./store-switcher.js?v=60')<patchedTwice.indexOf('./store-recovery.js?v=54')&&
   patchedTwice.indexOf('./store-recovery.js?v=54')<patchedTwice.indexOf('./auth-guard.js?v=56')&&
   patchedTwice.indexOf('./auth-guard.js?v=56')<patchedTwice.indexOf('./money-input.js?v=1')&&
   patchedTwice.indexOf('./money-input.js?v=1')<patchedTwice.indexOf('./cloud-runtime.js?v=58')&&

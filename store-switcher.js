@@ -15,6 +15,8 @@
   .storePickerAvatar{width:42px;height:42px;flex:0 0 42px;border-radius:13px;background:var(--yellow-soft);display:grid;place-items:center;font-weight:900;font-size:16px}
   .storePickerMeta{min-width:0;flex:1}.storePickerMeta b{display:block;font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.storePickerMeta span{display:block;color:var(--muted);font-size:10px;margin-top:4px}
   .storePickerCheck{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--yellow);font-size:13px;font-weight:900}.storePickerItem:not(.active) .storePickerCheck{visibility:hidden}
+  .storePickerAdd{width:100%;margin-top:5px;padding:13px;border:1px dashed #d3a600;border-radius:16px;background:var(--yellow-soft);color:var(--text);font-weight:900;display:flex;align-items:center;justify-content:center;gap:8px}.storePickerAdd span{width:24px;height:24px;border-radius:50%;background:var(--yellow);display:grid;place-items:center;font-size:18px;line-height:1}
+  .storeCreateNote{color:var(--muted);font-size:11px;line-height:1.5;margin:4px 0 15px}.storeCreateActions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:16px}
   </style>`;
   if(!document.getElementById('nayad-store-switcher-styles'))document.head.insertAdjacentHTML('beforeend',STYLE);
 
@@ -36,6 +38,8 @@
   function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
   function active(){return runtimeBelongsTo()?window.__nayadActiveStore||null:null;}
   function roleLabel(role){return role==='owner'?'Эзэмшигч':'Гишүүн';}
+  const BUSINESS_TYPES=['Жижиглэн худалдаа','Бөөний худалдаа','Хоол, хүнс','Үйлчилгээ','Онлайн худалдаа','Бусад'];
+  function businessTypeOptions(){return `<option value="">Сонгоно уу</option>${BUSINESS_TYPES.map(type=>`<option value="${esc(type)}">${esc(type)}</option>`).join('')}`;}
   function normalizeStores(rows){
     return (rows||[]).map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',created_at:row.created_at})).filter(row=>row.id);
   }
@@ -133,7 +137,41 @@
     if((initializedFor!==userId()||!stores.length)&&trusted)hydrateVerifiedStores(trusted,userId());
     const visibleStores=initializedFor===userId()&&runtimeBelongsTo()?stores:[];
     const rows=visibleStores.map(store=>`<button class="storePickerItem ${String(store.id)===String(window.__nayadActiveStoreId)?'active':''}" type="button" onclick="selectNayadStore('${esc(store.id)}')"><span class="storePickerAvatar">${esc(initial(store.name))}</span><span class="storePickerMeta"><b>${esc(store.name)}</b><span>${roleLabel(store.role)}</span></span><span class="storePickerCheck">✓</span></button>`).join('');
-    window.sheet(`<div class="storePickerHeader"><h2>Дэлгүүр сонгох</h2><button class="storePickerClose" type="button" onclick="closeSheet()" aria-label="Хаах"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="storePickerHint">Та өөрийн болон хуваалцсан дэлгүүрүүдийн хооронд шилжиж болно.</div><div class="storePickerList">${rows||'<div class="card">Дэлгүүр олдсонгүй.</div>'}</div>`);
+    window.sheet(`<div class="storePickerHeader"><h2>Дэлгүүр сонгох</h2><button class="storePickerClose" type="button" onclick="closeSheet()" aria-label="Хаах"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="storePickerHint">Та өөрийн болон хуваалцсан дэлгүүрүүдийн хооронд шилжиж болно.</div><div class="storePickerList">${rows||'<div class="card">Дэлгүүр олдсонгүй.</div>'}<button class="storePickerAdd" type="button" onclick="showNayadStoreCreate()"><span>+</span>Шинэ дэлгүүр нэмэх</button></div>`);
+  }
+
+  function showCreateStore(){
+    if(typeof window.sheet!=='function')return;
+    window.sheet(`<div class="storePickerHeader"><h2>Шинэ дэлгүүр</h2><button class="storePickerClose" type="button" onclick="closeSheet()" aria-label="Хаах"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><p class="storeCreateNote">Шинэ дэлгүүрийн харилцагч, падаан, төлөлт, зээлийн мэдээлэл бусад дэлгүүрээс бүрэн тусдаа хадгалагдана.</p><div class="field"><label>Дэлгүүрийн нэр</label><input id="newStoreName" maxlength="80" autocomplete="organization" placeholder="Жишээ: Наяд салбар 2"></div><div class="field"><label>Бизнесийн чиглэл</label><select id="newStoreBusinessType">${businessTypeOptions()}</select></div><div class="storeCreateActions"><button class="secondary" type="button" onclick="showNayadStorePicker()">Буцах</button><button id="createStoreButton" class="primary" type="button" onclick="createNayadStore()">НЭМЭХ</button></div>`);
+  }
+
+  async function createStore(){
+    if(switching)return;
+    const client=sb();
+    const name=String(document.getElementById('newStoreName')?.value||'').trim();
+    const businessType=String(document.getElementById('newStoreBusinessType')?.value||'').trim();
+    if(!client)return window.toast?.('Supabase холболт олдсонгүй.');
+    if(!name)return window.toast?.('Дэлгүүрийн нэрээ оруулна уу.');
+    if(name.length>80)return window.toast?.('Дэлгүүрийн нэр 80 тэмдэгтээс урт байж болохгүй.');
+    if(!BUSINESS_TYPES.includes(businessType))return window.toast?.('Бизнесийн чиглэлээ сонгоно уу.');
+    const button=document.getElementById('createStoreButton');
+    switching=true;
+    if(button){button.disabled=true;button.textContent='Нэмж байна...';}
+    try{
+      const {data,error}=await client.rpc('create_my_store',{p_name:name,p_business_type:businessType});
+      if(error)throw error;
+      const created=Array.isArray(data)?data[0]:data;
+      if(!created?.id)throw new Error('Шинэ дэлгүүр үүссэнгүй.');
+      await refreshStores({selectStoreId:created.id,sync:true,close:true});
+      window.toast?.('Шинэ дэлгүүр амжилттай нэмэгдлээ.');
+    }catch(error){
+      console.error('Store create:',error);
+      const message=String(error?.message||'');
+      if(message.includes('already exists'))window.toast?.('Ийм нэртэй дэлгүүр аль хэдийн байна.');
+      else if(message.includes('limit'))window.toast?.('Дэлгүүрийн тооны хязгаарт хүрсэн байна.');
+      else window.toast?.('Дэлгүүр нэмэхэд алдаа гарлаа.');
+      if(button){button.disabled=false;button.textContent='НЭМЭХ';}
+    }finally{switching=false;}
   }
 
   async function activateStore(storeId,options={}){
@@ -237,6 +275,8 @@
   const originalRender=window.render;
   if(typeof originalRender==='function')window.render=function(){const result=originalRender();renderBar();return result;};
   window.showNayadStorePicker=showPicker;
+  window.showNayadStoreCreate=showCreateStore;
+  window.createNayadStore=createStore;
   window.selectNayadStore=selectStore;
   window.__nayadRefreshStores=refreshStores;
   window.__nayadGetActiveStore=getActiveStore;
