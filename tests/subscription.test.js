@@ -15,6 +15,8 @@ assert.match(source,/functions\.invoke\('qpay-billing'/,'payment must go through
 assert.match(source,/action,\.\.\.payload/);
 assert.match(source,/Төлбөр шалгах/);
 assert.match(source,/Банкны апп сонгох/);
+assert.match(source,/nayadSubscriptionBankLogo/,'QPay-provided bank logos must be rendered');
+assert.match(source,/function safeLogoUrl/,'external logo URLs must be validated');
 assert.doesNotMatch(source,/QPay холболт хийгдээгүй байна/,'the old placeholder must be removed');
 
 function classes(){const values=new Set();return {add:value=>values.add(value),remove:value=>values.delete(value),contains:value=>values.has(value)};}
@@ -37,7 +39,7 @@ context.window.__nayadActiveStoreId=context.window.__nayadActiveStore.id;
 context.window.addCompany=()=>{addCalls++;};
 context.window.nayadSupabase={functions:{invoke:async(name,{body})=>{
   invocations.push({name,body});
-  if(body.action==='create')return {data:{order_id:'44444444-4444-4444-8444-444444444444',amount:9900,status:'pending',qr_image:'abc',urls:[{name:'Test bank',link:'testbank://pay'}]},error:null};
+  if(body.action==='create')return {data:{order_id:'44444444-4444-4444-8444-444444444444',amount:9900,status:'pending',qr_image:'abc',urls:[{name:'Test bank',link:'testbank://pay',logo:'https://qpay.mn/q/logo/test.png'},{name:'Unsafe bank',link:'unsafe://pay',logo:'javascript:alert(1)'}]},error:null};
   return {data:{paid:true,status:'paid',subscription:{current_period_end:'2027-09-09T00:00:00Z'}},error:null};
 }}};
 vm.createContext(context);
@@ -59,6 +61,8 @@ vm.runInContext(source,context,{filename:'subscription.js'});
   assert.equal(invocations[0].body.plan_code,'month');
   assert.match(elements.nayadSubscriptionRoot.innerHTML,/QPay төлбөр/);
   assert.match(elements.nayadSubscriptionRoot.innerHTML,/Test bank/);
+  assert.match(elements.nayadSubscriptionRoot.innerHTML,/class="nayadSubscriptionBankLogo" src="https:\/\/qpay\.mn\/q\/logo\/test\.png"/);
+  assert.doesNotMatch(elements.nayadSubscriptionRoot.innerHTML,/src="javascript:/,'unsafe logo protocols must not be rendered');
   assert.ok(timerCallback,'payment status polling must start');
   await context.window.checkNayadQpayPayment(true);
   assert.equal(invocations[1].body.action,'check');

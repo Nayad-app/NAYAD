@@ -1,5 +1,5 @@
-// Invalidate the installed app shell after enabling secure QPay checkout.
-const CACHE = "nayad-v112";
+// Invalidate the installed app shell after adding QPay bank logos.
+const CACHE = "nayad-v113";
 
 const ASSETS = [
   "./",
@@ -19,7 +19,7 @@ const ASSETS = [
   "./mobile-fix.js?v=46",
   "./share.js?v=40",
   "./profile-menu.js?v=5",
-  "./subscription.js?v=2",
+  "./subscription.js?v=3",
   "./invoice-cloud.js?v=70",
   "./supplier-cloud.js?v=57",
   "./payment-center.js?v=9",
@@ -80,7 +80,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=56");
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=40");
   patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=5");
-  patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=2");
+  patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=3");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=70");
   patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=1");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=57");
@@ -89,12 +89,12 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./store-switcher.js?v=61","./store-recovery.js?v=55");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=55","./auth-guard.js?v=56");
   patched=injectScriptAfter(patched,"./share.js?v=40","./profile-menu.js?v=5");
-  patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=2");
+  patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=3");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=70","./payment-center.js?v=9");
   patched=injectScriptAfter(patched,"./payment-center.js?v=9","./loans.js?v=2");
   patched=injectScriptBefore(patched,"./supplier-cloud.js?v=57","./contact-types.js?v=7");
-  patched=injectScriptAfter(patched,"./subscription.js?v=2","./member-permissions.js?v=1");
+  patched=injectScriptAfter(patched,"./subscription.js?v=3","./member-permissions.js?v=1");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;
 }
