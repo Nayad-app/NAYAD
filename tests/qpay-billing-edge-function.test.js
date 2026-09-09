@@ -14,5 +14,7 @@ assert.match(source,/finalize_qpay_order/,'paid orders must be finalized atomica
 assert.match(source,/paidAmount \+ 0\.001 < Number\(order\.amount\)/,'the paid amount must cover the stored invoice amount');
 assert.match(source,/expiresAt > now \+ 60_000/,'access tokens must respect expiry');
 assert.match(source,/expiresIn > 1_000_000_000[\s\S]*expiresIn \* 1000/,'QPay timestamp-style expires_in values must be handled correctly');
+assert.match(source,/SUPABASE_SECRET_KEYS/,'new Supabase secret-key environments must be supported');
+assert.match(source,/payload\.message \?\? payload\.error_description \?\? payload\.code/,'sanitized QPay errors must remain diagnosable on the backend');
 assert.doesNotMatch(source,/NAYAD_STORE|Ou8ts|client_password\s*:\s*["'][^"']+["']/i,'merchant credentials must never be hardcoded');
 console.log('qpay-billing-edge-function: PASS — auth, Vault secrets, invoice, verification, and atomic activation are enforced');

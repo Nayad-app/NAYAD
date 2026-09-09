@@ -5,7 +5,7 @@ const ALLOWED_ORIGIN = "https://nayad.store";
 const QPAY_BASE_URL = "https://merchant.qpay.mn/v2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
@@ -46,6 +46,20 @@ function safeMessage(error: unknown) {
 function bearer(req: Request) {
   const header = req.headers.get("authorization") ?? "";
   return header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : "";
+}
+
+function serviceRoleKey() {
+  const legacy = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (legacy) return legacy;
+  const single = Deno.env.get("SUPABASE_SECRET_KEY") ?? "";
+  if (single) return single;
+  try {
+    const keys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}") as Record<string, unknown>;
+    if (typeof keys.default === "string") return keys.default;
+    return Object.values(keys).find(value => typeof value === "string") as string ?? "";
+  } catch {
+    return "";
+  }
 }
 
 function publicOrder(order: Order) {
@@ -116,7 +130,11 @@ async function qpayRequest(creds: Credentials, path: string, body: Json) {
     });
   }
   const payload = await response.json().catch(() => ({})) as Json;
-  if (!response.ok) throw new Error(`QPay request failed (${response.status})`);
+  if (!response.ok) {
+    const detail = String(payload.message ?? payload.error_description ?? payload.code ?? "")
+      .replace(/[\r\n]/g, " ").slice(0, 180);
+    throw new Error(`QPay request failed (${response.status}${detail ? `: ${detail}` : ""})`);
+  }
   return payload;
 }
 
@@ -286,7 +304,7 @@ async function callback(req: Request, admin: ReturnType<typeof createClient>) {
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const secret = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SECRET_KEY") ?? "";
+  const secret = serviceRoleKey();
   if (!supabaseUrl || !secret) return json({ error: "Төлбөрийн үйлчилгээ түр боломжгүй.", code: "SERVICE_UNAVAILABLE" }, 503);
   const admin = createClient(supabaseUrl, secret, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
