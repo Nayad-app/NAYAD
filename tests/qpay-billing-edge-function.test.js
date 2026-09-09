@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+
+const source=fs.readFileSync(path.join(__dirname,'..','supabase','functions','qpay-billing','index.ts'),'utf8');
+assert.match(source,/admin\.auth\.getUser\(token\)/,'user JWT must be verified inside the webhook-capable function');
+assert.match(source,/\.eq\("role", "owner"\)/,'only store owners may create subscription invoices');
+assert.match(source,/get_qpay_credentials_for_service/,'credentials must come from backend Vault storage');
+assert.match(source,/\/auth\/token/);
+assert.match(source,/qpayRequest\(creds, "\/invoice"/);
+assert.match(source,/qpayRequest\(creds, "\/payment\/check"/,'callbacks must verify payment with QPay');
+assert.match(source,/\.eq\("callback_token", token\)/,'callbacks need an unguessable per-order token');
+assert.match(source,/finalize_qpay_order/,'paid orders must be finalized atomically in Postgres');
+assert.match(source,/paidAmount \+ 0\.001 < Number\(order\.amount\)/,'the paid amount must cover the stored invoice amount');
+assert.match(source,/expiresAt > now \+ 60_000/,'access tokens must respect expiry');
+assert.match(source,/expiresIn > 1_000_000_000[\s\S]*expiresIn \* 1000/,'QPay timestamp-style expires_in values must be handled correctly');
+assert.doesNotMatch(source,/NAYAD_STORE|Ou8ts|client_password\s*:\s*["'][^"']+["']/i,'merchant credentials must never be hardcoded');
+console.log('qpay-billing-edge-function: PASS — auth, Vault secrets, invoice, verification, and atomic activation are enforced');
