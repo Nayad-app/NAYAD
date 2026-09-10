@@ -148,7 +148,7 @@
     if(!invoices.length){notify('Төлөгдөөгүй падаан алга.');return;}
     const focus=focusInvoiceId?String(focusInvoiceId):'';
     open(`<h2>Төлбөр бүртгэх</h2><div class="paySupplierCard"><b>${esc(company.name)}</b><span>${esc(company.bank||'Банк сонгоогүй')}${company.bankAccount?' · '+esc(company.bankAccount):''}</span></div>
-      <div class="paymentSectionTitle"><span>ТӨЛӨГДӨӨГҮЙ ПАДААНУУД</span><small>Дүнг гараар өөрчилж болно</small></div>
+      <div class="paymentSectionTitle"><span>ТӨЛӨГДӨӨГҮЙ ПАДААНУУД</span></div>
       <div id="allocationList">${invoices.map((invoice,index)=>{const discount=discountInfo(invoice),checked=focus?String(invoice.id)===focus:index===0;return `<label class="allocationRow"><input class="allocationCheck" type="checkbox" data-invoice="${esc(invoice.id)}" ${checked?'checked':''} onchange="togglePaymentAllocation(this)"><span><b>${esc(invoice.no||'Дугааргүй')}</b><small>Төлөх өдөр ${dateLabel(dueOf(invoice))} · Үлдэгдэл ${amount(balanceOf(invoice))}</small>${discount.eligible?`<em>${discount.percent}% хөнгөлөлт · ${amount(discount.saving)} хэмнэнэ</em>`:''}</span><input class="allocationAmount" data-money-input data-invoice="${esc(invoice.id)}" data-default-amount="${discount.cash}" type="text" inputmode="decimal" autocomplete="off" value="${moneyInputText(checked?discount.cash:0)}" oninput="recalculatePaymentTotal()"></label>`;}).join('')}</div>
       <div class="payTotal"><span>Нийт төлөх дүн</span><b id="paymentCenterTotal">0 ₮</b></div>
       <div class="field"><label>Төлбөрийн арга</label><select id="pcMethod"><option>Банк</option><option>Бэлэн мөнгө</option><option>QPay</option><option>Карт</option><option>Бусад</option></select></div>

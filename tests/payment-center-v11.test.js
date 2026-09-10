@@ -65,6 +65,7 @@ assert.match(html,/4% хэмнэнэ/,'invoice-specific discount must be visible
 assert.match(html,/noticeButton[\s\S]*<svg viewBox="0 0 24 24"/,'payment center must render a modern SVG notification bell');
 
 const source=fs.readFileSync(path.join(root,'payment-center.js'),'utf8');
+assert.doesNotMatch(source,/Бүгдийг сонгох|Бүх падааныг сонгох/,'payment allocation should keep individual invoice selection without a select-all action');
 assert.match(source,/onchange="togglePaymentAllocation\(this\)"/,'checking another invoice must trigger allocation defaulting');
 assert.match(source,/data-default-amount="\$\{discount\.cash\}"/,'each invoice needs a full-payment default amount');
 assert.match(source,/window\.togglePaymentAllocation=function\(check\)/,'a checked zero-value invoice must receive its default payment amount');

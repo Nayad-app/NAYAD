@@ -1,5 +1,5 @@
-// Invalidate the installed app shell after adding QPay bank logos.
-const CACHE = "nayad-v113";
+// Invalidate the installed app shell after simplifying payment allocation.
+const CACHE = "nayad-v114";
 
 const ASSETS = [
   "./",
@@ -22,7 +22,7 @@ const ASSETS = [
   "./subscription.js?v=3",
   "./invoice-cloud.js?v=70",
   "./supplier-cloud.js?v=57",
-  "./payment-center.js?v=9",
+  "./payment-center.js?v=10",
   "./loans.js?v=2",
   "./contact-types.js?v=7",
   "./company-label.js",
@@ -91,8 +91,8 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./share.js?v=40","./profile-menu.js?v=5");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=3");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
-  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=70","./payment-center.js?v=9");
-  patched=injectScriptAfter(patched,"./payment-center.js?v=9","./loans.js?v=2");
+  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=70","./payment-center.js?v=10");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=10","./loans.js?v=2");
   patched=injectScriptBefore(patched,"./supplier-cloud.js?v=57","./contact-types.js?v=7");
   patched=injectScriptAfter(patched,"./subscription.js?v=3","./member-permissions.js?v=1");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
