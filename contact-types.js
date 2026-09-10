@@ -90,7 +90,7 @@
   }
   function companyIconLabel(contact){const type=validType(contact?.contactType);return `<span class="contactDetailType">${icon(type)}${typeLabel(type)}</span>`;}
   const HOME_DEBT_VIEW_KEY='NAYAD_HOME_DEBT_VIEW';
-  const validHomeDebtView=value=>['all','next7','next30','nearest','overdue','missing','debt','name-asc','name-desc'].includes(value)?value:'all';
+  const validHomeDebtView=value=>['all','next7','next30','nearest','overdue','missing','debt','name-asc','name-desc','invoice-date-asc','invoice-date-desc'].includes(value)?value:'all';
   let homeDebtView=(()=>{try{return validHomeDebtView(localStorage.getItem(HOME_DEBT_VIEW_KEY));}catch(_error){return 'all';}})();
   function homeDue(invoice){return invoice?.effective_due_date||invoice?.due_date||'';}
   function homeDate(value){if(!value)return 'Оруулаагүй';const parts=String(value).split('-');return parts.length===3?`${parts[0]}.${parts[1]}.${parts[2]}`:String(value);}
@@ -123,12 +123,25 @@
   function homeDueInvoice(contact){
     return homeInvoicesForView(contact).sort((a,b)=>String(homeDue(a)||'9999-99-99').localeCompare(String(homeDue(b)||'9999-99-99')))[0]||null;
   }
+  function homeInvoiceDate(invoice){return invoice?.date||invoice?.invoice_date||'';}
+  function homeInvoiceDateValue(contact){
+    const dates=homeInvoicesForView(contact).map(homeInvoiceDate).filter(Boolean).sort();
+    if(!dates.length)return '';
+    return homeDebtView==='invoice-date-desc'?dates[dates.length-1]:dates[0];
+  }
   function homeDebtCompanies(companies){
     let rows=(companies||[]).filter(contact=>(Number(contact.debt)||0)>0);
     if(['next7','next30','overdue','missing'].includes(homeDebtView))rows=rows.filter(contact=>homeInvoicesForView(contact).length>0);
     if(homeDebtView==='nearest'||['next7','next30','overdue'].includes(homeDebtView))rows.sort((a,b)=>String(homeDue(homeDueInvoice(a))||'9999-99-99').localeCompare(String(homeDue(homeDueInvoice(b))||'9999-99-99')));
     else if(homeDebtView==='debt')rows.sort((a,b)=>(Number(b.debt)||0)-(Number(a.debt)||0));
     else if(homeDebtView==='name-asc'||homeDebtView==='name-desc')rows.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'mn',{sensitivity:'base'})*(homeDebtView==='name-desc'?-1:1));
+    else if(homeDebtView==='invoice-date-asc'||homeDebtView==='invoice-date-desc')rows.sort((a,b)=>{
+      const left=homeInvoiceDateValue(a),right=homeInvoiceDateValue(b);
+      if(!left&&!right)return 0;
+      if(!left)return 1;
+      if(!right)return -1;
+      return left.localeCompare(right)*(homeDebtView==='invoice-date-desc'?-1:1);
+    });
     return rows;
   }
   function homeMenuIcon(kind){
@@ -138,20 +151,21 @@
     if(kind==='overdue')return '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 17h.01"/></svg>';
     if(kind==='missing')return '<svg viewBox="0 0 24 24"><path d="M5 12c2.5-4 5-4 7 0s4.5 4 7 0-2.5-4-7 0-4.5 4-7 0Z"/></svg>';
     if(kind==='debt')return '<svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v4c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 10v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4M5 14v4c0 1.7 3.1 3 7 3s7-1.3 7-3v-4"/></svg>';
+    if(kind==='invoice-date')return '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>';
     return '<span class="homeAlphaIcon"><b>A↓</b><b>Я↑</b></span>';
   }
   const homeMenuRows=()=>[
-    ['all','Бүгд'],['next7','7 хоногт төлөх'],['next30','1 сард төлөх'],['nearest','Төлөх хугацаа хамгийн ойр'],['overdue','Хугацаа хэтэрсэн'],['missing','Хугацаагүй'],['debt','Их өртэй'],['name',homeDebtView==='name-desc'?'Нэрээр Я–A':'Нэрээр A–Я']
+    ['all','Бүгд'],['next7','7 хоногт төлөх'],['next30','1 сард төлөх'],['nearest','Төлөх хугацаа хамгийн ойр'],['overdue','Хугацаа хэтэрсэн'],['missing','Хугацаагүй'],['debt','Их өртэй'],['invoice-date',homeDebtView==='invoice-date-desc'?'Анх авсан огноо ↓':'Анх авсан огноо ↑'],['name',homeDebtView==='name-desc'?'Нэрээр Я–A':'Нэрээр A–Я']
   ];
   function homeDebtControls(){
     const sliders='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M15 7h5M4 17h5M13 17h7"/><circle cx="13" cy="7" r="2"/><circle cx="11" cy="17" r="2"/></svg>';
-    const options=homeMenuRows().map(([value,label])=>{const active=value==='name'?homeDebtView.startsWith('name-'):homeDebtView===value;return `<button type="button" role="menuitemradio" aria-checked="${active}" class="${active?'active':''}" onclick="event.stopPropagation();setHomeDebtView('${value}')"><span class="homeDebtMenuIcon">${homeMenuIcon(value)}</span><span>${esc(label)}</span></button>`;}).join('');
+    const options=homeMenuRows().map(([value,label])=>{const active=value==='name'?homeDebtView.startsWith('name-'):value==='invoice-date'?homeDebtView.startsWith('invoice-date-'):homeDebtView===value;return `<button type="button" role="menuitemradio" aria-checked="${active}" class="${active?'active':''}" onclick="event.stopPropagation();setHomeDebtView('${value}')"><span class="homeDebtMenuIcon">${homeMenuIcon(value)}</span><span>${esc(label)}</span></button>`;}).join('');
     return `<button id="homeDebtMenuToggle" class="homeDebtMenuToggle" type="button" aria-label="Яаралтай өрийг шүүх, эрэмбэлэх" aria-haspopup="menu" aria-expanded="false" onclick="toggleHomeDebtMenu(event)">${sliders}</button><div id="homeDebtMenu" class="homeDebtMenu hide" role="menu" aria-label="Яаралтай өрийг шүүх, эрэмбэлэх" onclick="event.stopPropagation()">${options}</div>`;
   }
   function closeHomeDebtMenu(){const menu=document.getElementById('homeDebtMenu'),button=document.getElementById('homeDebtMenuToggle');menu?.classList.add('hide');button?.setAttribute('aria-expanded','false');}
   function toggleHomeDebtMenu(event){event?.stopPropagation?.();const menu=document.getElementById('homeDebtMenu'),button=document.getElementById('homeDebtMenuToggle');if(!menu||!button)return;const opening=menu.classList.contains('hide');menu.classList.toggle('hide',!opening);button.setAttribute('aria-expanded',String(opening));}
   function setHomeDebtView(value){
-    homeDebtView=value==='name'?(homeDebtView==='name-asc'?'name-desc':'name-asc'):validHomeDebtView(value);
+    homeDebtView=value==='name'?(homeDebtView==='name-asc'?'name-desc':'name-asc'):value==='invoice-date'?(homeDebtView==='invoice-date-asc'?'invoice-date-desc':'invoice-date-asc'):validHomeDebtView(value);
     try{localStorage.setItem(HOME_DEBT_VIEW_KEY,homeDebtView);}catch(_error){}
     closeHomeDebtMenu();window.render();
   }

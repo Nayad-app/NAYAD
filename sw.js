@@ -1,5 +1,5 @@
 // Invalidate the installed app shell after simplifying payment allocation.
-const CACHE = "nayad-v114";
+const CACHE = "nayad-v115";
 
 const ASSETS = [
   "./",
@@ -24,7 +24,7 @@ const ASSETS = [
   "./supplier-cloud.js?v=57",
   "./payment-center.js?v=10",
   "./loans.js?v=2",
-  "./contact-types.js?v=7",
+  "./contact-types.js?v=8",
   "./company-label.js",
   "./member-permissions.js?v=1"
 ];
@@ -93,7 +93,7 @@ function patchDocument(html){
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=70","./payment-center.js?v=10");
   patched=injectScriptAfter(patched,"./payment-center.js?v=10","./loans.js?v=2");
-  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=57","./contact-types.js?v=7");
+  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=57","./contact-types.js?v=8");
   patched=injectScriptAfter(patched,"./subscription.js?v=3","./member-permissions.js?v=1");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;

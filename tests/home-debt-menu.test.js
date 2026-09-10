@@ -13,12 +13,12 @@ const addDays=days=>{
   const now=new Date(),date=new Date(now.getFullYear(),now.getMonth(),now.getDate()+days);
   return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
 };
-const invoice=(id,due,status='confirmed')=>({id,no:id,due_date:due,amount:100,paid:0,status});
+const invoice=(id,due,status='confirmed',date='2026-08-01')=>({id,no:id,due_date:due,date,amount:100,paid:0,status});
 const companies=[
-  {id:1,name:'Alpha',contactType:'organization',debt:100,invoices:[invoice('A',addDays(3))]},
-  {id:2,name:'Beta',contactType:'organization',debt:500,invoices:[invoice('B',addDays(20))]},
-  {id:3,name:'Gamma',contactType:'organization',debt:300,invoices:[invoice('C',addDays(-2))]},
-  {id:4,name:'Delta',contactType:'organization',debt:200,invoices:[invoice('D',null)]},
+  {id:1,name:'Alpha',contactType:'organization',debt:100,invoices:[invoice('A',addDays(3),'confirmed','2026-08-08')]},
+  {id:2,name:'Beta',contactType:'organization',debt:500,invoices:[invoice('B',addDays(20),'confirmed','2026-08-03')]},
+  {id:3,name:'Gamma',contactType:'organization',debt:300,invoices:[invoice('C',addDays(-2),'confirmed','2026-08-05')]},
+  {id:4,name:'Delta',contactType:'organization',debt:200,invoices:[invoice('D',null,'confirmed','2026-08-01')]},
   {id:5,name:'Paid',contactType:'organization',debt:0,invoices:[{...invoice('E',addDays(1)),paid:100}]},
   {id:6,name:'Draft',contactType:'organization',debt:0,invoices:[invoice('F',addDays(2),'draft')]},
   {id:7,name:'Cancelled',contactType:'organization',debt:0,invoices:[invoice('G',addDays(2),'cancelled')]}
@@ -45,8 +45,8 @@ vm.createContext(context);
 vm.runInContext(source,context,{filename:'contact-types.js'});
 
 const controls=context.__nayadHomeDebtControls();
-for(const label of ['Бүгд','7 хоногт төлөх','1 сард төлөх','Төлөх хугацаа хамгийн ойр','Хугацаа хэтэрсэн','Хугацаагүй','Их өртэй','Нэрээр A–Я'])assert.match(controls,new RegExp(label));
-assert.equal((controls.match(/homeDebtMenuIcon/g)||[]).length,8,'every menu row must have a leading icon');
+for(const label of ['Бүгд','7 хоногт төлөх','1 сард төлөх','Төлөх хугацаа хамгийн ойр','Хугацаа хэтэрсэн','Хугацаагүй','Их өртэй','Анх авсан огноо ↑','Нэрээр A–Я'])assert.match(controls,new RegExp(label));
+assert.equal((controls.match(/homeDebtMenuIcon/g)||[]).length,9,'every menu row must have a leading icon');
 assert.doesNotMatch(controls,/ЭРЭМБЭЛЭХ|ХУГАЦААГААР ШҮҮХ|<hr/,'the anchored menu must contain only the approved list');
 assert.match(controls,/homeDebtMenu hide/,'the list must open as an anchored dropdown, not a bottom sheet');
 assert.match(source,/if\(!event\.target\?\.closest\?\.\('\.homeUrgentHead'\)\)closeHomeDebtMenu/,'outside taps must close the dropdown');
@@ -69,6 +69,13 @@ assert.deepEqual(Array.from(context.__nayadHomeDebtList(companies),row=>row.name
 context.setHomeDebtView('name');
 assert.deepEqual(Array.from(context.__nayadHomeDebtList(companies),row=>row.name),['Gamma','Delta','Beta','Alpha']);
 assert.equal(stored.NAYAD_HOME_DEBT_VIEW,'name-desc');
-assert.equal(renders,7);
+context.setHomeDebtView('invoice-date');
+assert.deepEqual(Array.from(context.__nayadHomeDebtList(companies),row=>row.name),['Delta','Beta','Gamma','Alpha']);
+assert.match(context.__nayadHomeDebtControls(),/Анх авсан огноо ↑/);
+context.setHomeDebtView('invoice-date');
+assert.deepEqual(Array.from(context.__nayadHomeDebtList(companies),row=>row.name),['Alpha','Gamma','Beta','Delta']);
+assert.match(context.__nayadHomeDebtControls(),/Анх авсан огноо ↓/);
+assert.equal(stored.NAYAD_HOME_DEBT_VIEW,'invoice-date-desc');
+assert.equal(renders,9);
 
 console.log('home-debt-menu: PASS — anchored icon menu, date filters, amount sort and name toggle are correct');
