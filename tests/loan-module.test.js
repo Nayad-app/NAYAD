@@ -36,6 +36,7 @@ assert.equal(typeof context.loans,'function','loan page must be registered');
 assert.equal(typeof context.showLoanCreate,'function','loan create screen must be registered');
 assert.equal(typeof context.showLoanEdit,'function','loan edit screen must be registered');
 assert.equal(typeof context.__nayadSyncLoans,'function','cloud runtime must be able to sync loans');
+assert.equal(typeof context.__nayadLoanCount,'function','subscription limits must be able to read the current loan count');
 assert.equal(context.__nayadAnnualRateFromMonthly(1.5),18,'monthly interest must convert to nominal annual interest');
 assert.match(context.payments(),/base-payment-center/,'loan module must preserve the supplier payment center');
 assert.ok(styles.some(style=>/loanFormOverlay/.test(style.textContent)),'loan styles must be installed');
