@@ -8,7 +8,7 @@
   const MAX_FILE_BYTES=10*1024*1024;
   const ALLOWED_TYPES=new Set(['image/jpeg','image/png','image/webp','image/heic','image/heif','application/pdf']);
   const state={loans:[],loading:false,storeId:'',files:[],draft:null,editingLoanId:null};
-  let objectUrls=[];
+  let objectUrls=[],activeSync=null;
 
   function sb(){return window.nayadSupabase||window.sb||null;}
   function esc(value){return String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));}
@@ -40,27 +40,30 @@
     }));
   }
 
-  async function syncLoans(){
+  function syncLoans(){
     const client=sb(),storeId=activeStoreId();
-    if(!client||!storeId||!canManage()){state.loans=[];state.storeId=storeId||'';return false;}
-    if(state.loading)return false;
+    if(!client||!storeId||!canManage()){state.loans=[];state.storeId=storeId||'';return Promise.resolve(false);}
+    if(state.loading)return activeSync||Promise.resolve(false);
     state.loading=true;
-    try{
-      const [loanResult,installmentResult,documentResult]=await Promise.all([
-        client.from('loans').select('id,store_id,lender_type,lender_name,loan_name,principal,annual_interest_rate,start_date,term_months,payment_day,repayment_method,status,created_at').eq('store_id',storeId).order('created_at',{ascending:false}),
-        client.from('loan_installments').select('id,loan_id,store_id,installment_number,due_date,principal_amount,interest_amount,total_amount,paid_amount,status,paid_at').eq('store_id',storeId).order('due_date',{ascending:true}),
-        client.from('loan_documents').select('id,loan_id,store_id,storage_path,file_name,mime_type,page_number,size_bytes').eq('store_id',storeId).order('page_number',{ascending:true})
-      ]);
-      if(loanResult.error)throw loanResult.error;
-      if(installmentResult.error)throw installmentResult.error;
-      if(documentResult.error)throw documentResult.error;
-      if(String(activeStoreId()||'')!==String(storeId))return false;
-      state.loans=attachRelations(loanResult.data||[],installmentResult.data||[],documentResult.data||[]);
-      state.storeId=storeId;
-      if(typeof page!=='undefined'&&(page==='loans'||page==='payments'))window.render?.();
-      return true;
-    }catch(error){console.warn('NAYAD loans sync:',error);notify(error?.message||'Зээлийн мэдээлэл ачаалж чадсангүй.');return false;}
-    finally{state.loading=false;}
+    activeSync=(async()=>{
+      try{
+        const [loanResult,installmentResult,documentResult]=await Promise.all([
+          client.from('loans').select('id,store_id,lender_type,lender_name,loan_name,principal,annual_interest_rate,start_date,term_months,payment_day,repayment_method,status,created_at').eq('store_id',storeId).order('created_at',{ascending:false}),
+          client.from('loan_installments').select('id,loan_id,store_id,installment_number,due_date,principal_amount,interest_amount,total_amount,paid_amount,status,paid_at').eq('store_id',storeId).order('due_date',{ascending:true}),
+          client.from('loan_documents').select('id,loan_id,store_id,storage_path,file_name,mime_type,page_number,size_bytes').eq('store_id',storeId).order('page_number',{ascending:true})
+        ]);
+        if(loanResult.error)throw loanResult.error;
+        if(installmentResult.error)throw installmentResult.error;
+        if(documentResult.error)throw documentResult.error;
+        if(String(activeStoreId()||'')!==String(storeId))return false;
+        state.loans=attachRelations(loanResult.data||[],installmentResult.data||[],documentResult.data||[]);
+        state.storeId=storeId;
+        if(typeof page!=='undefined'&&(page==='loans'||page==='payments'))window.render?.();
+        return true;
+      }catch(error){console.warn('NAYAD loans sync:',error);notify(error?.message||'Зээлийн мэдээлэл ачаалж чадсангүй.');return false;}
+      finally{state.loading=false;activeSync=null;}
+    })();
+    return activeSync;
   }
 
   function pendingRows(loan){return (loan.installments||[]).filter(row=>row.status!=='paid').sort((a,b)=>String(a.due_date).localeCompare(String(b.due_date)));}
@@ -300,6 +303,7 @@
 
   window.loans=loanPage;
   window.__nayadSyncLoans=syncLoans;
+  window.__nayadLoanCount=()=>state.loans.length;
   window.__nayadCalculateLoanSchedule=calculateSchedule;
   window.__nayadAnnualRateFromMonthly=annualRateFromMonthly;
   window.showLoanCreate=showLoanCreate;
