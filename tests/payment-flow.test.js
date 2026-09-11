@@ -60,6 +60,9 @@ const context={
 };
 context.window=context;
 context.window.__nayadUser={id:userId};
+context.window.__nayadActiveStoreId='store-1';
+context.window.__nayadActiveStore={id:'store-1',registration_completed_at:'2026-09-11T00:00:00Z'};
+context.window.__nayadGetActiveStore=async()=>context.window.__nayadActiveStore;
 context.window.addEventListener=()=>{};
 context.window.__nayadRefreshPaymentView=()=>{postPaymentRefreshes++;};
 context.window.toast=message=>notices.push(message);
@@ -67,7 +70,6 @@ context.window.closeSheet=()=>{};
 context.window.nayadSupabase={
   auth:{getSession:async()=>({data:{session:{user:{id:userId}}}})},
   rpc:async(name,args)=>{
-    if(name==='get_my_store')return {data:[{id:'store-1'}],error:null};
     if(name==='record_supplier_payment'){
       latestPaymentId=args.p_payment_id;
       return {data:[{payment_id:latestPaymentId,remaining_balance:server.remaining}],error:null};

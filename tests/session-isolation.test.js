@@ -8,7 +8,7 @@ const previousUserId='previous-user';
 const oldStoreId='tsendun-store';
 const newStoreId='new-empty-store';
 const sharedStoreId='shared-store';
-let membershipRows=[{user_id:newUserId,id:sharedStoreId,role:'staff',permissions:{customers:'view',invoices:'view',payments:'view',loans:'none'},created_at:'2026-08-18',name:'Shared store'}];
+let membershipRows=[{user_id:newUserId,id:sharedStoreId,role:'staff',permissions:{customers:'view',invoices:'view',payments:'view',loans:'none'},created_at:'2026-08-18',name:'Shared store',registration_completed_at:'2026-08-18T00:00:00Z'}];
 let sessionChecks=0;
 let renderedCompany='';
 const values=new Map([
@@ -19,7 +19,7 @@ const app={classList:{contains:()=>false}};
 
 const context={
   console,Intl,setTimeout:fn=>{fn();return 1;},clearTimeout(){},
-  localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,String(value))},
+  localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,String(value)),removeItem:key=>values.delete(key)},
   document:{
     head:{insertAdjacentHTML(){}},
     getElementById:id=>id==='content'?content:id==='app'?app:null,
@@ -28,9 +28,9 @@ const context={
 };
 context.window=context;
 context.window.__nayadUser={id:newUserId};
-context.window.__nayadActiveStore={id:oldStoreId,name:'tsendun store',role:'owner'};
+context.window.__nayadActiveStore={id:oldStoreId,name:'tsendun store',role:'owner',registration_completed_at:'2026-08-18T00:00:00Z'};
 context.window.__nayadActiveStoreId=oldStoreId;
-context.window.__nayadStores=[{id:oldStoreId,name:'tsendun store',role:'owner'}];
+context.window.__nayadStores=[{id:oldStoreId,name:'tsendun store',role:'owner',registration_completed_at:'2026-08-18T00:00:00Z'}];
 context.window.__nayadStoresUserId=previousUserId;
 context.window.addEventListener=()=>{};
 context.window.closeSheet=()=>{};
@@ -58,7 +58,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
 
 (async()=>{
   assert.match(indexHtml,/waitForStorePreparation/,'the app must wait for store isolation before rendering');
-  assert.match(indexHtml,/registration-onboarding\.js\?v=1[\s\S]*store-switcher\.js\?v=62[\s\S]*store-recovery\.js\?v=56[\s\S]*auth-guard\.js\?v=56/,'onboarding, session recovery and auth guard must load in the safe order');
+  assert.match(indexHtml,/registration-onboarding\.js\?v=2[\s\S]*store-switcher\.js\?v=63[\s\S]*store-recovery\.js\?v=57[\s\S]*registration-delete\.js\?v=2[\s\S]*auth-guard\.js\?v=57/,'onboarding, session recovery, registration deletion and auth guard must load in the safe order');
   const phoneLogin=indexHtml.match(/async function phoneLogin\(\)\{.*?\}\nasync function registerUser/s)?.[0]||'';
   const registerUser=indexHtml.match(/async function registerUser\(\)\{.*?\}\nasync function googleLogin/s)?.[0]||'';
   assert.match(phoneLogin,/await showAuthenticatedApp\(\)/,'password login must prepare the authenticated store before opening the app');
@@ -75,7 +75,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
   assert.equal(renderedCompany,'','a different account must never render the previous account data');
   assert.equal(values.get(`NAYAD_ACTIVE_STORE:${newUserId}`),sharedStoreId);
   context.window.__nayadClearStoreRuntime();
-  membershipRows=[{id:newStoreId,role:'owner',created_at:'2026-08-18',name:'Namka store'}];
+  membershipRows=[{id:newStoreId,role:'owner',created_at:'2026-08-18',name:'Namka store',registration_completed_at:'2026-08-18T00:00:00Z'}];
   const withoutOptionalUserId=await context.window.__nayadPrepareUserStore(newUserId);
   assert.equal(withoutOptionalUserId,true,'a valid RPC response without the optional user_id field must be accepted');
   assert.equal(context.window.__nayadActiveStoreId,newStoreId);
@@ -84,7 +84,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
   const onboardingRequired=await context.window.__nayadPrepareUserStore(newUserId);
   assert.equal(onboardingRequired,'needs_registration','an account without a registration must enter onboarding');
   assert.equal(context.window.__nayadActiveStoreId,null);
-  membershipRows=[{user_id:'different-session',id:'other-store',role:'owner',created_at:'2026-08-18',name:'Other store'}];
+  membershipRows=[{user_id:'different-session',id:'other-store',role:'owner',created_at:'2026-08-18',name:'Other store',registration_completed_at:'2026-08-18T00:00:00Z'}];
   context.window.__nayadClearStoreRuntime();
   await assert.rejects(context.window.__nayadPrepareUserStore(newUserId),/Store identity mismatch/,'a store response for a different authenticated user must be rejected');
   assert.equal(context.window.__nayadActiveStoreId,null,'rejecting a mismatched session must also clear the previously active store');

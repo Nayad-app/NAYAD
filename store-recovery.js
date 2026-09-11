@@ -32,27 +32,41 @@
       role:row.role||'member',
       permissions:typeof window.__nayadNormalizePermissions==='function'?window.__nayadNormalizePermissions(row.permissions,row.role):row.permissions,
       created_at:row.created_at,
-      operation_role:row.operation_role||'buyer',
+      operation_role:row.operation_role||'',
       business_type:row.business_type||'',
-      entity_type:row.entity_type||''
+      entity_type:row.entity_type||'',
+      registration_completed_at:row.registration_completed_at||null
     })).filter(row=>row.id);
+  }
+  function isComplete(store){
+    return typeof window.__nayadIsRegistrationComplete==='function'
+      ?window.__nayadIsRegistrationComplete(store)
+      :Boolean(store?.id&&store?.registration_completed_at);
   }
   function activateExpectedStore(expectedUserId,rows){
     const stores=normalizeRows(rows);
-    if(!stores.length)return false;
     if(String(window.__nayadUser?.id||'')!==String(expectedUserId))return false;
-    const remembered=localStorage.getItem(ACTIVE_PREFIX+expectedUserId);
-    const current=window.__nayadActiveStoreId;
-    const selectedId=[remembered,current].find(id=>id&&stores.some(store=>String(store.id)===String(id)))||stores[0].id;
-    const selected=stores.find(store=>String(store.id)===String(selectedId))||stores[0];
+    const completeStores=stores.filter(isComplete);
+    const pending=stores.find(store=>store.role==='owner'&&!isComplete(store))||null;
     window.__nayadStores=stores;
     window.__nayadStoresUserId=expectedUserId;
-    window.__nayadActiveStoreId=selected.id;
-    window.__nayadActiveStore=selected;
-    localStorage.setItem(ACTIVE_PREFIX+expectedUserId,selected.id);
+    window.__nayadPendingRegistration=pending;
     if(typeof window.__nayadHydrateVerifiedStores==='function'){
       window.__nayadHydrateVerifiedStores(stores,expectedUserId);
     }
+    if(!completeStores.length){
+      window.__nayadActiveStoreId=null;
+      window.__nayadActiveStore=null;
+      localStorage.removeItem(ACTIVE_PREFIX+expectedUserId);
+      return false;
+    }
+    const remembered=localStorage.getItem(ACTIVE_PREFIX+expectedUserId);
+    const current=window.__nayadActiveStoreId;
+    const selectedId=[remembered,current].find(id=>id&&completeStores.some(store=>String(store.id)===String(id)))||completeStores[0].id;
+    const selected=completeStores.find(store=>String(store.id)===String(selectedId))||completeStores[0];
+    window.__nayadActiveStoreId=selected.id;
+    window.__nayadActiveStore=selected;
+    localStorage.setItem(ACTIVE_PREFIX+expectedUserId,selected.id);
     return true;
   }
   async function rpcWithExactToken(name,token){
@@ -138,7 +152,7 @@
             return false;
           }
           adoptSessionUser(latestUser);
-          return activateExpectedStore(expectedUserId,rows);
+          return activateExpectedStore(expectedUserId,rows)?true:'needs_registration';
         }
 
         const {data:latestData,error:latestError}=await c.auth.getSession();
@@ -149,6 +163,7 @@
         const latestTokenUserId=jwtSub(latestSession?.access_token||'');
         if(String(latestUserId)!==String(expectedUserId)||String(latestTokenUserId)!==String(expectedUserId))return false;
         adoptSessionUser(latestUser);
+        activateExpectedStore(expectedUserId,[]);
         return 'needs_registration';
       }catch(error){
         console.warn('Store recovery exact-token RPC:',error);

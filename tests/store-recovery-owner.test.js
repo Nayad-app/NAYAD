@@ -10,7 +10,7 @@ const tokenPayload=Buffer.from(JSON.stringify({sub:userId})).toString('base64url
 const accessToken=`header.${tokenPayload}.signature`;
 let ensureCalls=0;
 let listCalls=0;
-let rows=[{user_id:userId,id:sharedStoreId,name:'Shared store',role:'staff'}];
+let rows=[{user_id:userId,id:sharedStoreId,name:'Shared store',role:'staff',registration_completed_at:'2026-08-18T00:00:00Z'}];
 const values=new Map();
 const content={firstChild:null,querySelector:()=>null,insertBefore(){}};
 const app={classList:{contains:()=>false}};
@@ -18,7 +18,7 @@ const app={classList:{contains:()=>false}};
 const context={
   console,Intl,URL,Response,Headers,atob,
   setTimeout:fn=>{fn();return 1;},clearTimeout(){},
-  localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,String(value))},
+  localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,String(value)),removeItem:key=>values.delete(key)},
   document:{
     head:{insertAdjacentHTML(){}},
     getElementById:id=>id==='content'?content:id==='app'?app:null,

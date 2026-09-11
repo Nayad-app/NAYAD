@@ -166,9 +166,9 @@ function createHarness(options={}){
   context.window=context;
   context.window.__nayadUser={id:userId};
   context.window.__nayadActiveStoreId=storeId;
-  context.window.__nayadActiveStore={id:storeId};
+  context.window.__nayadActiveStore={id:storeId,registration_completed_at:'2026-09-11T00:00:00Z'};
   context.window.__nayadStoreDataKey=()=>localKey;
-  context.window.__nayadGetActiveStore=async()=>({id:storeId});
+  context.window.__nayadGetActiveStore=async()=>context.window.__nayadActiveStore;
   context.window.addEventListener=()=>{};
   context.window.sheet=()=>{};
   context.window.closeSheet=()=>{};

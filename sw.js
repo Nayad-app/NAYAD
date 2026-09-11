@@ -1,5 +1,5 @@
-// Invalidate the installed app shell for owner-scoped registration deletion.
-const CACHE = "nayad-v118";
+// Invalidate the installed app shell for explicit registration completion.
+const CACHE = "nayad-v119";
 
 const ASSETS = [
   "./",
@@ -12,21 +12,21 @@ const ASSETS = [
   "./app-state.js?v=39",
   "./money-input.js?v=1",
   "./image-compress.js?v=1",
-  "./registration-onboarding.js?v=1",
-  "./store-switcher.js?v=62",
-  "./store-recovery.js?v=56",
-  "./registration-delete.js?v=1",
-  "./cloud-runtime.js?v=58",
-  "./auth-guard.js?v=56",
+  "./registration-onboarding.js?v=2",
+  "./store-switcher.js?v=63",
+  "./store-recovery.js?v=57",
+  "./registration-delete.js?v=2",
+  "./cloud-runtime.js?v=59",
+  "./auth-guard.js?v=57",
   "./mobile-fix.js?v=46",
   "./share.js?v=40",
   "./profile-menu.js?v=5",
   "./subscription.js?v=4",
-  "./invoice-cloud.js?v=70",
-  "./supplier-cloud.js?v=57",
+  "./invoice-cloud.js?v=71",
+  "./supplier-cloud.js?v=58",
   "./payment-center.js?v=10",
   "./loans.js?v=3",
-  "./contact-types.js?v=8",
+  "./contact-types.js?v=9",
   "./company-label.js",
   "./member-permissions.js?v=1"
 ];
@@ -65,41 +65,42 @@ function injectScriptBefore(html,anchorSrc,src){
 
 function injectCloudRuntimeBeforeCloudModules(html){
   if(html.includes("./cloud-runtime.js"))return html;
-  const invoiceTag='<script src="./invoice-cloud.js?v=70"></script>';
+  const invoiceTag='<script src="./invoice-cloud.js?v=71"></script>';
   if(html.includes(invoiceTag)){
-    return html.replace(invoiceTag,`<script src="./cloud-runtime.js?v=58"></script>${invoiceTag}`);
+    return html.replace(invoiceTag,`<script src="./cloud-runtime.js?v=59"></script>${invoiceTag}`);
   }
-  return injectScript(html,"./cloud-runtime.js?v=58");
+  return injectScript(html,"./cloud-runtime.js?v=59");
 }
 
 function patchDocument(html){
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=39");
   patched=patched.replace(/\.\/money-input\.js\?v=\d+/g,"./money-input.js?v=1");
-  patched=patched.replace(/\.\/registration-onboarding\.js\?v=\d+/g,"./registration-onboarding.js?v=1");
-  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=62");
-  patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=56");
-  patched=patched.replace(/\.\/registration-delete\.js\?v=\d+/g,"./registration-delete.js?v=1");
-  patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=58");
-  patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=56");
+  patched=patched.replace(/\.\/registration-onboarding\.js\?v=\d+/g,"./registration-onboarding.js?v=2");
+  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=63");
+  patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=57");
+  patched=patched.replace(/\.\/registration-delete\.js\?v=\d+/g,"./registration-delete.js?v=2");
+  patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=59");
+  patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=57");
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=40");
   patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=5");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=4");
-  patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=70");
+  patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=71");
   patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=1");
-  patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=57");
+  patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=58");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=3");
-  patched=injectScriptBefore(patched,"./invoice-cloud.js?v=70","./money-input.js?v=1");
-  patched=injectScriptBefore(patched,"./store-switcher.js?v=62","./registration-onboarding.js?v=1");
-  patched=injectScriptAfter(patched,"./store-switcher.js?v=62","./store-recovery.js?v=56");
-  patched=injectScriptAfter(patched,"./store-recovery.js?v=56","./registration-delete.js?v=1");
-  patched=injectScriptAfter(patched,"./registration-delete.js?v=1","./auth-guard.js?v=56");
+  patched=injectScriptBefore(patched,"./invoice-cloud.js?v=71","./money-input.js?v=1");
+  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=9");
+  patched=injectScriptBefore(patched,"./store-switcher.js?v=63","./registration-onboarding.js?v=2");
+  patched=injectScriptAfter(patched,"./store-switcher.js?v=63","./store-recovery.js?v=57");
+  patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
+  patched=injectScriptAfter(patched,"./registration-delete.js?v=2","./auth-guard.js?v=57");
   patched=injectScriptAfter(patched,"./share.js?v=40","./profile-menu.js?v=5");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=4");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
-  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=70","./payment-center.js?v=10");
+  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=71","./payment-center.js?v=10");
   patched=injectScriptAfter(patched,"./payment-center.js?v=10","./loans.js?v=3");
-  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=57","./contact-types.js?v=8");
+  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=58","./contact-types.js?v=9");
   patched=injectScriptAfter(patched,"./subscription.js?v=4","./member-permissions.js?v=1");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;

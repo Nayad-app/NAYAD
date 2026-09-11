@@ -59,7 +59,8 @@ const context={
 };
 context.window=context;
 context.window.__nayadUser={id:userId};
-context.window.__nayadGetActiveStore=async()=>({id:storeId,name:'Namka store'});
+context.window.__nayadActiveStore={id:storeId,name:'Namka store',registration_completed_at:'2026-09-11T00:00:00Z'};
+context.window.__nayadGetActiveStore=async()=>context.window.__nayadActiveStore;
 context.window.addEventListener=()=>{};
 context.window.toast=()=>{};
 context.window.saveCompany=()=>{

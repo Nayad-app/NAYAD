@@ -18,6 +18,20 @@
     if(!bank||!account||!holder){window.toast('Банк, дансны дугаар, данс эзэмшигчийн нэрийг бөглөнө үү.');return false;}
     return true;
   };
+  function requireCompletedRegistration(){
+    const active=window.__nayadActiveStore||null;
+    const complete=typeof window.__nayadIsRegistrationComplete==='function'
+      ?window.__nayadIsRegistrationComplete(active)
+      :Boolean(active?.id&&active?.registration_completed_at);
+    if(complete)return true;
+    const pending=active?.id?active:window.__nayadPendingRegistration||null;
+    window.toast?.('Эхлээд үйл ажиллагааны бүртгэлээ гүйцээнэ үү.');
+    if(pending?.role==='owner'&&typeof window.showNayadRegistrationOnboarding==='function'){
+      window.closeSheet?.();
+      window.showNayadRegistrationOnboarding({initial:false,existingRegistration:pending});
+    }
+    return false;
+  }
   function injectStyle(){
     if(document.getElementById('nayadContactTypeStyle'))return;
     const style=document.createElement('style');style.id='nayadContactTypeStyle';style.textContent=`
@@ -61,10 +75,12 @@
     contactTypeSelectionTimer=window.setTimeout(()=>{const modal=document.getElementById('modal');if(modal?.classList?.contains?.('hide'))return;showContactForm(kind);},160);
   }
   function showContactTypePicker(){
+    if(!requireCompletedRegistration())return;
     injectStyle();
     window.sheet(`<h2>Харилцагч бүртгэх</h2><div class="contactTypeHint">Харилцагчийн төрөл</div><div class="contactTypePicker"><button type="button" class="contactTypeOption person" data-contact-type="person" aria-pressed="false" onclick="selectContactType('person')"><span class="contactTypeIcon">${icon(PERSON)}</span><b>Хувь хүн</b></button><button type="button" class="contactTypeOption organization" data-contact-type="organization" aria-pressed="false" onclick="selectContactType('organization')"><span class="contactTypeIcon">${icon(ORGANIZATION)}</span><b>Байгууллага</b></button></div>`);
   }
   function showContactForm(type,contact={}){
+    if(!contact?.id&&!requireCompletedRegistration())return;
     injectStyle();
     const kind=validType(type),person=kind===PERSON,prefix=contact.id?'e':'new';
     const title=person?'Хувь хүн бүртгэх':'Байгууллага бүртгэх';
@@ -256,6 +272,7 @@
     return {contactType:validType(fieldValue(prefix+'ContactType')),name:fieldValue(prefix+'Name'),phone:fieldValue(prefix+'Phone'),address:fieldValue(prefix+'Address'),director:fieldValue(prefix+'Director'),directorPhone:fieldValue(prefix+'DirectorPhone'),sales:fieldValue(prefix+'Sales'),salesPhone:fieldValue(prefix+'SalesPhone'),note:fieldValue(prefix+'Note'),bank:fieldValue(prefix+'Bank'),bankAccount:fieldValue(prefix+'BankAccount').toUpperCase(),bankAccountHolder:fieldValue(prefix+'BankAccountHolder')};
   }
   function saveCompany(){
+    if(!requireCompletedRegistration())return;
     const draft=readContact('new');if(!draft.name)return window.toast('Нэр эсвэл байгууллагын нэрийг оруулна уу.');if(!draft.phone)return window.toast('Утасны дугаараа оруулна уу.');if(!requireBank(draft.bank,draft.bankAccount,draft.bankAccountHolder))return;
     if(data.companies.some(c=>String(c.name||'').trim().toLowerCase()===draft.name.toLowerCase()))return window.toast('Ийм нэртэй харилцагч бүртгэлтэй байна.');
     data.companies.push({id:Date.now(),...draft,status:'active',color:draft.contactType===PERSON?'green':'blue',invoices:[]});window.save();window.closeSheet();window.render();window.toast('Харилцагч бүртгэгдлээ.');

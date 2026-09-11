@@ -16,8 +16,8 @@ let renderedCompany='';
 let invoiceSyncs=0;
 let supplierSyncs=0;
 let membershipRows=[
-  {user_id:userId,id:ownId,role:'owner',permissions:{customers:'edit',invoices:'edit',payments:'edit',loans:'edit'},created_at:'2026-08-17',name:'tsendun store'},
-  {user_id:userId,id:sharedId,role:'manager',permissions:{customers:'edit',invoices:'edit',payments:'edit',loans:'none'},created_at:'2026-08-18',name:'NAYAD'}
+  {user_id:userId,id:ownId,role:'owner',permissions:{customers:'edit',invoices:'edit',payments:'edit',loans:'edit'},created_at:'2026-08-17',name:'tsendun store',registration_completed_at:'2026-08-17T00:00:00Z'},
+  {user_id:userId,id:sharedId,role:'manager',permissions:{customers:'edit',invoices:'edit',payments:'edit',loans:'none'},created_at:'2026-08-18',name:'NAYAD',registration_completed_at:'2026-08-18T00:00:00Z'}
 ];
 let releasePendingCloud;
 const pendingCloud=new Promise(resolve=>{releasePendingCloud=resolve;});

@@ -36,6 +36,10 @@
   let state=null;
   let creating=false;
 
+  function isRegistrationComplete(registration){
+    return Boolean(registration?.id&&registration?.registration_completed_at);
+  }
+
   const STYLE=`<style id="nayad-registration-styles">
   .nayadRegistration{position:fixed;inset:0;z-index:120;overflow:auto;background:var(--bg);color:var(--text)}
   .nayadRegistrationShell{width:100%;max-width:430px;min-height:100svh;margin:0 auto;background:var(--bg);display:flex;flex-direction:column;box-shadow:0 0 40px rgba(0,0,0,.08)}
@@ -91,9 +95,10 @@
 
   function reviewStep(){
     const supplier=state.operationRole==='supplier';
+    const completing=Boolean(state.completionId);
     const extra=supplier?`<div class="nayadRegistrationSummaryRow"><span>Төрөл</span><b>${entityLabel()}</b></div><div class="nayadRegistrationSummaryRow"><span>Нэр</span><b>${esc(state.name)}</b></div>`:`<div class="nayadRegistrationSummaryRow"><span>Үйл ажиллагааны төрөл</span><b>${esc(selectedBusinessType())}</b></div><div class="nayadRegistrationSummaryRow"><span>Үйл ажиллагааны нэр</span><b>${esc(state.name)}</b></div>`;
     const info=supplier?'Үүсгэсний дараа бараа нийлүүлсэн бүртгэл, авах авлага болон орсон төлбөрөө хөтөлнө.':'Үүсгэсний дараа авсан барааны падаан болон нийлүүлэгчдэд төлөх өглөгөө бүртгэнэ.';
-    return frame(`<p class="nayadRegistrationKicker">${roleLabel()}</p><h1>Бүртгэлээ шалгах</h1><p class="nayadRegistrationIntro">Оруулсан мэдээллээ шалгаад ${supplier?'нийлүүлэгчийн':'худалдан авагчийн'} бүртгэлээ үүсгэнэ үү.</p><div class="nayadRegistrationSummary"><div class="nayadRegistrationSummaryHead"><span class="nayadRegistrationSummaryIcon">${icon(supplier?(state.entityType==='person'?'user':'building'):'basket')}</span><span><b>${esc(state.name)}</b><span>${roleLabel()}ийн бүртгэл</span></span></div><div class="nayadRegistrationSummaryRow"><span>Чиглэл</span><b>${roleLabel()}</b></div>${extra}</div><p class="nayadRegistrationInfo">ⓘ &nbsp;${info}</p><div class="nayadRegistrationGrow"></div><button id="nayadCreateRegistrationButton" class="nayadRegistrationPrimary" type="button" onclick="nayadRegistrationCreate()">Бүртгэл үүсгэх</button>`);
+    return frame(`<p class="nayadRegistrationKicker">${roleLabel()}</p><h1>Бүртгэлээ шалгах</h1><p class="nayadRegistrationIntro">Оруулсан мэдээллээ шалгаад ${supplier?'нийлүүлэгчийн':'худалдан авагчийн'} бүртгэлээ ${completing?'гүйцээнэ':'үүсгэнэ'} үү.</p><div class="nayadRegistrationSummary"><div class="nayadRegistrationSummaryHead"><span class="nayadRegistrationSummaryIcon">${icon(supplier?(state.entityType==='person'?'user':'building'):'basket')}</span><span><b>${esc(state.name)}</b><span>${roleLabel()}ийн бүртгэл</span></span></div><div class="nayadRegistrationSummaryRow"><span>Чиглэл</span><b>${roleLabel()}</b></div>${extra}</div><p class="nayadRegistrationInfo">ⓘ &nbsp;${info}</p><div class="nayadRegistrationGrow"></div><button id="nayadCreateRegistrationButton" class="nayadRegistrationPrimary" type="button" onclick="nayadRegistrationCreate()">${completing?'Бүртгэл гүйцээх':'Бүртгэл үүсгэх'}</button>`);
   }
 
   function render(){
@@ -112,7 +117,9 @@
     if(!document.getElementById('nayad-registration-styles'))document.head.insertAdjacentHTML('beforeend',STYLE);
     let element=root();
     if(!element){element=document.createElement('div');element.id='nayadRegistrationRoot';element.className='nayadRegistration';document.body.appendChild(element);}
-    state={step:'role',operationRole:'',entityType:'',businessType:'',customBusinessType:'',name:'',initial:Boolean(options.initial)};
+    const candidate=options.existingRegistration||(options.initial?window.__nayadPendingRegistration:null)||null;
+    const completionId=candidate?.role==='owner'&&!isRegistrationComplete(candidate)?String(candidate.id||''):'';
+    state={step:'role',operationRole:'',entityType:'',businessType:'',customBusinessType:'',name:'',initial:Boolean(options.initial),completionId,createdId:''};
     document.getElementById('landing')?.classList.add('hide');
     document.getElementById('login')?.classList.add('hide');
     if(state.initial)document.getElementById('app')?.classList.add('hide');
@@ -162,11 +169,15 @@
     if(!client||!name||!operationRole||operationRole==='buyer'&&!businessType||operationRole==='supplier'&&!entityType)return;
     const initial=state.initial;
     const button=document.getElementById('nayadCreateRegistrationButton');
-    creating=true;if(button){button.disabled=true;button.textContent='Үүсгэж байна...';}
+    const completing=Boolean(state.completionId);
+    creating=true;if(button){button.disabled=true;button.textContent=completing?'Гүйцээж байна...':'Үүсгэж байна...';}
     try{
       let created=state.createdId?{id:state.createdId}:null;
       if(!created){
-        const {data,error}=await client.rpc('create_my_registration',{p_name:name,p_operation_role:operationRole,p_business_type:businessType,p_entity_type:entityType});
+        const rpcName=completing?'complete_my_registration':'create_my_registration';
+        const args={p_name:name,p_operation_role:operationRole,p_business_type:businessType,p_entity_type:entityType};
+        if(completing)args.p_store_id=state.completionId;
+        const {data,error}=await client.rpc(rpcName,args);
         if(error)throw error;
         created=Array.isArray(data)?data[0]:data;
         if(!created?.id)throw new Error('Бүртгэл үүссэнгүй.');
@@ -176,14 +187,14 @@
       close();
       if(initial&&typeof window.showAuthenticatedApp==='function')await window.showAuthenticatedApp();
       else if(typeof window.render==='function')window.render();
-      window.toast?.('Бүртгэл амжилттай үүслээ.');
+      window.toast?.(completing?'Бүртгэл амжилттай гүйцлээ.':'Бүртгэл амжилттай үүслээ.');
     }catch(error){
       console.error('Registration create:',error);
       const message=String(error?.message||'');
       if(/already exists/i.test(message))window.toast?.('Ийм нэртэй бүртгэл аль хэдийн байна.');
       else if(/limit/i.test(message))window.toast?.('Бүртгэлийн тооны хязгаарт хүрсэн байна.');
-      else window.toast?.('Бүртгэл үүсгэхэд алдаа гарлаа.');
-      if(button){button.disabled=false;button.textContent='Бүртгэл үүсгэх';}
+      else window.toast?.(completing?'Бүртгэл гүйцээхэд алдаа гарлаа.':'Бүртгэл үүсгэхэд алдаа гарлаа.');
+      if(button){button.disabled=false;button.textContent=completing?'Бүртгэл гүйцээх':'Бүртгэл үүсгэх';}
     }finally{creating=false;}
   }
 
@@ -197,5 +208,6 @@
   window.nayadRegistrationSetCustomBusinessType=setCustomBusinessType;
   window.nayadRegistrationContinue=next;
   window.nayadRegistrationCreate=create;
+  window.__nayadIsRegistrationComplete=isRegistrationComplete;
   window.__nayadBuyerBusinessTypes=BUYER_TYPES.slice();
 })();

@@ -35,7 +35,15 @@
   function activeKey(){return userId()?ACTIVE_PREFIX+userId():'';}
   function initial(name){return String(name||'N').trim().slice(0,1).toUpperCase();}
   function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
-  function active(){return runtimeBelongsTo()?window.__nayadActiveStore||null:null;}
+  function isComplete(store){
+    return typeof window.__nayadIsRegistrationComplete==='function'
+      ?window.__nayadIsRegistrationComplete(store)
+      :Boolean(store?.id&&store?.registration_completed_at);
+  }
+  function active(){
+    const store=runtimeBelongsTo()?window.__nayadActiveStore||null:null;
+    return isComplete(store)?store:null;
+  }
   function roleLabel(role){return role==='owner'?'Эзэмшигч':'Гишүүн';}
   const PERMISSION_MODULES=['customers','invoices','payments','loans'];
   function normalizedPermissions(value,role=''){
@@ -66,7 +74,7 @@
     return next;
   }
   function normalizeStores(rows){
-    return (rows||[]).map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',permissions:normalizedPermissions(row.permissions,row.role||'member'),created_at:row.created_at,operation_role:row.operation_role||'buyer',business_type:row.business_type||'',entity_type:row.entity_type||''})).filter(row=>row.id);
+    return (rows||[]).map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',permissions:normalizedPermissions(row.permissions,row.role||'member'),created_at:row.created_at,operation_role:row.operation_role||'',business_type:row.business_type||'',entity_type:row.entity_type||'',registration_completed_at:row.registration_completed_at||null})).filter(row=>row.id);
   }
   function clearRuntimeStoreState(){
     stores=[];
@@ -75,6 +83,7 @@
     window.__nayadStoresUserId='';
     window.__nayadActiveStore=null;
     window.__nayadActiveStoreId=null;
+    window.__nayadPendingRegistration=null;
   }
   async function ensureCurrentUser(){
     const client=sb();
@@ -101,11 +110,20 @@
   function hydrateVerifiedStores(rows,expectedUserId=userId()){
     if(!expectedUserId||String(expectedUserId)!==String(userId()))return false;
     const verified=normalizeStores(rows);
-    if(!verified.length)return false;
     stores=verified;
     initializedFor=expectedUserId;
     window.__nayadStores=stores;
     window.__nayadStoresUserId=expectedUserId;
+    window.__nayadPendingRegistration=stores.find(store=>store.role==='owner'&&!isComplete(store))||null;
+    const activeId=window.__nayadActiveStoreId||window.__nayadActiveStore?.id||'';
+    const verifiedActive=stores.find(store=>isComplete(store)&&String(store.id)===String(activeId));
+    if(verifiedActive){
+      window.__nayadActiveStore=verifiedActive;
+      window.__nayadActiveStoreId=verifiedActive.id;
+    }else{
+      window.__nayadActiveStore=null;
+      window.__nayadActiveStoreId=null;
+    }
     return true;
   }
 
@@ -151,14 +169,37 @@
     const trusted=trustedGlobalStores();
     if((initializedFor!==userId()||!stores.length)&&trusted)hydrateVerifiedStores(trusted,userId());
     const visibleStores=initializedFor===userId()&&runtimeBelongsTo()?stores:[];
-    const rows=visibleStores.map(store=>`<button class="storePickerItem ${String(store.id)===String(window.__nayadActiveStoreId)?'active':''}" type="button" onclick="selectNayadStore('${esc(store.id)}')"><span class="storePickerAvatar">${esc(initial(store.name))}</span><span class="storePickerMeta"><b>${esc(store.name)}</b><span>${roleLabel(store.role)}</span></span><span class="storePickerCheck">✓</span></button>`).join('');
+    const rows=visibleStores.map(store=>{
+      const complete=isComplete(store),selected=complete&&String(store.id)===String(window.__nayadActiveStoreId);
+      const action=complete?`selectNayadStore('${esc(store.id)}')`:`completeNayadRegistration('${esc(store.id)}')`;
+      const status=complete?roleLabel(store.role):(store.role==='owner'?'Бүртгэлээ гүйцээх':'Эзэмшигчийн тохиргоо хүлээж байна');
+      return `<button class="storePickerItem ${selected?'active':''}" type="button" onclick="${action}"><span class="storePickerAvatar">${esc(initial(store.name))}</span><span class="storePickerMeta"><b>${esc(store.name)}</b><span>${status}</span></span><span class="storePickerCheck">✓</span></button>`;
+    }).join('');
     window.sheet(`<div class="storePickerHeader"><h2>Бүртгэл сонгох</h2><button class="storePickerClose" type="button" onclick="closeSheet()" aria-label="Хаах"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="storePickerHint">Та өөрийн болон хуваалцсан бүртгэлүүдийн хооронд шилжиж болно.</div><div class="storePickerList">${rows||'<div class="card">Бүртгэл олдсонгүй.</div>'}<button class="storePickerAdd" type="button" onclick="showNayadStoreCreate()"><span>+</span>Шинэ бүртгэл нэмэх</button></div>`);
   }
 
   function showCreateStore(){
     if(typeof window.showNayadRegistrationOnboarding!=='function')return window.toast?.('Бүртгэлийн хэсэг ачаалж байна. Дахин оролдоно уу.');
+    const pending=stores.find(store=>store.role==='owner'&&!isComplete(store));
+    if(pending)return completeRegistration(pending.id,false);
     if(typeof window.closeSheet==='function')window.closeSheet();
     window.showNayadRegistrationOnboarding({initial:false});
+  }
+
+  function completeRegistration(storeId,initial=false){
+    const target=stores.find(store=>String(store.id)===String(storeId)&&!isComplete(store));
+    if(!target)return false;
+    if(target.role!=='owner'){
+      window.toast?.('Энэ бүртгэлийг эзэмшигч нь гүйцээх шаардлагатай.');
+      return false;
+    }
+    window.__nayadPendingRegistration=target;
+    if(typeof window.closeSheet==='function')window.closeSheet();
+    if(typeof window.showNayadRegistrationOnboarding==='function'){
+      window.showNayadRegistrationOnboarding({initial:Boolean(initial),existingRegistration:target});
+      return true;
+    }
+    return false;
   }
 
   async function activateStore(storeId,options={}){
@@ -166,6 +207,7 @@
     if((initializedFor!==userId()||!stores.length)&&trusted)hydrateVerifiedStores(trusted,userId());
     if(initializedFor!==userId()||!runtimeBelongsTo())return false;
     const next=stores.find(s=>String(s.id)===String(storeId));if(!next)return false;
+    if(!isComplete(next))return completeRegistration(next.id,false);
     const changed=String(window.__nayadActiveStoreId||'')!==String(next.id);
     const previous=active();
     const permissionsChanged=!changed&&previous&&(
@@ -199,16 +241,24 @@
     if(!fetched.length){
       stores=[];initializedFor=uid;window.__nayadStores=[];window.__nayadStoresUserId=uid;
       window.__nayadActiveStore=null;window.__nayadActiveStoreId=null;
+      window.__nayadPendingRegistration=null;
+      localStorage.removeItem(ACTIVE_PREFIX+uid);
       return [];
     }
     stores=fetched;initializedFor=uid;window.__nayadStores=stores;window.__nayadStoresUserId=uid;
+    window.__nayadPendingRegistration=stores.find(store=>store.role==='owner'&&!isComplete(store))||null;
     const nextStoreIds=new Set(stores.map(store=>String(store.id)));
     previousStoreIds.filter(id=>!nextStoreIds.has(id)).forEach(id=>localStorage.removeItem(`${DATA_PREFIX}${uid}:${id}`));
     const requested=options.selectStoreId;
     const remembered=localStorage.getItem(ACTIVE_PREFIX+uid);
     const current=window.__nayadActiveStoreId;
-    const selectedId=[requested,remembered,current].find(id=>id&&stores.some(s=>String(s.id)===String(id)))||stores[0]?.id;
+    const completed=stores.filter(isComplete);
+    const selectedId=[requested,remembered,current].find(id=>id&&completed.some(s=>String(s.id)===String(id)))||completed[0]?.id;
     if(selectedId)await activateStore(selectedId,{sync:options.sync!==false,close:options.close});
+    else{
+      window.__nayadActiveStore=null;window.__nayadActiveStoreId=null;
+      localStorage.removeItem(ACTIVE_PREFIX+uid);
+    }
     return stores;
   }
 
@@ -252,9 +302,9 @@
          Resolve both runtime fields from the authenticated store list. */
       const requestedId=window.__nayadActiveStoreId||'';
       const activeId=active()?.id||'';
-      const verified=stores.find(item=>String(item.id)===String(requestedId))
-        ||stores.find(item=>String(item.id)===String(activeId))
-        ||stores[0];
+      const verified=stores.find(item=>isComplete(item)&&String(item.id)===String(requestedId))
+        ||stores.find(item=>isComplete(item)&&String(item.id)===String(activeId))
+        ||stores.find(isComplete);
       if(verified){
         window.__nayadActiveStore=verified;
         window.__nayadActiveStoreId=verified.id;
@@ -276,6 +326,7 @@
   window.showNayadStorePicker=showPicker;
   window.showNayadStoreCreate=showCreateStore;
   window.selectNayadStore=selectStore;
+  window.completeNayadRegistration=completeRegistration;
   window.__nayadRefreshStores=refreshStores;
   window.__nayadGetActiveStore=getActiveStore;
   window.__nayadPrepareUserStore=prepareUserStore;

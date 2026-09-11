@@ -94,9 +94,13 @@
         ?await window.__nayadRefreshStores({sync:true,close:true})
         :[];
       if(currentUserId()!==target.userId)return;
-      if(!remaining.length){
+      const nextStore=window.__nayadActiveStore||null;
+      const hasCompletedRegistration=typeof window.__nayadIsRegistrationComplete==='function'
+        ?window.__nayadIsRegistrationComplete(nextStore)
+        :Boolean(nextStore?.id&&nextStore?.registration_completed_at);
+      if(!remaining.length||!hasCompletedRegistration){
         if(typeof window.showNayadRegistrationOnboarding==='function'){
-          window.showNayadRegistrationOnboarding({initial:true});
+          window.showNayadRegistrationOnboarding({initial:true,existingRegistration:window.__nayadPendingRegistration||null});
         }
       }
       notify(`“${target.name}” бүртгэл устлаа.`);

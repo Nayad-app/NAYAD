@@ -44,6 +44,10 @@ const context={
   v:id=>values[id]||''
 };
 context.window=context;
+context.window.__nayadActiveStore={
+  id:'completed-store',role:'owner',operation_role:'buyer',business_type:'Эмийн сан',
+  registration_completed_at:'2026-09-11T00:00:00Z'
+};
 vm.createContext(context);
 vm.runInContext(source,context,{filename:'contact-types.js'});
 

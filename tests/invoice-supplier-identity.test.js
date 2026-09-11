@@ -99,9 +99,9 @@ const context={
 context.window=context;
 context.window.__nayadUser={id:userId};
 context.window.__nayadActiveStoreId=storeId;
-context.window.__nayadActiveStore={id:storeId,name:'Namka store'};
+context.window.__nayadActiveStore={id:storeId,name:'Namka store',registration_completed_at:'2026-09-11T00:00:00Z'};
 context.window.__nayadStoreDataKey=()=>localKey;
-context.window.__nayadGetActiveStore=async()=>({id:activeStoreId,name:activeStoreId===storeId?'Namka store':'Other store'});
+context.window.__nayadGetActiveStore=async()=>({id:activeStoreId,name:activeStoreId===storeId?'Namka store':'Other store',registration_completed_at:'2026-09-11T00:00:00Z'});
 context.window.addEventListener=()=>{};
 context.window.sheet=html=>{sheetHtml=html;};
 context.window.closeSheet=()=>{closeCount++;};

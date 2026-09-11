@@ -33,13 +33,12 @@ const context={
 };
 context.window=context;
 context.window.__nayadUser={id:userId};
+context.window.__nayadActiveStore={id:'store-1',name:'Store',registration_completed_at:'2026-09-11T00:00:00Z'};
+context.window.__nayadGetActiveStore=async()=>context.window.__nayadActiveStore;
 context.window.addEventListener=(event,handler)=>{if(event==='load')onLoad=handler;};
 context.window.nayadSupabase={
   auth:{getSession:async()=>({data:{session:{user:{id:userId}}}})},
-  rpc:async name=>{
-    if(name==='ensure_my_store')return {data:[{id:'store-1'}],error:null};
-    throw new Error('Unexpected RPC: '+name);
-  },
+  rpc:async name=>{throw new Error('Unexpected RPC: '+name);},
   from:table=>{if(table!=='suppliers')throw new Error('Unexpected table: '+table);return supplierQuery();}
 };
 

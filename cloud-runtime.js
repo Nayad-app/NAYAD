@@ -1,7 +1,7 @@
-/* NAYAD cloud runtime v58 — financial sync rejects cross-user store context. */
+/* NAYAD cloud runtime v59 — sync requires a completed registration context. */
 (function(){
-  if(window.__nayadCloudRuntimeV58)return;
-  window.__nayadCloudRuntimeV58=true;
+  if(window.__nayadCloudRuntimeV59)return;
+  window.__nayadCloudRuntimeV59=true;
 
   let syncPromise=null;
   let syncKey='';
@@ -14,8 +14,15 @@
   function storesBelongTo(userId){
     return Boolean(userId)&&String(window.__nayadStoresUserId||'')===String(userId);
   }
+  function isComplete(store){
+    return typeof window.__nayadIsRegistrationComplete==='function'
+      ?window.__nayadIsRegistrationComplete(store)
+      :Boolean(store?.id&&store?.registration_completed_at);
+  }
   function verifiedStoresFor(userId){
-    return storesBelongTo(userId)&&Array.isArray(window.__nayadStores)?window.__nayadStores:[];
+    return storesBelongTo(userId)&&Array.isArray(window.__nayadStores)
+      ?window.__nayadStores.filter(isComplete)
+      :[];
   }
 
   async function currentContext(){
@@ -81,10 +88,10 @@
 
   window.__nayadStartCloudSync=async function(options={}){
     let context=await recoverContext();
-    /* Invoice/supplier modules independently verify the authenticated session,
-       active store and RLS. Do not suppress their authoritative refetch merely
-       because this coordinator observed a transient stale runtime object. */
-    const key=context?context.userId+':'+context.storeId:'recovering';
+    /* A personal account is not a registration. Never start financial modules
+       until an explicitly completed registration is the verified context. */
+    if(!context)return false;
+    const key=context.userId+':'+context.storeId;
     const force=options.force===true;
 
     if(syncPromise&&syncKey===key)return syncPromise;

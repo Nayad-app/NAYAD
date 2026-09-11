@@ -1,7 +1,7 @@
-/* NAYAD auth guard v56 — browser Supabase Auth owns session persistence. */
+/* NAYAD auth guard v57 — browser Supabase Auth owns session persistence. */
 (function(){
-  if(window.__nayadAuthGuardV56)return;
-  window.__nayadAuthGuardV56=true;
+  if(window.__nayadAuthGuardV57)return;
+  window.__nayadAuthGuardV57=true;
 
   const originalHandleAuthStateChange=window.handleAuthStateChange;
   const originalShowAuthenticatedApp=window.showAuthenticatedApp;
@@ -47,6 +47,12 @@
       console.warn('NAYAD cloud runtime was not ready after app boot.');
     },0);
   }
+  function hasCompletedActiveRegistration(){
+    const store=window.__nayadActiveStore||null;
+    return typeof window.__nayadIsRegistrationComplete==='function'
+      ?window.__nayadIsRegistrationComplete(store)
+      :Boolean(store?.id&&store?.registration_completed_at);
+  }
 
   if(typeof originalHandleAuthStateChange==='function'){
     window.handleAuthStateChange=async function(event,eventSession){
@@ -85,7 +91,7 @@
       const opened=typeof originalShowAuthenticatedApp==='function'
         ?Boolean(await originalShowAuthenticatedApp())
         :true;
-      if(opened)scheduleCloudSync('app-open');
+      if(opened&&hasCompletedActiveRegistration())scheduleCloudSync('app-open');
       return opened;
     }catch(error){
       console.warn('Auth guard show app:',error);

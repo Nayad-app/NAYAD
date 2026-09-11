@@ -20,6 +20,11 @@
   function queueCloudSync(task){return window.__nayadQueueCloudSync(task);}
 
   function client(){ return window.nayadSupabase || window.sb || null; }
+  function registrationComplete(store){
+    return typeof window.__nayadIsRegistrationComplete==='function'
+      ?window.__nayadIsRegistrationComplete(store)
+      :Boolean(store?.id&&store?.registration_completed_at);
+  }
   async function resolveInvoiceImageRows(rows,ttl=600,storageClient=client()){
     const list=Array.isArray(rows)?rows:[];
     const paths=list.map(row=>String(row?.image_path||'')).filter(Boolean);
@@ -161,13 +166,9 @@
     const sb=client(); if(!sb) throw new Error('Supabase холболт олдсонгүй.');
     if(typeof window.__nayadGetActiveStore==='function'){
       const activeStore=await window.__nayadGetActiveStore();
-      if(activeStore?.id)return activeStore;
+      if(registrationComplete(activeStore))return activeStore;
     }
-    const {data,error}=await sb.rpc('get_my_store');
-    if(error) throw error;
-    const row=Array.isArray(data)?data[0]:data;
-    if(!row?.id) throw new Error('Таны дэлгүүр олдсонгүй.');
-    return row;
+    throw new Error('Эхлээд үйл ажиллагааны бүртгэлээ гүйцээнэ үү.');
   }
 
   async function ensureSupplier(storeRow, company, options={}){

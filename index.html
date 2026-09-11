@@ -203,7 +203,7 @@ function showPasswordResetScreen(){document.getElementById("app").classList.add(
 async function updatePassword(){const p1=document.getElementById("resetPassword")?.value||"",p2=document.getElementById("resetPassword2")?.value||"";if(p1.length<6){authMessage("resetMsg","Нууц үг хамгийн багадаа 6 тэмдэгт байна.");return}if(p1!==p2){authMessage("resetMsg","Нууц үгүүд хоорондоо таарахгүй байна.");return}setAuthBusy("resetBtn",true,"Шинэчилж байна...");try{const {error}=await sb.auth.updateUser({password:p1});if(error)throw error;sessionStorage.removeItem("NAYAD_PASSWORD_RECOVERY");authMessage("resetMsg","Нууц үг амжилттай шинэчлэгдлээ. Одоо шинэ нууц үгээрээ нэвтэрнэ үү.","success");await sb.auth.signOut();setTimeout(()=>window.location.replace(window.location.pathname),1200)}catch(e){console.error("Password reset:",e);authMessage("resetMsg",e?.message||"Нууц үг шинэчлэхэд алдаа гарлаа")}finally{setAuthBusy("resetBtn",false)}}
 function profileFromUser(user){const previousId=window.__nayadUser?.id||"",nextId=user?.id||"";if(previousId!==nextId&&typeof window.__nayadClearStoreRuntime==="function")window.__nayadClearStoreRuntime();window.__nayadUser=user||null;if(previousId!==nextId)switchUserData(user);updateProfileUI();return getCurrentUserProfile()}
 async function enterApp(){return phoneLogin()}
-document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});async function waitForStorePreparation(){for(let i=0;i<40;i++){if(typeof window.__nayadPrepareUserStore==="function")return window.__nayadPrepareUserStore;await new Promise(resolve=>setTimeout(resolve,50))}return null}async function waitForRegistrationOnboarding(){for(let i=0;i<40;i++){if(typeof window.showNayadRegistrationOnboarding==="function")return window.showNayadRegistrationOnboarding;await new Promise(resolve=>setTimeout(resolve,50))}return null}let appOpenPromise=null,appOpenUserId="";async function showAuthenticatedApp(){const expectedUserId=window.__nayadUser?.id||"";if(!expectedUserId)return false;if(appOpenPromise&&appOpenUserId===expectedUserId)return appOpenPromise;appOpenUserId=expectedUserId;appOpenPromise=(async()=>{document.getElementById("app").classList.add("hide");try{const prepare=await waitForStorePreparation();if(!prepare)throw new Error("Store module was not ready");const ready=await prepare(expectedUserId);if(expectedUserId!==window.__nayadUser?.id)return false;if(ready==="needs_registration"){const showOnboarding=await waitForRegistrationOnboarding();if(!showOnboarding)throw new Error("Registration module was not ready");document.getElementById("login").classList.add("hide");showOnboarding({initial:true});return true}if(!ready)return false}catch(e){console.error("Store preparation:",e);if(expectedUserId===window.__nayadUser?.id){document.getElementById("login").classList.remove("hide");authMessage("loginMsg","Бүртгэлийн мэдээлэл ачаалж чадсангүй. Дахин оролдоно уу.")}return false}if(expectedUserId!==window.__nayadUser?.id)return false;switchUserData(window.__nayadUser);document.getElementById("login").classList.add("hide");document.getElementById("app").classList.remove("hide");render();updateProfileUI();return true})();try{return await appOpenPromise}finally{if(appOpenUserId===expectedUserId){appOpenPromise=null;appOpenUserId=""}}}
+document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>{page=b.dataset.page;render()});async function waitForStorePreparation(){for(let i=0;i<40;i++){if(typeof window.__nayadPrepareUserStore==="function")return window.__nayadPrepareUserStore;await new Promise(resolve=>setTimeout(resolve,50))}return null}async function waitForRegistrationOnboarding(){for(let i=0;i<40;i++){if(typeof window.showNayadRegistrationOnboarding==="function")return window.showNayadRegistrationOnboarding;await new Promise(resolve=>setTimeout(resolve,50))}return null}let appOpenPromise=null,appOpenUserId="";async function showAuthenticatedApp(){const expectedUserId=window.__nayadUser?.id||"";if(!expectedUserId)return false;if(appOpenPromise&&appOpenUserId===expectedUserId)return appOpenPromise;appOpenUserId=expectedUserId;appOpenPromise=(async()=>{document.getElementById("app").classList.add("hide");try{const prepare=await waitForStorePreparation();if(!prepare)throw new Error("Store module was not ready");const ready=await prepare(expectedUserId);if(expectedUserId!==window.__nayadUser?.id)return false;if(ready==="needs_registration"){const showOnboarding=await waitForRegistrationOnboarding();if(!showOnboarding)throw new Error("Registration module was not ready");document.getElementById("login").classList.add("hide");showOnboarding({initial:true,existingRegistration:window.__nayadPendingRegistration||null});return true}if(!ready)return false}catch(e){console.error("Store preparation:",e);if(expectedUserId===window.__nayadUser?.id){document.getElementById("login").classList.remove("hide");authMessage("loginMsg","Бүртгэлийн мэдээлэл ачаалж чадсангүй. Дахин оролдоно уу.")}return false}if(expectedUserId!==window.__nayadUser?.id)return false;switchUserData(window.__nayadUser);document.getElementById("login").classList.add("hide");document.getElementById("app").classList.remove("hide");render();updateProfileUI();return true})();try{return await appOpenPromise}finally{if(appOpenUserId===expectedUserId){appOpenPromise=null;appOpenUserId=""}}}
 async function showLoginScreen(){if(!window.__nayadUser?.id&&typeof window.__nayadClearStoreRuntime==="function")window.__nayadClearStoreRuntime();if(typeof window.closeNayadRegistrationOnboarding==="function")window.closeNayadRegistrationOnboarding();document.getElementById("app").classList.add("hide");document.getElementById("login").classList.remove("hide");showAuthMode("login")}
 async function handleEmailConfirmation(){if(emailConfirmationHandled)return;emailConfirmationHandled=true;try{await sb.auth.signOut()}catch(e){console.warn("Confirmation signOut:",e)}profileFromUser(null);history.replaceState({},document.title,location.pathname);await showLoginScreen();authMessage("loginMsg","И-мэйл амжилттай баталгаажлаа ✅ Одоо утасны дугаар, нууц үгээрээ нэвтэрнэ үү.","success")}
 async function forceLogoutForTesting(){try{await sb.auth.signOut()}catch(e){console.warn("signOut:",e)}profileFromUser(null);await showLoginScreen()}
@@ -230,20 +230,20 @@ window.__nayadApplyData=function(next,renderNow=true){
 <script src="./render.js"></script>
 <script src="./app-state.js?v=39"></script>
 <script src="./money-input.js?v=1"></script>
-<script src="./registration-onboarding.js?v=1"></script>
-<script src="./store-switcher.js?v=62"></script>
-<script src="./store-recovery.js?v=56"></script>
-<script src="./registration-delete.js?v=1"></script>
-<script src="./auth-guard.js?v=56"></script>
+<script src="./registration-onboarding.js?v=2"></script>
+<script src="./store-switcher.js?v=63"></script>
+<script src="./store-recovery.js?v=57"></script>
+<script src="./registration-delete.js?v=2"></script>
+<script src="./auth-guard.js?v=57"></script>
 <script src="./share.js?v=40"></script>
 <script src="./profile-menu.js?v=5"></script>
 <script src="./image-compress.js?v=1"></script>
-<script src="./cloud-runtime.js?v=58"></script>
-<script src="./invoice-cloud.js?v=70"></script>
+<script src="./cloud-runtime.js?v=59"></script>
+<script src="./invoice-cloud.js?v=71"></script>
 <script src="./payment-center.js?v=10"></script>
 <script src="./loans.js?v=3"></script>
-<script src="./contact-types.js?v=8"></script>
-<script src="./supplier-cloud.js?v=57"></script>
+<script src="./contact-types.js?v=9"></script>
+<script src="./supplier-cloud.js?v=58"></script>
 <script src="./company-label.js"></script>
 <script src="./subscription.js?v=4"></script>
 <script src="./member-permissions.js?v=1"></script>
