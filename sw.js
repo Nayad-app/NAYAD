@@ -1,5 +1,5 @@
-// Invalidate the installed app shell after simplifying payment allocation.
-const CACHE = "nayad-v116";
+// Invalidate the installed app shell for the approved registration onboarding.
+const CACHE = "nayad-v117";
 
 const ASSETS = [
   "./",
@@ -12,8 +12,9 @@ const ASSETS = [
   "./app-state.js?v=39",
   "./money-input.js?v=1",
   "./image-compress.js?v=1",
-  "./store-switcher.js?v=61",
-  "./store-recovery.js?v=55",
+  "./registration-onboarding.js?v=1",
+  "./store-switcher.js?v=62",
+  "./store-recovery.js?v=56",
   "./cloud-runtime.js?v=58",
   "./auth-guard.js?v=56",
   "./mobile-fix.js?v=46",
@@ -74,8 +75,9 @@ function patchDocument(html){
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=39");
   patched=patched.replace(/\.\/money-input\.js\?v=\d+/g,"./money-input.js?v=1");
-  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=61");
-  patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=55");
+  patched=patched.replace(/\.\/registration-onboarding\.js\?v=\d+/g,"./registration-onboarding.js?v=1");
+  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=62");
+  patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=56");
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=58");
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=56");
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=40");
@@ -86,8 +88,9 @@ function patchDocument(html){
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=57");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=3");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=70","./money-input.js?v=1");
-  patched=injectScriptAfter(patched,"./store-switcher.js?v=61","./store-recovery.js?v=55");
-  patched=injectScriptAfter(patched,"./store-recovery.js?v=55","./auth-guard.js?v=56");
+  patched=injectScriptBefore(patched,"./store-switcher.js?v=62","./registration-onboarding.js?v=1");
+  patched=injectScriptAfter(patched,"./store-switcher.js?v=62","./store-recovery.js?v=56");
+  patched=injectScriptAfter(patched,"./store-recovery.js?v=56","./auth-guard.js?v=56");
   patched=injectScriptAfter(patched,"./share.js?v=40","./profile-menu.js?v=5");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=4");
   patched=injectCloudRuntimeBeforeCloudModules(patched);

@@ -29,11 +29,13 @@ const context={
 
 const swSource=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-assert.match(swSource,/const CACHE = "nayad-v116";/,'the free-plan limit dialogs must invalidate the installed app shell');
-assert.match(swSource,/\.\/store-switcher\.js\?v=61/);
-assert.match(indexSource,/\.\/store-switcher\.js\?v=61/,'index and service worker must load the same store switcher');
-assert.match(swSource,/\.\/store-recovery\.js\?v=55/);
-assert.match(indexSource,/\.\/store-recovery\.js\?v=55/,'store recovery must be loaded directly, not only injected by the service worker');
+assert.match(swSource,/const CACHE = "nayad-v117";/,'registration onboarding must invalidate the installed app shell');
+assert.match(swSource,/\.\/registration-onboarding\.js\?v=1/);
+assert.match(indexSource,/\.\/registration-onboarding\.js\?v=1/,'index and service worker must load the same onboarding code');
+assert.match(swSource,/\.\/store-switcher\.js\?v=62/);
+assert.match(indexSource,/\.\/store-switcher\.js\?v=62/,'index and service worker must load the same store switcher');
+assert.match(swSource,/\.\/store-recovery\.js\?v=56/);
+assert.match(indexSource,/\.\/store-recovery\.js\?v=56/,'store recovery must be loaded directly, not only injected by the service worker');
 assert.match(swSource,/\.\/auth-guard\.js\?v=56/);
 assert.match(indexSource,/\.\/auth-guard\.js\?v=56/,'auth guard must be loaded directly, not only injected by the service worker');
 assert.match(swSource,/\.\/cloud-runtime\.js\?v=58/);
@@ -65,12 +67,13 @@ vm.runInContext(swSource,context,{filename:'sw.js'});
 const legacyHtml='<body><script src="./store-switcher.js?v=58"></script><script src="./share.js?v=38"></script><script src="./invoice-cloud.js?v=67"></script></body>';
 const patchedOnce=context.patchDocument(legacyHtml);
 const patchedTwice=context.patchDocument(patchedOnce);
-for(const asset of ['./store-recovery.js?v=55','./auth-guard.js?v=56','./cloud-runtime.js?v=58','./member-permissions.js?v=1']){
+for(const asset of ['./registration-onboarding.js?v=1','./store-recovery.js?v=56','./auth-guard.js?v=56','./cloud-runtime.js?v=58','./member-permissions.js?v=1']){
   assert.equal(patchedTwice.split(asset).length-1,1,`${asset} must be injected exactly once`);
 }
 assert.ok(
-  patchedTwice.indexOf('./store-switcher.js?v=61')<patchedTwice.indexOf('./store-recovery.js?v=55')&&
-  patchedTwice.indexOf('./store-recovery.js?v=55')<patchedTwice.indexOf('./auth-guard.js?v=56')&&
+  patchedTwice.indexOf('./registration-onboarding.js?v=1')<patchedTwice.indexOf('./store-switcher.js?v=62')&&
+  patchedTwice.indexOf('./store-switcher.js?v=62')<patchedTwice.indexOf('./store-recovery.js?v=56')&&
+  patchedTwice.indexOf('./store-recovery.js?v=56')<patchedTwice.indexOf('./auth-guard.js?v=56')&&
   patchedTwice.indexOf('./auth-guard.js?v=56')<patchedTwice.indexOf('./money-input.js?v=1')&&
   patchedTwice.indexOf('./money-input.js?v=1')<patchedTwice.indexOf('./cloud-runtime.js?v=58')&&
   patchedTwice.indexOf('./cloud-runtime.js?v=58')<patchedTwice.indexOf('./invoice-cloud.js?v=70'),

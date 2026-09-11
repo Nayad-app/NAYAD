@@ -81,8 +81,8 @@ assert.match(source,/html\.nightMode \.dueDetails b\{color:#F4F4EF/,'supplier na
 let paymentSheet='';
 context.window.sheet=html=>{paymentSheet=html;};
 state.companies.push({id:5,name:'Invoice Discount Co',color:'green',invoices:[{
-  id:'inv-invoice-discount',no:'DISC-3',date:'2026-08-01',due_date:'2026-08-31',amount:1500000,paid:455000,
-  status:'confirmed',discount_percent:3,discount_deadline:'2026-08-31',discount_taken:0
+  id:'inv-invoice-discount',no:'DISC-3',date:'2026-08-01',due_date:'2099-08-31',amount:1500000,paid:455000,
+  status:'confirmed',discount_percent:3,discount_deadline:'2099-08-31',discount_taken:0
 }]});
 context.window.payment(5);
 assert.match(paymentSheet,/value="1,000,000"/,'a 3% invoice discount must remain 45,000 after a 455,000 partial payment');

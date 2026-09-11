@@ -13,7 +13,9 @@ const json = (body: Record<string, unknown>, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
 
-const allowedBusinessTypes = new Set([
+// Keep the previous published client working during its cache transition.
+// The new client omits these fields and always continues to onboarding.
+const legacyBusinessTypes = new Set([
   "Жижиглэн худалдаа",
   "Бөөний худалдаа",
   "Хоол, хүнс",
@@ -70,16 +72,19 @@ Deno.serve(async (request) => {
     const body = await request.json().catch(() => ({}));
     const name = String(body?.name ?? "").trim();
     const phone = normalizePhone(body?.phone);
-    const storeName = String(body?.store_name ?? "").trim();
-    const businessType = String(body?.business_type ?? "").trim();
+    const legacyStoreName = String(body?.store_name ?? "").trim();
+    const legacyBusinessType = String(body?.business_type ?? "").trim();
     const email = String(body?.email ?? "").trim().toLowerCase();
     const password = String(body?.password ?? "");
+    const hasLegacyStoreFields = Boolean(legacyStoreName || legacyBusinessType);
 
     if (
       !name || name.length > 100 ||
       !phone ||
-      !storeName || storeName.length > 80 ||
-      !allowedBusinessTypes.has(businessType) ||
+      (hasLegacyStoreFields && (
+        !legacyStoreName || legacyStoreName.length > 80 ||
+        !legacyBusinessTypes.has(legacyBusinessType)
+      )) ||
       !validEmail(email) ||
       password.length < 6 || password.length > 72
     ) {
@@ -105,16 +110,20 @@ Deno.serve(async (request) => {
       return json({ error: "Email already registered", code: conflict }, 409);
     }
 
+    const userMetadata: Record<string, string> = {
+      full_name: name,
+      login_phone: phone,
+    };
+    if (hasLegacyStoreFields) {
+      userMetadata.store_name = legacyStoreName;
+      userMetadata.business_type = legacyBusinessType;
+    }
+
     const { data, error } = await admin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: {
-        full_name: name,
-        login_phone: phone,
-        store_name: storeName,
-        business_type: businessType,
-      },
+      user_metadata: userMetadata,
     });
 
     if (error || !data?.user?.id) {

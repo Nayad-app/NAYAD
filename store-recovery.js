@@ -31,7 +31,10 @@
       name:row.name||'NAYAD',
       role:row.role||'member',
       permissions:typeof window.__nayadNormalizePermissions==='function'?window.__nayadNormalizePermissions(row.permissions,row.role):row.permissions,
-      created_at:row.created_at
+      created_at:row.created_at,
+      operation_role:row.operation_role||'buyer',
+      business_type:row.business_type||'',
+      entity_type:row.entity_type||''
     })).filter(row=>row.id);
   }
   function activateExpectedStore(expectedUserId,rows){
@@ -73,10 +76,14 @@
     return payload;
   }
   async function listStoresWithExactToken(accessToken){
-    try{return (await rpcWithExactToken('get_my_stores_with_permissions',accessToken))||[];}
+    try{return (await rpcWithExactToken('get_my_registrations',accessToken))||[];}
     catch(error){
       if(!/PGRST202|42883|Could not find the function/i.test(String(error?.code||'')+' '+String(error?.message||'')))throw error;
-      return (await rpcWithExactToken('get_my_stores',accessToken))||[];
+      try{return (await rpcWithExactToken('get_my_stores_with_permissions',accessToken))||[];}
+      catch(fallbackError){
+        if(!/PGRST202|42883|Could not find the function/i.test(String(fallbackError?.code||'')+' '+String(fallbackError?.message||'')))throw fallbackError;
+        return (await rpcWithExactToken('get_my_stores',accessToken))||[];
+      }
     }
   }
 
@@ -84,7 +91,6 @@
     const c=client();
     if(!c||!expectedUserId)return false;
 
-    let ensured=false;
     for(let attempt=0;attempt<10;attempt++){
       try{
         const {data,error}=await c.auth.getSession();
@@ -118,18 +124,7 @@
           }
         }
 
-        if(!rows.some(row=>row?.role==='owner')&&!ensured){
-          await rpcWithExactToken('ensure_my_store',accessToken);
-          ensured=true;
-          rows=await listStoresWithExactToken(accessToken);
-          if(rows.length&&!rows.every(row=>String(row?.user_id||'')===String(expectedUserId))){
-            console.warn('Store recovery rejected mismatched RPC identity after ensure.');
-            await sleep(120+attempt*60);
-            continue;
-          }
-        }
-
-        if(rows.length&&rows.some(row=>row?.role==='owner')){
+        if(rows.length){
           /* The session may change while the exact-token RPC is in flight.
              Re-read it immediately before touching UI/runtime state so a late
              response from account A can never overwrite account B. */
@@ -145,6 +140,16 @@
           adoptSessionUser(latestUser);
           return activateExpectedStore(expectedUserId,rows);
         }
+
+        const {data:latestData,error:latestError}=await c.auth.getSession();
+        if(latestError)throw latestError;
+        const latestSession=latestData?.session||null;
+        const latestUser=latestSession?.user||null;
+        const latestUserId=latestUser?.id||'';
+        const latestTokenUserId=jwtSub(latestSession?.access_token||'');
+        if(String(latestUserId)!==String(expectedUserId)||String(latestTokenUserId)!==String(expectedUserId))return false;
+        adoptSessionUser(latestUser);
+        return 'needs_registration';
       }catch(error){
         console.warn('Store recovery exact-token RPC:',error);
       }

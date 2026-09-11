@@ -6,7 +6,6 @@ const vm=require('node:vm');
 const userId='user-shared-only';
 const previousUserId='previous-user';
 const sharedStoreId='shared-store';
-const ownedStoreId='owned-store';
 const tokenPayload=Buffer.from(JSON.stringify({sub:userId})).toString('base64url');
 const accessToken=`header.${tokenPayload}.signature`;
 let ensureCalls=0;
@@ -26,14 +25,9 @@ const context={
     createElement:()=>({className:'',innerHTML:''})
   },
   fetch:async url=>{
-    if(String(url).endsWith('/rpc/get_my_stores_with_permissions')){
+    if(String(url).endsWith('/rpc/get_my_registrations')){
       listCalls++;
       return new Response(JSON.stringify(rows),{status:200,headers:{'content-type':'application/json'}});
-    }
-    if(String(url).endsWith('/rpc/ensure_my_store')){
-      ensureCalls++;
-      rows=[{user_id:userId,id:ownedStoreId,name:'Owned store',role:'owner'},...rows];
-      return new Response(JSON.stringify([{id:ownedStoreId,name:'Owned store'}]),{status:200,headers:{'content-type':'application/json'}});
     }
     throw new Error(`Unexpected fetch: ${url}`);
   }
@@ -58,14 +52,19 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-recovery.js'),'utf8'),cont
 (async()=>{
   const ready=await context.window.__nayadPrepareUserStore(userId);
   assert.equal(ready,true);
-  assert.equal(ensureCalls,1,'a shared-only account must create exactly one owned store');
-  assert.equal(listCalls,2,'store recovery must refetch the exact-token list after ensuring ownership');
+  assert.equal(ensureCalls,0,'store recovery must not create a hidden default registration');
+  assert.equal(listCalls,1,'store recovery must read the exact-token registration list once');
   assert.equal(context.window.__nayadStoresUserId,userId,'the recovered list must be tagged with the authenticated user');
-  assert.equal(context.window.__nayadActiveStoreId,ownedStoreId,'the stale previous-user store must never remain active');
+  assert.equal(context.window.__nayadActiveStoreId,sharedStoreId,'the stale previous-user store must never remain active');
   assert.deepEqual(
     Array.from(context.window.__nayadStores,store=>store.id),
-    [ownedStoreId,sharedStoreId],
-    'owned and shared stores must both remain available'
+    [sharedStoreId],
+    'the shared registration must remain available without creating another one'
   );
-  console.log('store-recovery-owner: PASS — shared-only users receive an isolated owned store');
+  rows=[];
+  context.window.__nayadClearStoreRuntime();
+  const onboardingRequired=await context.window.__nayadPrepareUserStore(userId);
+  assert.equal(onboardingRequired,'needs_registration','an account with no registration must open onboarding');
+  assert.equal(ensureCalls,0);
+  console.log('store-recovery-owner: PASS — shared-only users keep their shared registration without a hidden default');
 })().catch(error=>{console.error(error);process.exitCode=1;});

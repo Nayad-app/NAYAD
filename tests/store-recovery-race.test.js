@@ -20,7 +20,7 @@ const context={
     createElement:()=>({className:'',innerHTML:''})
   },
   fetch:async url=>{
-    assert.ok(String(url).endsWith('/rpc/get_my_stores_with_permissions'));
+    assert.ok(String(url).endsWith('/rpc/get_my_registrations'));
     currentUserId=nextUserId;
     return new Response(JSON.stringify([{user_id:firstUserId,id:storeId,name:'A store',role:'owner'}]),{
       status:200,headers:{'content-type':'application/json'}

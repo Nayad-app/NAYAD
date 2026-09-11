@@ -44,7 +44,7 @@ context.window.__nayadCloudSyncQueue=pendingCloud;
 context.window.nayadSupabase={
   auth:{getSession:async()=>({data:{session:{user:{id:userId}}},error:null}),onAuthStateChange:()=>({data:{subscription:{unsubscribe(){}}}})},
   rpc:async name=>{
-    assert.equal(name,'get_my_stores_with_permissions');
+    assert.equal(name,'get_my_registrations');
     return {data:membershipRows,error:null};
   }
 };
