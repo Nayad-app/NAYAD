@@ -1,5 +1,5 @@
-// Invalidate the installed app shell for the approved registration onboarding.
-const CACHE = "nayad-v117";
+// Invalidate the installed app shell for owner-scoped registration deletion.
+const CACHE = "nayad-v118";
 
 const ASSETS = [
   "./",
@@ -15,6 +15,7 @@ const ASSETS = [
   "./registration-onboarding.js?v=1",
   "./store-switcher.js?v=62",
   "./store-recovery.js?v=56",
+  "./registration-delete.js?v=1",
   "./cloud-runtime.js?v=58",
   "./auth-guard.js?v=56",
   "./mobile-fix.js?v=46",
@@ -78,6 +79,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/registration-onboarding\.js\?v=\d+/g,"./registration-onboarding.js?v=1");
   patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=62");
   patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=56");
+  patched=patched.replace(/\.\/registration-delete\.js\?v=\d+/g,"./registration-delete.js?v=1");
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=58");
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=56");
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=40");
@@ -90,7 +92,8 @@ function patchDocument(html){
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=70","./money-input.js?v=1");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=62","./registration-onboarding.js?v=1");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=62","./store-recovery.js?v=56");
-  patched=injectScriptAfter(patched,"./store-recovery.js?v=56","./auth-guard.js?v=56");
+  patched=injectScriptAfter(patched,"./store-recovery.js?v=56","./registration-delete.js?v=1");
+  patched=injectScriptAfter(patched,"./registration-delete.js?v=1","./auth-guard.js?v=56");
   patched=injectScriptAfter(patched,"./share.js?v=40","./profile-menu.js?v=5");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=4");
   patched=injectCloudRuntimeBeforeCloudModules(patched);

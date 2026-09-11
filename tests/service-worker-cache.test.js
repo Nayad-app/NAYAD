@@ -29,9 +29,15 @@ const context={
 
 const swSource=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
-assert.match(swSource,/const CACHE = "nayad-v117";/,'registration onboarding must invalidate the installed app shell');
+const cacheVersion=Number(swSource.match(/const CACHE = "nayad-v(\d+)";/)?.[1]||0);
+assert.ok(cacheVersion>=118,'registration deletion must invalidate the installed app shell');
 assert.match(swSource,/\.\/registration-onboarding\.js\?v=1/);
 assert.match(indexSource,/\.\/registration-onboarding\.js\?v=1/,'index and service worker must load the same onboarding code');
+const deleteAsset=swSource.match(/\.\/registration-delete\.js\?v=(\d+)/);
+const indexDeleteAsset=indexSource.match(/\.\/registration-delete\.js\?v=(\d+)/);
+assert.ok(deleteAsset,'the active-registration deletion code must be cached for the installed app');
+assert.ok(indexDeleteAsset,'the active-registration deletion code must load in the live document');
+assert.equal(indexDeleteAsset[1],deleteAsset[1],'index and service worker must load the same registration deletion code');
 assert.match(swSource,/\.\/store-switcher\.js\?v=62/);
 assert.match(indexSource,/\.\/store-switcher\.js\?v=62/,'index and service worker must load the same store switcher');
 assert.match(swSource,/\.\/store-recovery\.js\?v=56/);
@@ -67,7 +73,7 @@ vm.runInContext(swSource,context,{filename:'sw.js'});
 const legacyHtml='<body><script src="./store-switcher.js?v=58"></script><script src="./share.js?v=38"></script><script src="./invoice-cloud.js?v=67"></script></body>';
 const patchedOnce=context.patchDocument(legacyHtml);
 const patchedTwice=context.patchDocument(patchedOnce);
-for(const asset of ['./registration-onboarding.js?v=1','./store-recovery.js?v=56','./auth-guard.js?v=56','./cloud-runtime.js?v=58','./member-permissions.js?v=1']){
+for(const asset of ['./registration-onboarding.js?v=1',deleteAsset[0],'./store-recovery.js?v=56','./auth-guard.js?v=56','./cloud-runtime.js?v=58','./member-permissions.js?v=1']){
   assert.equal(patchedTwice.split(asset).length-1,1,`${asset} must be injected exactly once`);
 }
 assert.ok(

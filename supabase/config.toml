@@ -6,3 +6,6 @@ verify_jwt = false
 
 [functions.qpay-billing]
 verify_jwt = false
+
+[functions.delete-registration]
+verify_jwt = true
