@@ -9,7 +9,9 @@ const edge=fs.readFileSync(path.join(root,'supabase','functions','admin-dashboar
 const config=fs.readFileSync(path.join(root,'supabase','config.toml'),'utf8');
 const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
-const migrationFile=fs.readdirSync(path.join(root,'supabase','migrations')).find(file=>/system_admin_dashboard\.sql$/.test(file));
+const migrationFiles=fs.readdirSync(path.join(root,'supabase','migrations'));
+const migrationFile=migrationFiles.find(file=>/system_admin_dashboard\.sql$/.test(file));
+const migrations=migrationFiles.map(file=>fs.readFileSync(path.join(root,'supabase','migrations',file),'utf8')).join('\n');
 
 assert.ok(migrationFile,'system administrator migration must be versioned');
 const migration=fs.readFileSync(path.join(root,'supabase','migrations',migrationFile),'utf8');
@@ -21,6 +23,8 @@ assert.match(migration,/alter table public\.system_admins enable row level secur
 assert.match(migration,/revoke all on table public\.system_admins from public, anon, authenticated/i);
 assert.match(migration,/grant select on table public\.system_admins to service_role/i);
 assert.match(migration,/from public\.phone_login_accounts[\s\S]*phone\s*=\s*'\+97699000031'/i,'the approved account must be bootstrapped once on the server');
+assert.match(migrations,/grant select \(id, full_name, phone, created_at\)[\s\S]{0,100}on table public\.profiles[\s\S]{0,50}to service_role/i,'the dashboard server must be able to read profile summaries');
+assert.match(migrations,/grant select \([\s\S]{0,220}registration_completed_at[\s\S]{0,100}on table public\.stores[\s\S]{0,50}to service_role/i,'the dashboard server must be able to read registration summaries');
 assert.doesNotMatch(source,/99000031/,'the browser must never authorize an administrator by phone number');
 assert.doesNotMatch(edge,/99000031/,'the Edge Function must authorize by the server-owned role, not by phone number');
 
