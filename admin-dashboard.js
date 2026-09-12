@@ -1,7 +1,7 @@
 /* NAYAD system administrator dashboard — read-only, server-authorized views. */
 (function(){
-  if(window.__nayadAdminDashboardV1)return;
-  window.__nayadAdminDashboardV1=true;
+  if(window.__nayadAdminDashboardV2)return;
+  window.__nayadAdminDashboardV2=true;
 
   const STYLE=`<style id="nayad-admin-dashboard-styles">
   body.nayadAdminOpen{overflow:hidden}
@@ -14,17 +14,17 @@
   .nayadAdminSecure{display:flex;align-items:center;gap:5px;color:#555;font-size:10px;white-space:nowrap}.nayadAdminSecure svg{width:19px;height:19px;fill:none;stroke:#F4B900;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .nayadAdminBody{padding:22px 18px calc(34px + env(safe-area-inset-bottom))}
   .nayadAdminEyebrow{color:#E2A900;font-size:11px;font-weight:900;letter-spacing:.3px;margin-bottom:7px}.nayadAdminTitle{margin:0;font-size:30px;line-height:1.08;letter-spacing:-1px;font-weight:950}.nayadAdminLead{margin:9px 0 18px;color:#777872;font-size:12px;line-height:1.5}
-  .nayadAdminStats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:17px 0}.nayadAdminStat{min-height:92px;padding:14px;border:1px solid #E3E3DD;border-radius:17px;background:#fff;display:flex;align-items:center;gap:11px;box-shadow:0 4px 13px rgba(20,20,20,.035)}.nayadAdminStatIcon{width:39px;height:39px;flex:0 0 39px;border-radius:13px;background:#F4F4F1;color:#8B8D89;display:grid;place-items:center}.nayadAdminStatIcon.yellow{background:#FFF8DD;color:#EAAF00}.nayadAdminStatIcon.green{background:#EAF8EF;color:#32A65A}.nayadAdminStatIcon.orange{background:#FFF0E5;color:#E36C0A}.nayadAdminStatIcon svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.nayadAdminStat small{display:block;color:#5F625F;font-size:11px;line-height:1.2}.nayadAdminStat b{display:block;font-size:25px;line-height:1;margin-top:6px;font-weight:950}
+  .nayadAdminStats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:17px 0}.nayadAdminStat{min-height:92px;padding:14px;border:1px solid #E3E3DD;border-radius:17px;background:#fff;color:inherit;display:flex;align-items:center;gap:11px;text-align:left;box-shadow:0 4px 13px rgba(20,20,20,.035)}.nayadAdminStatButton{cursor:pointer}.nayadAdminStatButton.active{border-color:#E9B400;box-shadow:0 0 0 2px rgba(255,196,0,.2)}.nayadAdminStatIcon{width:39px;height:39px;flex:0 0 39px;border-radius:13px;background:#F4F4F1;color:#8B8D89;display:grid;place-items:center}.nayadAdminStatIcon.yellow{background:#FFF8DD;color:#EAAF00}.nayadAdminStatIcon.green{background:#EAF8EF;color:#32A65A}.nayadAdminStatIcon.red{background:#FFE9E9;color:#DD3F45}.nayadAdminStatIcon.orange{background:#FFF0E5;color:#E36C0A}.nayadAdminStatIcon svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.nayadAdminStat small{display:block;color:#5F625F;font-size:11px;line-height:1.2}.nayadAdminStat b{display:block;font-size:25px;line-height:1;margin-top:6px;font-weight:950}.nayadAdminPaymentStats{grid-template-columns:repeat(3,minmax(0,1fr))}.nayadAdminPaymentStats .nayadAdminStat{min-height:84px;padding:10px;gap:8px}.nayadAdminPaymentStats .nayadAdminStatIcon{width:32px;height:32px;flex-basis:32px;border-radius:11px}.nayadAdminPaymentStats .nayadAdminStatIcon svg{width:19px;height:19px}.nayadAdminPaymentStats .nayadAdminStat small{font-size:9px}.nayadAdminPaymentStats .nayadAdminStat b{font-size:21px}
   .nayadAdminSection{margin:22px 2px 9px;color:#E2A900;font-size:11px;font-weight:950;letter-spacing:.35px}.nayadAdminNav,.nayadAdminCard{width:100%;border:1px solid #E3E3DD;border-radius:17px;background:#fff;color:#171717;box-shadow:0 4px 13px rgba(20,20,20,.035)}.nayadAdminNav{min-height:88px;padding:14px;display:flex;align-items:center;gap:13px;text-align:left;margin-bottom:10px}.nayadAdminNavIcon,.nayadAdminAvatar{width:43px;height:43px;flex:0 0 43px;border-radius:14px;background:#F3F3F0;color:#888A86;display:grid;place-items:center;font-size:16px;font-weight:950}.nayadAdminNavIcon.yellow{background:#FFF7D7;color:#EAAF00}.nayadAdminNavIcon svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.nayadAdminNavText{min-width:0;flex:1}.nayadAdminNavText b{display:block;font-size:15px;font-weight:900}.nayadAdminNavText span{display:block;margin-top:4px;color:#777872;font-size:10px;line-height:1.35}.nayadAdminChevron{width:18px;height:18px;flex:0 0 18px;fill:none;stroke:#8E908C;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .nayadAdminSearch{position:relative;margin:16px 0 10px}.nayadAdminSearch svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:20px;height:20px;fill:none;stroke:#858A99;stroke-width:2}.nayadAdminSearch input{width:100%;height:48px;padding:0 14px 0 43px;border:1px solid #DDDED9;border-radius:15px;background:#fff;color:#171717;font-size:12px;outline:none}.nayadAdminSearch input:focus{border-color:#D8AD1E;box-shadow:0 0 0 3px rgba(255,196,0,.12)}
   .nayadAdminChips{display:flex;gap:7px;overflow:auto;padding:0 0 3px;scrollbar-width:none}.nayadAdminChips::-webkit-scrollbar{display:none}.nayadAdminChip{min-height:38px;padding:0 16px;border:1px solid #DDDED9;border-radius:999px;background:#fff;color:#555B68;font-size:11px;font-weight:750;white-space:nowrap}.nayadAdminChip.active{border-color:#F1B900;background:#FFC400;color:#181300}
   .nayadAdminList{display:flex;flex-direction:column;gap:9px}.nayadAdminCard{padding:14px}.nayadAdminCardHead{width:100%;padding:0;background:transparent;color:inherit;display:flex;align-items:center;gap:12px;text-align:left}.nayadAdminAvatar{border-radius:50%;background:#FFF7D7;color:#171717}.nayadAdminCardMeta{min-width:0;flex:1}.nayadAdminCardMeta b{display:block;font-size:14px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nayadAdminCardMeta span{display:block;color:#777D8C;font-size:10px;margin-top:3px;line-height:1.35}.nayadAdminCount{color:#707583;font-size:10px;white-space:nowrap}.nayadAdminCardHead.expanded .nayadAdminChevron{transform:rotate(-90deg)}
   .nayadAdminRegistration{position:relative;margin-top:12px;padding:13px;background:#F7F7F4;border-radius:14px}.nayadAdminRegistration+.nayadAdminRegistration{margin-top:7px}.nayadAdminRegistrationLabel{color:#888D98;font-size:9px;font-weight:850;letter-spacing:.25px;margin-bottom:6px}.nayadAdminRegistration b{display:block;padding-right:72px;font-size:13px;font-weight:900}.nayadAdminRegistration span{display:block;color:#737986;font-size:10px;line-height:1.4;margin-top:3px}.nayadAdminPill{display:inline-flex!important;align-items:center;justify-content:center;width:max-content;padding:5px 9px;border-radius:999px;background:#ECEDEA;color:#676B72!important;font-size:9px!important;font-weight:850;line-height:1!important;margin:0!important}.nayadAdminPill.green{background:#E3F7E8;color:#228943!important}.nayadAdminPill.orange{background:#FFF0D8;color:#D97800!important}.nayadAdminPill.yellow{background:#FFF5CB;color:#B47F00!important}.nayadAdminRegistration>.nayadAdminPill{position:absolute;right:12px;top:31px}
   .nayadAdminPackage{display:grid;grid-template-columns:45px minmax(0,1fr) auto;gap:11px;align-items:center}.nayadAdminStoreIcon{width:45px;height:45px;border-radius:14px;background:#F2F3F1;color:#777A78;display:grid;place-items:center}.nayadAdminStoreIcon.plus{background:#FFF7D7;color:#EAAF00}.nayadAdminStoreIcon svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.nayadAdminPackageMain{min-width:0}.nayadAdminPackageMain b{display:block;font-size:14px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nayadAdminPackageMain span{display:block;color:#747A89;font-size:10px;line-height:1.4;margin-top:3px}.nayadAdminPackageSide{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px}.nayadAdminAmount{font-size:14px;font-weight:950;white-space:nowrap}
-  .nayadAdminRevenue{min-height:92px;padding:15px;border:1px solid #E3E3DD;border-radius:17px;background:#fff;display:flex;align-items:center;gap:13px}.nayadAdminRevenue .nayadAdminStatIcon{width:48px;height:48px}.nayadAdminRevenue small{display:block;color:#656A75;font-size:11px}.nayadAdminRevenue b{display:block;font-size:28px;font-weight:950;margin-top:5px}.nayadAdminPayment{display:grid;grid-template-columns:45px minmax(0,1fr) auto;gap:11px;align-items:center}.nayadAdminPaymentSide{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:7px}.nayadAdminDateFilter{position:relative;width:40px;height:38px;flex:0 0 40px;border:1px solid #DDDED9;border-radius:999px;background:#fff;display:grid;place-items:center;overflow:hidden}.nayadAdminDateFilter svg{width:18px;height:18px;fill:none;stroke:#616775;stroke-width:2}.nayadAdminDateFilter input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+  .nayadAdminRevenue{min-height:92px;padding:15px;border:1px solid #E3E3DD;border-radius:17px;background:#fff;display:flex;align-items:center;gap:13px}.nayadAdminRevenue .nayadAdminStatIcon{width:48px;height:48px}.nayadAdminRevenue small{display:block;color:#656A75;font-size:11px}.nayadAdminRevenue b{display:block;font-size:28px;font-weight:950;margin-top:5px}.nayadAdminPaymentTop{display:flex;align-items:flex-start;gap:12px}.nayadAdminPayment .nayadAdminPackageMain{flex:1}.nayadAdminPaymentSide{text-align:right;display:flex;flex:0 0 auto;flex-direction:column;align-items:flex-end;gap:7px}.nayadAdminPaymentTime{display:block;margin-top:11px;padding-top:10px;border-top:1px solid #EEEFEA;color:#6D7280;font-size:10px;line-height:1.4}.nayadAdminPill.red{background:#FFE5E5;color:#CE3038!important}.nayadAdminDateFilter{position:relative;width:40px;height:38px;flex:0 0 40px;border:1px solid #DDDED9;border-radius:999px;background:#fff;display:grid;place-items:center;overflow:hidden}.nayadAdminDateFilter svg{width:18px;height:18px;fill:none;stroke:#616775;stroke-width:2}.nayadAdminDateFilter input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
   .nayadAdminEmpty,.nayadAdminLoading{padding:34px 18px;border:1px solid #E3E3DD;border-radius:17px;background:#fff;color:#777;text-align:center;font-size:12px;line-height:1.5}.nayadAdminRetry{margin-top:12px;padding:10px 16px;background:#FFC400;color:#171300}
   html.nightMode .nayadAdminShell,html.nightMode .nayadAdminTop{background:#151716;color:#F4F4EF}html.nightMode .nayadAdminTop{border-bottom-color:#313431}html.nightMode .nayadAdminStat,html.nightMode .nayadAdminNav,html.nightMode .nayadAdminCard,html.nightMode .nayadAdminSearch input,html.nightMode .nayadAdminRevenue,html.nightMode .nayadAdminDateFilter{background:#1D201E;color:#F4F4EF;border-color:#343735}html.nightMode .nayadAdminRegistration{background:#242725}html.nightMode .nayadAdminBack,html.nightMode .nayadAdminNavIcon,html.nightMode .nayadAdminStoreIcon{background:#292C2A;color:#D5D7D3}html.nightMode .nayadAdminChip{background:#1D201E;border-color:#343735;color:#D8DAD6}html.nightMode .nayadAdminChip.active{background:#D8A400;color:#151300;border-color:#D8A400}
-  @media(max-width:370px){.nayadAdminBody{padding-left:14px;padding-right:14px}.nayadAdminTop{padding-left:14px;padding-right:14px}.nayadAdminTitle{font-size:27px}.nayadAdminSecure span{display:none}.nayadAdminStat{padding:11px}.nayadAdminStatIcon{width:34px;height:34px;flex-basis:34px}.nayadAdminStat b{font-size:22px}}
+  @media(max-width:370px){.nayadAdminBody{padding-left:14px;padding-right:14px}.nayadAdminTop{padding-left:14px;padding-right:14px}.nayadAdminTitle{font-size:27px}.nayadAdminSecure span{display:none}.nayadAdminStat{padding:11px}.nayadAdminStatIcon{width:34px;height:34px;flex-basis:34px}.nayadAdminStat b{font-size:22px}.nayadAdminPaymentStats{grid-template-columns:1fr}.nayadAdminPaymentStats .nayadAdminStat{min-height:68px}.nayadAdminPaymentStats .nayadAdminStat small{font-size:10px}}
   </style>`;
 
   const ICON={
@@ -52,10 +52,15 @@
   function initials(value){return String(value||'N').trim().replace(/[^A-Za-zА-Яа-яӨөҮү]/g,'').slice(0,1).toUpperCase()||'N';}
   function money(value){return new Intl.NumberFormat('mn-MN').format(Math.round(Number(value)||0))+'₮';}
   function dateOnly(value){const raw=String(value||'');return raw?raw.slice(0,10).replaceAll('-','.'):'—';}
+  function dateTime(value){
+    const date=new Date(String(value||''));
+    if(!Number.isFinite(date.getTime()))return '—';
+    const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ulaanbaatar',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(date).map(part=>[part.type,part.value]));
+    return `${parts.year}.${parts.month}.${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+  }
   function roleLabel(value){return value==='supplier'?'Нийлүүлэгч':value==='buyer'?'Худалдан авагч':'Чиглэл сонгоогүй';}
   function memberLabel(value){return value==='owner'?'Эзэмшигч':value==='manager'?'Менежер':value==='staff'?'Ажилтан':'Гишүүн';}
   function planLabel(item){return Number(item?.duration_months)===12||item?.plan_code==='year'?'1 жилийн Plus':'1 сарын Plus';}
-  function paymentStatus(value){return value==='paid'?['Амжилттай','green']:value==='pending'?['Хүлээгдэж буй','orange']:value==='failed'?['Амжилтгүй','orange']:value==='expired'?['Хугацаа дууссан','']:value==='cancelled'?['Цуцлагдсан','']:['Үүсгэж байна','yellow'];}
   function chevron(){return ICON.chevron;}
 
   async function request(action){
@@ -110,8 +115,9 @@
   function heading(title,lead=''){
     return `<div class="nayadAdminEyebrow">АДМИНЫ УДИРДЛАГА</div><h1 class="nayadAdminTitle" id="nayadAdminTitle">${esc(title)}</h1>${lead?`<p class="nayadAdminLead">${esc(lead)}</p>`:''}`;
   }
-  function stat(icon,title,value,color=''){
-    return `<div class="nayadAdminStat"><span class="nayadAdminStatIcon ${color}">${icon}</span><div><small>${esc(title)}</small><b>${esc(value)}</b></div></div>`;
+  function stat(icon,title,value,color='',filter=''){
+    const content=`<span class="nayadAdminStatIcon ${color}">${icon}</span><span><small>${esc(title)}</small><b>${esc(value)}</b></span>`;
+    return filter?`<button class="nayadAdminStat nayadAdminStatButton ${state.filter===filter?'active':''}" type="button" onclick="nayadAdminQuickFilter('${esc(filter)}')" aria-pressed="${state.filter===filter}">${content}</button>`:`<div class="nayadAdminStat">${content}</div>`;
   }
   function search(placeholder){
     return `<div class="nayadAdminSearch">${ICON.search}<input type="search" value="${esc(state.query)}" placeholder="${esc(placeholder)}" oninput="nayadAdminSearch(this.value)"></div>`;
@@ -184,21 +190,23 @@
 
   function paymentMatches(item){
     const query=state.query.trim().toLocaleLowerCase('mn');
-    const searchable=[item.registration_name,item.payer_name,item.payer_phone].join(' ').toLocaleLowerCase('mn');
+    const searchable=[item.registration_name,item.owner_name,item.owner_phone].join(' ').toLocaleLowerCase('mn');
     if(query&&!searchable.includes(query))return false;
-    if(state.filter==='paid'&&item.status!=='paid')return false;
-    if(state.filter==='pending'&&item.status!=='pending')return false;
-    if(state.paymentDate&&dateOnly(item.paid_at||item.created_at)!==state.paymentDate.replaceAll('-','.'))return false;
+    if(state.filter!=='all'&&item.payment_status!==state.filter)return false;
     return true;
   }
   function paymentCard(item){
-    const [status,color]=paymentStatus(item.status);
-    return `<article class="nayadAdminCard nayadAdminPayment"><span class="nayadAdminStoreIcon">${ICON.store}</span><div class="nayadAdminPackageMain"><b>${esc(item.registration_name)}</b><span>${esc([item.payer_name,item.payer_phone].filter(Boolean).join(' · '))}</span><span>${esc(planLabel(item))} · ${esc(item.method||'QPay')}</span><span>${esc(dateOnly(item.paid_at||item.created_at))}</span></div><div class="nayadAdminPaymentSide"><span class="nayadAdminPill ${color}">${esc(status)}</span><span class="nayadAdminAmount">${esc(money(item.amount))}</span></div></article>`;
+    const status=item.payment_status==='paid'?['ТӨЛСӨН','green','Төлсөн']:item.payment_status==='pending'?['ХҮЛЭЭГДЭЖ БУЙ','orange','Нэхэмжлэл']:['ТӨЛӨӨГҮЙ','red','Бүртгүүлсэн'];
+    const plan=item.payment_status==='unpaid'?'Үнэгүй багц':planLabel({duration_months:item.payment_duration_months,plan_code:item.payment_plan_code});
+    const owner=[item.owner_name,item.owner_phone].filter(Boolean).join(' · ');
+    return `<article class="nayadAdminCard nayadAdminPayment"><div class="nayadAdminPaymentTop"><div class="nayadAdminPackageMain"><b>${esc(owner||'Эзэмшигч тодорхойгүй')}</b><span>${esc(item.registration_name||'Нэргүй бүртгэл')}</span><span>${esc(plan)}</span></div><div class="nayadAdminPaymentSide"><span class="nayadAdminPill ${status[1]}">${status[0]}</span><span class="nayadAdminAmount">${esc(money(item.payment_amount))}</span></div></div><span class="nayadAdminPaymentTime">${status[2]}: ${esc(dateTime(item.payment_timestamp||item.registration_created_at))}</span></article>`;
   }
   function renderPayments(data){
     const o=data.overview||{};
-    const payments=(Array.isArray(data.payments)?data.payments:[]).filter(paymentMatches);
-    return `${heading('Төлбөрийн түүх')}<div class="nayadAdminRevenue"><span class="nayadAdminStatIcon yellow">${ICON.coins}</span><div><small>Нийт орлого</small><b>${esc(money(o.total_revenue||0))}</b></div></div><div class="nayadAdminStats">${stat(ICON.check,'Амжилттай',o.paid_count||0,'green')}${stat(ICON.clock,'Хүлээгдэж буй',o.pending_count||0,'orange')}</div>${search('Бүртгэлийн нэр, утсаар хайх')}${chips([['all','Бүгд'],['paid','Амжилттай'],['pending','Хүлээгдэж буй']],true)}<div class="nayadAdminSection">ГҮЙЛГЭЭНҮҮД</div><div class="nayadAdminList">${payments.map(paymentCard).join('')||empty('Хайлтад тохирох гүйлгээ олдсонгүй.')}</div>`;
+    const all=(Array.isArray(data.packages)?[...data.packages]:[]).sort((a,b)=>Date.parse(b.registration_created_at||0)-Date.parse(a.registration_created_at||0));
+    const payments=all.filter(paymentMatches);
+    const counts={paid:all.filter(item=>item.payment_status==='paid').length,unpaid:all.filter(item=>item.payment_status==='unpaid').length,pending:all.filter(item=>item.payment_status==='pending').length};
+    return `${heading('Төлбөрийн түүх')}<div class="nayadAdminRevenue"><span class="nayadAdminStatIcon yellow">${ICON.coins}</span><div><small>Нийт орлого</small><b>${esc(money(o.total_revenue||0))}</b></div></div><div class="nayadAdminStats nayadAdminPaymentStats">${stat(ICON.check,'Төлсөн',o.paid_registration_count??counts.paid,'green','paid')}${stat(ICON.file,'Төлөөгүй',o.unpaid_registration_count??counts.unpaid,'red','unpaid')}${stat(ICON.clock,'Хүлээгдэж буй',o.pending_registration_count??counts.pending,'orange','pending')}</div>${search('Нэр, утасны дугаараар хайх')}${chips([['all','Бүгд'],['paid','Төлсөн'],['unpaid','Төлөөгүй'],['pending','Хүлээгдэж буй']])}<div class="nayadAdminSection">ТӨЛБӨРИЙН ТӨЛӨВ</div><div class="nayadAdminList">${payments.map(paymentCard).join('')||empty('Хайлтад тохирох бүртгэл олдсонгүй.')}</div>`;
   }
 
   function render(){
@@ -271,6 +279,7 @@
     });
   };
   window.nayadAdminFilter=value=>{state.filter=String(value||'all');render();};
+  window.nayadAdminQuickFilter=value=>{const next=String(value||'all');state.filter=state.filter===next?'all':next;render();};
   window.nayadAdminDate=value=>{state.paymentDate=String(value||'');render();};
   window.nayadAdminToggleUser=userId=>{const key=String(userId||'');if(state.expanded.has(key))state.expanded.delete(key);else state.expanded.add(key);render();};
 })();

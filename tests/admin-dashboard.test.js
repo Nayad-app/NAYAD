@@ -38,12 +38,26 @@ assert.doesNotMatch(edge,/\.insert\(|\.update\(|\.delete\(/,'the approved dashbo
 assert.match(config,/\[functions\.admin-dashboard\]\s*verify_jwt\s*=\s*true/);
 
 // The feature remains inside Profile and is included in the installed PWA shell.
-assert.match(index,/\.\/profile-menu\.js\?v=5[\s\S]*\.\/admin-dashboard\.js\?v=1/);
-assert.match(sw,/\.\/admin-dashboard\.js\?v=1/);
+assert.match(index,/\.\/profile-menu\.js\?v=5[\s\S]*\.\/admin-dashboard\.js\?v=2/);
+assert.match(sw,/\.\/admin-dashboard\.js\?v=2/);
 assert.match(source,/Админы удирдлага/);
 assert.match(source,/Хэрэглэгч ба бүртгэл/);
 assert.match(source,/Багцын удирдлага/);
 assert.match(source,/Төлбөрийн түүх/);
+assert.match(source,/Asia\/Ulaanbaatar/,'payment timestamps must use Mongolia time');
+assert.match(source,/second:'2-digit'/,'payment timestamps must include seconds');
+assert.match(source,/hourCycle:'h23'/,'payment timestamps must use a stable 00–23 hour clock');
+assert.match(source,/ТӨЛСӨН/);
+assert.match(source,/ТӨЛӨӨГҮЙ/);
+assert.match(source,/ХҮЛЭЭГДЭЖ БУЙ/);
+assert.match(source,/Бүртгүүлсэн/);
+assert.match(source,/Нэхэмжлэл/);
+assert.match(source,/nayadAdminQuickFilter/,'summary cards must filter the registration list');
+assert.match(edge,/registration_created_at/);
+assert.match(edge,/payment_status/);
+assert.match(edge,/paid_registration_count/);
+assert.match(edge,/unpaid_registration_count/);
+assert.match(edge,/pending_registration_count/);
 assert.doesNotMatch(source,/>\s*(?:Устгах|Засах)\s*</,'admin screens must not expose unapproved mutation controls');
 
 function classList(hidden=false){
@@ -89,7 +103,8 @@ function harness(allowed){
   context.window.nayadSupabase={auth:{getSession:async()=>({data:{session:{access_token:'user-jwt'}},error:null})}};
   context.window.sb=context.window.nayadSupabase;
   vm.createContext(context);
-  vm.runInContext(source,context,{filename:'admin-dashboard.js'});
+  const testSource=source.replace(/\}\)\(\);\s*$/,`window.__nayadAdminTestHooks={dateTime,paymentMatches,paymentCard,renderPayments,state};\n})();`);
+  vm.runInContext(testSource,context,{filename:'admin-dashboard.js'});
   return {context,appended,requests};
 }
 
@@ -106,6 +121,25 @@ function harness(allowed){
   const ordinary=harness(false);
   await ordinary.context.window.showProfileDetails();
   assert.equal(ordinary.appended.length,0,'an ordinary user must not see the administrator entry');
+
+  const hooks=admin.context.window.__nayadAdminTestHooks;
+  assert.equal(hooks.dateTime('2026-09-11T19:10:17Z'),'2026.09.12 03:10:17','UTC timestamps must render in Mongolia time with seconds');
+  const dashboard={overview:{total_revenue:9900,paid_registration_count:1,unpaid_registration_count:1,pending_registration_count:1},packages:[
+    {registration_name:'Хуучин төлсөн',owner_name:'Төлсөн хүн',owner_phone:'99000001',registration_created_at:'2026-09-10T00:00:00Z',payment_status:'paid',payment_amount:9900,payment_plan_code:'month',payment_duration_months:1,payment_timestamp:'2026-09-10T03:46:43Z'},
+    {registration_name:'Шинэ төлөөгүй',owner_name:'Шинэ хүн',owner_phone:'99000002',registration_created_at:'2026-09-12T00:00:00Z',payment_status:'unpaid',payment_amount:0,payment_timestamp:'2026-09-12T00:00:00Z'},
+    {registration_name:'Хүлээгдэж буй',owner_name:'Хүлээж буй хүн',owner_phone:'99000003',registration_created_at:'2026-09-11T00:00:00Z',payment_status:'pending',payment_amount:199000,payment_plan_code:'year',payment_duration_months:12,payment_timestamp:'2026-09-11T04:08:05Z'}
+  ]};
+  hooks.state.filter='all';
+  const paymentHtml=hooks.renderPayments(dashboard);
+  assert.ok(paymentHtml.lastIndexOf('Шинэ төлөөгүй')<paymentHtml.lastIndexOf('Хүлээгдэж буй')&&paymentHtml.lastIndexOf('Хүлээгдэж буй')<paymentHtml.lastIndexOf('Хуучин төлсөн'),'newest registrations must appear first');
+  assert.match(paymentHtml,/Бүртгүүлсэн: 2026\.09\.12 08:00:00/);
+  assert.match(paymentHtml,/Нэхэмжлэл: 2026\.09\.11 12:08:05/);
+  assert.match(paymentHtml,/Төлсөн: 2026\.09\.10 11:46:43/);
+  assert.match(paymentHtml,/nayadAdminQuickFilter\('paid'\)/,'paid summary must be clickable');
+  assert.match(paymentHtml,/nayadAdminFilter\('unpaid'\)/,'lower unpaid filter must remain visible');
+  hooks.state.filter='unpaid';
+  assert.equal(hooks.paymentMatches(dashboard.packages[0]),false);
+  assert.equal(hooks.paymentMatches(dashboard.packages[1]),true);
 
   console.log('admin-dashboard: PASS — server-authorized read-only admin views stay inside Profile');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -140,13 +140,17 @@ async function dashboard(admin: ReturnType<typeof createClient>) {
     const ownerProfile = profileById.get(ownerId) ?? {};
     const ownerAccount = accountById.get(ownerId) ?? {};
     const storeOrders = ordersByStore.get(storeId) ?? [];
+    const latestOrder = storeOrders[0];
     const lastPaidOrder = storeOrders.find(order => text(order.status) === "paid");
+    const paymentStatus = text(latestOrder?.status) === "pending" ? "pending" : isPlus ? "paid" : "unpaid";
+    const paymentOrder = paymentStatus === "pending" ? latestOrder : paymentStatus === "paid" ? lastPaidOrder : undefined;
     return {
       store_id: storeId,
       registration_name: text(store.name),
       owner_name: text(ownerProfile.full_name) || phone(ownerAccount.phone) || "Эзэмшигч тодорхойгүй",
       owner_phone: phone(ownerAccount.phone),
       registration_complete: Boolean(store.registration_completed_at),
+      registration_created_at: text(store.created_at),
       plan: isPlus ? "plus" : "free",
       plan_code: isPlus ? text(subscription?.plan_code) : "free",
       status: isPlus ? "active" : "free",
@@ -154,6 +158,11 @@ async function dashboard(admin: ReturnType<typeof createClient>) {
       current_period_end: isPlus ? text(subscription?.current_period_end) : "",
       paid_amount: isPlus ? number(lastPaidOrder?.paid_amount ?? lastPaidOrder?.amount) : 0,
       pending_count: storeOrders.filter(order => text(order.status) === "pending").length,
+      payment_status: paymentStatus,
+      payment_amount: paymentStatus === "unpaid" ? 0 : number(paymentOrder?.paid_amount ?? paymentOrder?.amount),
+      payment_plan_code: paymentStatus === "unpaid" ? "free" : text(paymentOrder?.plan_code),
+      payment_duration_months: paymentStatus === "unpaid" ? 0 : number(paymentOrder?.duration_months),
+      payment_timestamp: paymentStatus === "paid" ? text(paymentOrder?.paid_at ?? paymentOrder?.created_at) : paymentStatus === "pending" ? text(paymentOrder?.created_at) : text(store.created_at),
     };
   }).sort((a, b) => {
     if (a.plan !== b.plan) return a.plan === "plus" ? -1 : 1;
@@ -183,6 +192,9 @@ async function dashboard(admin: ReturnType<typeof createClient>) {
   });
 
   const activePlus = packages.filter(item => item.plan === "plus").length;
+  const paidRegistrations = packages.filter(item => item.payment_status === "paid").length;
+  const unpaidRegistrations = packages.filter(item => item.payment_status === "unpaid").length;
+  const pendingRegistrations = packages.filter(item => item.payment_status === "pending").length;
   const pendingOrders = payments.filter(item => item.status === "pending").length;
   const paidOrders = payments.filter(item => item.status === "paid");
 
@@ -194,6 +206,9 @@ async function dashboard(admin: ReturnType<typeof createClient>) {
       free_count: Math.max(0, stores.length - activePlus),
       pending_count: pendingOrders,
       paid_count: paidOrders.length,
+      paid_registration_count: paidRegistrations,
+      unpaid_registration_count: unpaidRegistrations,
+      pending_registration_count: pendingRegistrations,
       total_revenue: paidOrders.reduce((sum, item) => sum + item.amount, 0),
     },
     users,
