@@ -30,7 +30,7 @@ const context={
 const swSource=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 const cacheVersion=Number(swSource.match(/const CACHE = "nayad-v(\d+)";/)?.[1]||0);
-assert.ok(cacheVersion>=119,'registration completion must invalidate the installed app shell');
+assert.ok(cacheVersion>=120,'the admin dashboard must invalidate the installed app shell');
 assert.match(swSource,/\.\/registration-onboarding\.js\?v=2/);
 assert.match(indexSource,/\.\/registration-onboarding\.js\?v=2/,'index and service worker must load the same onboarding code');
 const deleteAsset=swSource.match(/\.\/registration-delete\.js\?v=(\d+)/);
@@ -62,6 +62,8 @@ assert.match(swSource,/\.\/share\.js\?v=40/);
 assert.match(indexSource,/\.\/share\.js\?v=40/,'index and service worker must load the same sharing code');
 assert.match(swSource,/\.\/profile-menu\.js\?v=5/);
 assert.match(indexSource,/\.\/profile-menu\.js\?v=5/,'index and service worker must load the profile drawer');
+assert.match(swSource,/\.\/admin-dashboard\.js\?v=1/);
+assert.match(indexSource,/\.\/admin-dashboard\.js\?v=1/,'index and service worker must load the admin dashboard');
 assert.match(swSource,/\.\/subscription\.js\?v=4/);
 assert.match(indexSource,/\.\/subscription\.js\?v=4/,'index and service worker must load the subscription flow');
 assert.match(swSource,/\.\/member-permissions\.js\?v=1/);
@@ -87,6 +89,7 @@ assert.ok(
   'legacy documents must receive the same safe store/auth/cloud script order'
 );
 assert.equal(patchedTwice.split('./profile-menu.js?v=5').length-1,1,'profile drawer must be injected exactly once');
+assert.equal(patchedTwice.split('./admin-dashboard.js?v=1').length-1,1,'admin dashboard must be injected exactly once');
 assert.equal(patchedTwice.split('./subscription.js?v=4').length-1,1,'subscription flow must be injected exactly once');
 assert.ok(patchedTwice.indexOf('./subscription.js?v=4')<patchedTwice.indexOf('./member-permissions.js?v=1'),'permission guard must load after all feature modules');
 assert.equal(patchedTwice.split('./loans.js?v=3').length-1,1,'loan module must be injected exactly once');

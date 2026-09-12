@@ -100,6 +100,7 @@ assert.doesNotMatch(drawer.innerHTML,/Профайлын тохиргоо.*profi
 assert.match(drawer.innerHTML,/Night mode/);
 assert.match(drawer.innerHTML,/Plus багц руу ахиулах/);
 assert.match(drawer.innerHTML,/Тайлан/);
+assert.doesNotMatch(drawer.innerHTML,/Админы удирдлага/,'admin tools must stay hidden inside the profile, not the burger menu');
 assert.doesNotMatch(drawer.innerHTML,/Унтраалттай/);
 assert.ok(drawer.innerHTML.indexOf('Дэлгүүр солих')<drawer.innerHTML.indexOf('Дэлгүүр хуваалцах'));
 assert.ok(drawer.innerHTML.indexOf('Дэлгүүр хуваалцах')<drawer.innerHTML.indexOf('Night mode'));

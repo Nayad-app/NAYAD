@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for explicit registration completion.
-const CACHE = "nayad-v119";
+const CACHE = "nayad-v120";
 
 const ASSETS = [
   "./",
@@ -21,6 +21,7 @@ const ASSETS = [
   "./mobile-fix.js?v=46",
   "./share.js?v=40",
   "./profile-menu.js?v=5",
+  "./admin-dashboard.js?v=1",
   "./subscription.js?v=4",
   "./invoice-cloud.js?v=71",
   "./supplier-cloud.js?v=58",
@@ -84,6 +85,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=57");
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=40");
   patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=5");
+  patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=1");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=4");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=71");
   patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=1");
@@ -96,6 +98,7 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
   patched=injectScriptAfter(patched,"./registration-delete.js?v=2","./auth-guard.js?v=57");
   patched=injectScriptAfter(patched,"./share.js?v=40","./profile-menu.js?v=5");
+  patched=injectScriptAfter(patched,"./profile-menu.js?v=5","./admin-dashboard.js?v=1");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=4");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=71","./payment-center.js?v=10");
