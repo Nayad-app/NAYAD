@@ -1,5 +1,5 @@
-// Invalidate the installed app shell for Face ID / Passkey login.
-const CACHE = "nayad-v126";
+// Invalidate the installed app shell for Face ID foreground locking.
+const CACHE = "nayad-v127";
 
 const ASSETS = [
   "./",
