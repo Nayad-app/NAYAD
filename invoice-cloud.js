@@ -470,8 +470,8 @@
     };
   }
   function directInvoiceCompanyField(companies){
-    const options=companies.map(company=>`<option value="${esc(company.name||'')}"></option>`).join('');
-    return `<div class="field"><label for="cloudICompany">Харилцагч *</label><input id="cloudICompany" type="search" list="cloudICompanyOptions" autocomplete="off" placeholder="Харилцагч сонгох"><datalist id="cloudICompanyOptions">${options}</datalist></div>`;
+    const options=companies.map(company=>`<option value="${esc(company.id)}">${esc(company.name||'')}</option>`).join('');
+    return `<div class="field"><label for="cloudICompany">Харилцагч *</label><select id="cloudICompany"><option value="">Харилцагч сонгох</option>${options}</select></div>`;
   }
   window.invoice=function(id,draftId){
     if(invoiceSaving){notify('Өмнөх падаан хадгалагдаж байна.');return;}
@@ -502,6 +502,11 @@
         <div class="sub" style="margin-top:7px">Зүүн талын ☷ тэмдэг дээр дараад шууд дээш/доош чирж дарааллыг солино.</div><div id="cloudImageList" class="imageList"></div>
       </div>
       <div class="actions"><button class="secondary" onclick="window.__cancelCloudInvoice()">Болих</button><button id="cloudConfirmInvoiceBtn" class="primary" onclick="window.__saveCloudInvoice()">ПАДААН БҮРТГЭХ</button></div>`);
+    if(direct){
+      document.getElementById('cloudICompany').onchange=function(){
+        const next=currentCompany(this.value);cloudCompanyId=next?.id??null;cloudCompanyTarget=next?invoiceTarget(next):null;
+      };
+    }
     document.getElementById('cloudGalleryInput').onchange=function(){addFiles([...this.files]);this.value=''};
     document.getElementById('cloudCameraInput').onchange=function(){addFiles([...this.files]);this.value=''};
     renderPending();
@@ -512,7 +517,7 @@
   window.__saveCloudInvoice=async function(){
     if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}
     if(directInvoiceMode){
-      const companyName=val('cloudICompany').trim(),company=currentCompany({name:companyName});
+      const companyId=val('cloudICompany'),company=cloudCompanyTarget?currentCompany(cloudCompanyTarget):currentCompany(companyId);
       if(!company){notify('Харилцагч сонгоно уу.');return;}
       cloudCompanyId=company.id;
       cloudCompanyTarget=invoiceTarget(company);

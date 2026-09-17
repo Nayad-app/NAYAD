@@ -35,7 +35,7 @@ function createHarness(options={}){
     notices:[]
   };
   const elements={
-    cloudICompany:{value:'Empty Supplier'},
+    cloudICompany:{value:'1',onchange:null},
     cloudGalleryInput:{files:[],value:''},
     cloudCameraInput:{files:[],value:''},
     cloudImageList:{innerHTML:'',style:{},addEventListener(){},querySelectorAll(){return[];}},

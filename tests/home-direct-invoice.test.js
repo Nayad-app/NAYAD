@@ -13,7 +13,9 @@ assert.match(indexSource,/onclick="showHomeDebtView\('all'\)"/,'debt-contact sum
 assert.match(indexSource,/onclick="showHomeDebtView\('today'\)"/,'today summary must reveal only today-due contacts');
 assert.match(contactSource,/const quickRows=\[\['all','Бүгд'\],\['next7'/,'the approved five quick filters must remain in the title row');
 
-assert.match(invoiceSource,/id="cloudICompany"[^>]+placeholder="Харилцагч сонгох"/,'direct invoice form must select a contact in the same sheet');
+assert.match(invoiceSource,/<select id="cloudICompany"><option value="">Харилцагч сонгох<\/option>/,'direct invoice form must use a re-openable contact dropdown');
+assert.doesNotMatch(invoiceSource,/cloudICompanyOptions|<datalist/,'the iPhone-incompatible one-shot datalist must be removed');
+assert.match(invoiceSource,/getElementById\('cloudICompany'\)\.onchange=function\(\)/,'changing the dropdown must replace the selected contact');
 assert.match(invoiceSource,/window\.openDirectInvoice=function\(\)\{window\.invoice\(null\);\}/);
 assert.match(invoiceSource,/if\(directInvoiceMode\)/,'saving a direct invoice must resolve and validate its selected contact');
 assert.match(invoiceSource,/ПАДААН БҮРТГЭХ/,'the existing direct registration action must remain available');
