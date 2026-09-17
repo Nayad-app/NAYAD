@@ -1,5 +1,5 @@
-// Invalidate the installed app shell for explicit registration completion.
-const CACHE = "nayad-v122";
+// Invalidate the installed app shell for the home debt color scale.
+const CACHE = "nayad-v123";
 
 const ASSETS = [
   "./",
@@ -27,7 +27,7 @@ const ASSETS = [
   "./supplier-cloud.js?v=58",
   "./payment-center.js?v=10",
   "./loans.js?v=3",
-  "./contact-types.js?v=10",
+  "./contact-types.js?v=11",
   "./company-label.js",
   "./member-permissions.js?v=1"
 ];
@@ -92,7 +92,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=58");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=3");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=72","./money-input.js?v=1");
-  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=10");
+  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=11");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=63","./registration-onboarding.js?v=2");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=63","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
@@ -103,7 +103,7 @@ function patchDocument(html){
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=72","./payment-center.js?v=10");
   patched=injectScriptAfter(patched,"./payment-center.js?v=10","./loans.js?v=3");
-  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=58","./contact-types.js?v=10");
+  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=58","./contact-types.js?v=11");
   patched=injectScriptAfter(patched,"./subscription.js?v=4","./member-permissions.js?v=1");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;

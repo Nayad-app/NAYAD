@@ -88,8 +88,10 @@ const orgCard=vm.runInContext('card({id:2,name:"MCS",contactType:"organization",
 assert.match(orgCard,/Байгууллага/);
 const dueCard=vm.runInContext('card({id:4,name:"Due customer",contactType:"organization",invoices:[{id:"i1",no:"INV-2045",due_date:"2099-09-01",amount:1000,paid:0}],debt:1000},true)',context);
 assert.doesNotMatch(dueCard,/INV-2045|Байгууллага|>Төлөх<\/button>/,'Home debt cards must omit invoice number, type text and pay button');
-assert.match(dueCard,/Төлөх өдөр <b>2099\.09\.01<\/b>/);
-assert.doesNotMatch(dueCard,/хоногийн дараа|homeDueState future/,'future cards show the due date without a relative status');
+assert.doesNotMatch(dueCard,/Төлөх өдөр|2099\.09\.01|хоногийн дараа/,'future cards must not show a due date or relative status');
+const overdueCard=vm.runInContext('card({id:6,name:"Overdue customer",contactType:"organization",invoices:[{id:"i2",date:"2000-01-01",due_date:"2000-01-31",amount:1000,paid:0}],debt:1000},true)',context);
+assert.match(overdueCard,/style="color:#8B2B22"/,'overdue totals must use the approved dark red-brown');
+assert.match(overdueCard,/homeDebtValue"><div class="amount"[^>]*>1000 ₮<\/div><span class="homeDebtDue">Төлөх өдөр 2000\.01\.31<\/span>/,'overdue due dates must sit below the total');
 data.companies.push({id:3,name:'Minimal',contactType:'organization',phone:'99112233',salesPhone:'88112233',status:'active',invoices:[],debt:0});
 const companiesHtml=context.companies();
 assert.match(companiesHtml,/contactListRow/);
