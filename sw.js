@@ -1,9 +1,10 @@
-// Invalidate the installed app shell for contact type and logo editing.
-const CACHE = "nayad-v131";
+// Invalidate the installed app shell for the responsive tablet/desktop layout.
+const CACHE = "nayad-v132";
 
 const ASSETS = [
   "./",
   "./manifest.webmanifest",
+  "./responsive-layout.css?v=1",
   "./icon-180.png",
   "./icon-192.png",
   "./icon-512.png",
