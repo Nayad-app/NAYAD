@@ -504,6 +504,8 @@
         <div class="sub" style="margin-top:7px">Зүүн талын ☷ тэмдэг дээр дараад шууд дээш/доош чирж дарааллыг солино.</div><div id="cloudImageList" class="imageList"></div>
       </div>
       <div class="actions"><button class="secondary" onclick="window.__cancelCloudInvoice()">Болих</button><button id="cloudConfirmInvoiceBtn" class="primary" onclick="window.__saveCloudInvoice()">ПАДААН БҮРТГЭХ</button></div>`);
+    document.getElementById('modal')?.classList.add('invoiceFormModal');
+    document.getElementById('sheet')?.classList.add('invoiceFormSheet');
     if(direct){
       document.getElementById('cloudICompany').onchange=function(){
         const next=currentCompany(this.value);cloudCompanyId=next?.id??null;cloudCompanyTarget=next?invoiceTarget(next):null;
