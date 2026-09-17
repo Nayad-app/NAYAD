@@ -30,7 +30,7 @@ const context={
 const swSource=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 const cacheVersion=Number(swSource.match(/const CACHE = "nayad-v(\d+)";/)?.[1]||0);
-assert.ok(cacheVersion>=125,'the alphabetical contact dropdown must invalidate the installed app shell');
+assert.ok(cacheVersion>=126,'the Face ID login flow must invalidate the installed app shell');
 assert.match(swSource,/\.\/registration-onboarding\.js\?v=2/);
 assert.match(indexSource,/\.\/registration-onboarding\.js\?v=2/,'index and service worker must load the same onboarding code');
 const deleteAsset=swSource.match(/\.\/registration-delete\.js\?v=(\d+)/);

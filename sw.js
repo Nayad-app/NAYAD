@@ -1,5 +1,5 @@
-// Invalidate the installed app shell for the alphabetical contact dropdown.
-const CACHE = "nayad-v125";
+// Invalidate the installed app shell for Face ID / Passkey login.
+const CACHE = "nayad-v126";
 
 const ASSETS = [
   "./",
