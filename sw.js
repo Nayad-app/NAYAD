@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for contact type and logo editing.
-const CACHE = "nayad-v130";
+const CACHE = "nayad-v131";
 
 const ASSETS = [
   "./",
@@ -25,7 +25,7 @@ const ASSETS = [
   "./subscription.js?v=4",
   "./invoice-cloud.js?v=75",
   "./supplier-cloud.js?v=60",
-  "./payment-center.js?v=10",
+  "./payment-center.js?v=11",
   "./loans.js?v=3",
   "./contact-types.js?v=12",
   "./company-label.js",
@@ -101,8 +101,8 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./profile-menu.js?v=5","./admin-dashboard.js?v=2");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=4");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
-  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=75","./payment-center.js?v=10");
-  patched=injectScriptAfter(patched,"./payment-center.js?v=10","./loans.js?v=3");
+  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=75","./payment-center.js?v=11");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=11","./loans.js?v=3");
   patched=injectScriptBefore(patched,"./supplier-cloud.js?v=60","./contact-types.js?v=12");
   patched=injectScriptAfter(patched,"./subscription.js?v=4","./member-permissions.js?v=1");
   patched=injectScript(patched,"./mobile-fix.js?v=46");

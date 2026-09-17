@@ -326,7 +326,7 @@
     if((invoice.status||'confirmed')!=='confirmed'){notify('Цуцалсан падааныг засах боломжгүй.');return;}
     clearInvoiceEditFiles();
     const paid=Number(invoice.paid)||0,balance=balanceOf(invoice),imageCount=Number(invoice.image_count)||(invoice.image_urls||[]).length||(invoice.image_url?1:0);
-    open(`<h2>Падаан засах</h2><p class="sub">Падааны мэдээллийг хүссэн үедээ засна.</p><div class="agreementInfo invoiceEditNotice"><b>ⓘ</b><span>Төлсөн мөнгө өөрчлөгдөхгүй. Нийт дүнг төлсөн дүнгээс бага болгох боломжгүй.</span></div><div class="card invoiceEditSupplier"><small>Харилцагч</small><b>${esc(company.name)}</b><span>${esc(invoice.no||'Дугааргүй')}</span></div>
+    open(`<div class="row"><h2 style="margin:0">Падаан засах</h2><button type="button" class="secondary" aria-label="Хаах" onclick="window.cancelInvoiceEdit('${esc(invoice.id)}')">✕</button></div><p class="sub">Падааны мэдээллийг хүссэн үедээ засна.</p><div class="agreementInfo invoiceEditNotice"><b>ⓘ</b><span>Төлсөн мөнгө өөрчлөгдөхгүй. Нийт дүнг төлсөн дүнгээс бага болгох боломжгүй.</span></div><div class="card invoiceEditSupplier"><small>Харилцагч</small><b>${esc(company.name)}</b><span>${esc(invoice.no||'Дугааргүй')}</span></div>
       <div class="field"><label>Падааны нийт дүн</label><input id="reviseInvoiceAmount" data-money-input type="text" inputmode="decimal" autocomplete="off" value="${moneyInputText(Number(invoice.amount)||'')}"></div>
       <div class="invoicePaidGrid"><span>Өмнө төлсөн<b>${amount(paid)}</b></span><span>Одоогийн үлдэгдэл<b>${amount(balance)}</b></span></div>
       <div class="field"><label>Падааны огноо</label><input id="reviseInvoiceDate" type="date" value="${esc(invoice.date||today())}"></div>
@@ -337,6 +337,8 @@
       <div class="field"><label>Нэмэлт тэмдэглэл — заавал биш</label><textarea id="reviseInvoiceNote" maxlength="1000" placeholder="Падаантай холбоотой тэмдэглэл">${esc(invoice.note||'')}</textarea></div>
       <div class="field"><label>Падааны зураг</label><div class="invoiceEditImageRow"><span><b>${imageCount?`${imageCount} зураг хавсаргасан`:'Зураг хавсаргаагүй'}</b><small>Шинэ зураг сонговол одоогийн зургийг солино.</small></span><label class="secondary invoiceEditPicker">Солих<input type="file" accept="image/*" multiple onchange="window.selectInvoiceEditFiles(this.files)"></label></div><div id="invoiceEditPreviews" class="invoiceEditPreviews"></div></div>
       <div class="actions"><button class="secondary" onclick="window.cancelInvoiceEdit('${esc(invoice.id)}')">Болих</button><button id="saveInvoiceRevisionBtn" class="primary" onclick="window.saveConfirmedInvoiceRevision('${esc(invoice.id)}')">ӨӨРЧЛӨЛТИЙГ ХАДГАЛАХ</button></div>`);
+    document.getElementById('modal')?.classList.add('invoiceFormModal');
+    document.getElementById('sheet')?.classList.add('invoiceFormSheet');
   };
 
   function clearInvoiceEditFiles(){
