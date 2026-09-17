@@ -81,11 +81,26 @@ assert.doesNotMatch(sheetHtml,/ХТ(?:-|\s|$)/,'the app must not abbreviate ху
 assert.match(sheetHtml,/ногоон залгах товч энэ дугаар руу шууд залгана/);
 assert.doesNotMatch(sheetHtml,/Регистр/);
 
+context.showContactForm('organization',{id:99,name:'Эра жимс',contactType:'organization',logoPath:'store/logo.png',logoUrl:'https://example.test/logo.png'});
+assert.match(sheetHtml,/Харилцагчийн мэдээлэл засах/);
+assert.match(sheetHtml,/contactEditTypePicker/,'edit form must show person and organization icon choices');
+assert.match(sheetHtml,/changeEditContactType\('person'\)/);
+assert.match(sheetHtml,/changeEditContactType\('organization'\)/);
+assert.match(sheetHtml,/Байгууллагын лого/);
+assert.match(sheetHtml,/Лого солих/);
+assert.match(sheetHtml,/https:\/\/example\.test\/logo\.png/);
+context.showContactForm('person',{id:100,name:'Бат',contactType:'person'});
+assert.match(sheetHtml,/contactEditTypePicker/);
+assert.doesNotMatch(sheetHtml,/Байгууллагын лого/,'person edit must keep the person icon without an organization logo field');
+
 const card=vm.runInContext('card({id:1,name:"Бат",contactType:"person",invoices:[],debt:0})',context);
 assert.match(card,/Хувь хүн/);
 assert.match(card,/<svg/);
 const orgCard=vm.runInContext('card({id:2,name:"MCS",contactType:"organization",invoices:[],debt:0})',context);
 assert.match(orgCard,/Байгууллага/);
+const logoCard=vm.runInContext('card({id:7,name:"Logo org",contactType:"organization",logoUrl:"https:\/\/example.test\/logo.png",invoices:[],debt:0})',context);
+assert.match(logoCard,/class="contactAvatar organization hasLogo"/);
+assert.match(logoCard,/<img src="https:\/\/example\.test\/logo\.png"/);
 const dueCard=vm.runInContext('card({id:4,name:"Due customer",contactType:"organization",invoices:[{id:"i1",no:"INV-2045",due_date:"2099-09-01",amount:1000,paid:0}],debt:1000},true)',context);
 assert.doesNotMatch(dueCard,/INV-2045|Байгууллага|>Төлөх<\/button>/,'Home debt cards must omit invoice number, type text and pay button');
 assert.doesNotMatch(dueCard,/Төлөх өдөр|2099\.09\.01|хоногийн дараа/,'future cards must not show a due date or relative status');

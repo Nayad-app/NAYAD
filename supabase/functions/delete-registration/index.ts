@@ -95,6 +95,26 @@ async function removePaths(
   }
 }
 
+async function removeStoreFolder(
+  admin: ReturnType<typeof createClient>,
+  bucket: string,
+  storeId: string,
+) {
+  const storagePaths: string[] = [];
+  for (let offset = 0;; offset += 100) {
+    const { data, error } = await admin.storage.from(bucket).list(storeId, {
+      limit: 100,
+      offset,
+      sortBy: { column: "name", order: "asc" },
+    });
+    if (error) throw error;
+    const files = (data ?? []).filter(item => Boolean(item.id));
+    storagePaths.push(...files.map(item => `${storeId}/${item.name}`));
+    if ((data ?? []).length < 100) break;
+  }
+  await removePaths(admin, bucket, storagePaths);
+}
+
 function rpcFailure(message: string) {
   if (/Authentication required/i.test(message)) {
     return json({ error: "Нэвтрэх шаардлагатай.", code: "UNAUTHORIZED" }, 401);
@@ -171,6 +191,17 @@ Deno.serve(async (req: Request) => {
     };
     await cleanup("invoice-images", row.invoice_image_paths);
     await cleanup("loan-contracts", row.loan_document_paths);
+    try {
+      await removeStoreFolder(admin, "contact-logos", storeId);
+    } catch (error) {
+      cleanupErrors.push("contact-logos");
+      console.error("delete-registration storage", {
+        user_id: user.id,
+        store_id: storeId,
+        bucket: "contact-logos",
+        message: errorMessage(error),
+      });
+    }
 
     return json({
       ok: true,

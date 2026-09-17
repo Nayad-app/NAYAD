@@ -72,6 +72,7 @@ assert.match(edge,/p_store_id\s*:\s*storeId/);
 assert.match(edge,/p_confirmation\s*:\s*confirmation/);
 assert.match(edge,/cleanup\(["']invoice-images["']\s*,/);
 assert.match(edge,/cleanup\(["']loan-contracts["']\s*,/);
+assert.match(edge,/removeStoreFolder\(admin,\s*["']contact-logos["']\s*,\s*storeId\)/,'registration deletion must remove its contact logos without touching another store folder');
 assert.match(edge,/storage\.from\(bucket\)\.remove\s*\(/,'both returned path sets must be removed through the Storage API');
 assert.match(edge,/segments\[0\]\s*===\s*storeId/,'service-role cleanup must reject a metadata path belonging to another registration');
 assert.doesNotMatch(edge,/auth\.admin\.deleteUser|from\(["']profiles["']\)|from\(["']phone_login_accounts["']\)/,'the registration endpoint must never delete the user account');

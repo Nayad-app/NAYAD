@@ -3,6 +3,7 @@
   const KEY='NAYAD_DATA_V2';
   const USER_DATA_PREFIX='NAYAD_DATA_V3:';
   const SYNC_FLAG='NAYAD_SUPPLIER_SYNC_RELOAD';
+  const LOGO_BUCKET='contact-logos';
 
   if(typeof window.__nayadQueueCloudSync!=='function'){
     window.__nayadCloudSyncQueue=Promise.resolve();
@@ -57,6 +58,7 @@
     throw new Error('Эхлээд үйл ажиллагааны бүртгэлээ гүйцээнэ үү.');
   }
   function payload(storeId,x){
+    const contactType=(x.contactType==='person'||x.contactType==='organization')?x.contactType:'organization';
     return {
       store_id:storeId,
       name:String(x.name||'').trim(),
@@ -67,14 +69,38 @@
       sales_rep:String(x.sales||'').trim()||null,
       sales_phone:String(x.salesPhone||'').trim()||null,
       org_phone:String(x.orgPhone||'').trim()||null,
-      contact_type:(x.contactType==='person'||x.contactType==='organization')?x.contactType:'organization',
+      contact_type:contactType,
       contact_phone:String(x.phone||x.contactPhone||x.orgPhone||'').trim()||null,
       contact_note:String(x.note||'').trim()||null,
       bank_name:String(x.bank||'').trim()||null,
       bank_account:String(x.bankAccount||'').trim()||null,
       bank_account_holder:String(x.bankAccountHolder||'').trim()||null,
+      logo_path:contactType==='organization'?(String(x.logoPath||'').trim()||null):null,
       is_active:x.status!=='inactive'
     };
+  }
+  async function signedLogoUrl(path){
+    const c=sb(),clean=String(path||'').trim();if(!clean||!c?.storage)return '';
+    const result=await c.storage.from(LOGO_BUCKET).createSignedUrl(clean,7*24*60*60);
+    if(result.error){console.warn('contact logo URL:',result.error);return '';}
+    return result.data?.signedUrl||'';
+  }
+  function logoExtension(file){const type=String(file?.type||'').toLowerCase();if(type==='image/png')return 'png';if(type==='image/webp')return 'webp';return 'jpg';}
+  async function removeLogo(path){const clean=String(path||'').trim(),c=sb();if(!clean||!c?.storage)return;const result=await c.storage.from(LOGO_BUCKET).remove([clean]);if(result.error)console.warn('contact logo cleanup:',result.error);}
+  async function applyLogoChange(store,row,draft,target){
+    const c=sb(),change=typeof window.__nayadGetContactLogoChange==='function'?window.__nayadGetContactLogoChange():{file:null,remove:false},oldPath=String(target?.logoPath||row?.logo_path||'').trim();
+    if(draft.contactType!=='organization'||change.remove){
+      if(row?.logo_path){const update=await c.from('suppliers').update({logo_path:null}).eq('id',row.id).eq('store_id',store.id);if(update.error)throw update.error;}
+      await removeLogo(oldPath);return {path:'',url:''};
+    }
+    if(!change.file)return {path:String(row?.logo_path||oldPath),url:target?.logoUrl||await signedLogoUrl(row?.logo_path||oldPath)};
+    const unique=typeof globalThis.crypto?.randomUUID==='function'?globalThis.crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2),path=`${store.id}/${row.id}-${unique}.${logoExtension(change.file)}`;
+    const upload=await c.storage.from(LOGO_BUCKET).upload(path,change.file,{contentType:change.file.type||'image/jpeg',upsert:false});
+    if(upload.error)throw upload.error;
+    const update=await c.from('suppliers').update({logo_path:path}).eq('id',row.id).eq('store_id',store.id);
+    if(update.error){await removeLogo(path);throw update.error;}
+    if(oldPath&&oldPath!==path)await removeLogo(oldPath);
+    return {path,url:await signedLogoUrl(path)};
   }
   async function findExisting(storeId,x){
     const c=sb();
@@ -122,7 +148,7 @@
       if(duplicateLocalSupplier(name)){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
       const bank=val('newBank'),bankAccount=val('newBankAccount').toUpperCase(),bankAccountHolder=val('newBankAccountHolder');
       if(!bank||!bankAccount||!bankAccountHolder){toastMsg('Банк, дансны дугаар, данс эзэмшигчийн нэрийг бөглөнө үү.');return;}
-      const draft={contactType:val('newContactType'),name,phone:val('newPhone'),reg:'',address:val('newAddress'),director:val('newDirector'),directorPhone:val('newDirectorPhone'),sales:val('newSales'),salesPhone:val('newSalesPhone'),orgPhone:'',note:val('newNote'),bank,bankAccount,bankAccountHolder,status:'active'};
+      const draft={contactType:val('newContactType'),name,phone:val('newPhone'),reg:'',address:val('newAddress'),director:val('newDirector'),directorPhone:val('newDirectorPhone'),sales:val('newSales'),salesPhone:val('newSalesPhone'),orgPhone:'',note:val('newNote'),bank,bankAccount,bankAccountHolder,logoPath:'',logoUrl:'',status:'active'};
       try{
         await queueSupplierMutation(async()=>{
           const store=await myStore();
@@ -152,8 +178,9 @@
         if(duplicateLocalSupplier(draft.name,target.id)){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
         if(!draft.bank||!draft.bankAccount||!draft.bankAccountHolder){toastMsg('Банк, дансны дугаар, данс эзэмшигчийн нэрийг бөглөнө үү.');return;}
         await queueSupplierMutation(async()=>{
-          const cloud=await ensureCloudSupplier(draft);
+          const store=await myStore(),cloud=await ensureCloudSupplier(draft),logo=await applyLogoChange(store,cloud,draft,target);
           target.supabase_supplier_id=cloud.id;
+          target.logoPath=logo.path;target.logoUrl=logo.url;
           originalSaveEdit();
           attachCloudId(target.id,cloud.id);
           toastMsg('Нийлүүлэгчийн мэдээлэл cloud-д шинэчлэгдлээ.');
@@ -179,7 +206,9 @@
               toastMsg('Падааны түүхтэй тул устгахгүй, идэвхгүй хэвээр үлдээлээ.');
               return;
             }
+            const logoPath=local.logoPath||'';
             const del=await c.from('suppliers').delete().eq('id',local.supabase_supplier_id); if(del.error)throw del.error;
+            await removeLogo(logoPath);
           }
           originalDeleteCompany(id);
         });
@@ -212,11 +241,13 @@
     const session=(await c.auth.getSession()).data?.session; if(!session)return;
     const store=await myStore();
 
-    const r=await c.from('suppliers').select('id,name,reg_no,address,director,director_phone,sales_rep,sales_phone,org_phone,contact_type,contact_phone,contact_note,bank_name,bank_account,bank_account_holder,is_active').eq('store_id',store.id).order('created_at',{ascending:true});
+    const r=await c.from('suppliers').select('id,name,reg_no,address,director,director_phone,sales_rep,sales_phone,org_phone,contact_type,contact_phone,contact_note,bank_name,bank_account,bank_account_holder,logo_path,is_active').eq('store_id',store.id).order('created_at',{ascending:true});
     if(r.error)throw r.error;
     const d=readLocal(); d.companies=d.companies||[]; let changed=false;
     const companiesAtSyncStart=new Set(d.companies.map(company=>String(company.id)));
     const remote=r.data||[];
+    const logoUrls=new Map();
+    await Promise.all([...new Set(remote.map(row=>String(row.logo_path||'').trim()).filter(Boolean))].map(async path=>logoUrls.set(path,await signedLogoUrl(path))));
 
     for(const s of remote){
       let local=d.companies.find(x=>sameSupplier(x,s));
@@ -224,7 +255,7 @@
         local={id:Date.now()+Math.floor(Math.random()*1000000),name:s.name,color:'green',status:s.is_active===false?'inactive':'active',invoices:[]};
         d.companies.push(local); changed=true;
       }
-      const next={supabase_supplier_id:s.id,name:s.name,contactType:(s.contact_type==='person'||s.contact_type==='organization')?s.contact_type:'organization',reg:'',phone:s.contact_phone||s.org_phone||'',address:s.address||'',director:s.director||'',directorPhone:s.director_phone||'',sales:s.sales_rep||'',salesPhone:s.sales_phone||'',orgPhone:s.org_phone||'',note:s.contact_note||'',bank:s.bank_name||'',bankAccount:s.bank_account||'',bankAccountHolder:s.bank_account_holder||'',status:s.is_active===false?'inactive':'active'};
+      const next={supabase_supplier_id:s.id,name:s.name,contactType:(s.contact_type==='person'||s.contact_type==='organization')?s.contact_type:'organization',reg:'',phone:s.contact_phone||s.org_phone||'',address:s.address||'',director:s.director||'',directorPhone:s.director_phone||'',sales:s.sales_rep||'',salesPhone:s.sales_phone||'',orgPhone:s.org_phone||'',note:s.contact_note||'',bank:s.bank_name||'',bankAccount:s.bank_account||'',bankAccountHolder:s.bank_account_holder||'',logoPath:s.logo_path||'',logoUrl:logoUrls.get(String(s.logo_path||'').trim())||'',status:s.is_active===false?'inactive':'active'};
       for(const [k,v] of Object.entries(next)){if(local[k]!==v){local[k]=v;changed=true;}}
       local.invoices=local.invoices||[];
     }
