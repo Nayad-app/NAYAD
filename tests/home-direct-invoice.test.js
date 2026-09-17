@@ -16,6 +16,7 @@ assert.match(contactSource,/const quickRows=\[\['all','Бүгд'\],\['next7'/,'t
 assert.match(invoiceSource,/<select id="cloudICompany"><option value="">Харилцагч сонгох<\/option>/,'direct invoice form must use a re-openable contact dropdown');
 assert.doesNotMatch(invoiceSource,/cloudICompanyOptions|<datalist/,'the iPhone-incompatible one-shot datalist must be removed');
 assert.match(invoiceSource,/getElementById\('cloudICompany'\)\.onchange=function\(\)/,'changing the dropdown must replace the selected contact');
+assert.match(invoiceSource,/localeCompare\(String\(b\.name\|\|''\),'mn',\{sensitivity:'base'\}\)/,'the direct invoice contact dropdown must be alphabetical in Mongolian');
 assert.match(invoiceSource,/window\.openDirectInvoice=function\(\)\{window\.invoice\(null\);\}/);
 assert.match(invoiceSource,/if\(directInvoiceMode\)/,'saving a direct invoice must resolve and validate its selected contact');
 assert.match(invoiceSource,/ПАДААН БҮРТГЭХ/,'the existing direct registration action must remain available');

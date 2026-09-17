@@ -470,7 +470,9 @@
     };
   }
   function directInvoiceCompanyField(companies){
-    const options=companies.map(company=>`<option value="${esc(company.id)}">${esc(company.name||'')}</option>`).join('');
+    const options=[...companies]
+      .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'mn',{sensitivity:'base'}))
+      .map(company=>`<option value="${esc(company.id)}">${esc(company.name||'')}</option>`).join('');
     return `<div class="field"><label for="cloudICompany">Харилцагч *</label><select id="cloudICompany"><option value="">Харилцагч сонгох</option>${options}</select></div>`;
   }
   window.invoice=function(id,draftId){
