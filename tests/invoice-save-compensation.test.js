@@ -35,6 +35,7 @@ function createHarness(options={}){
     notices:[]
   };
   const elements={
+    cloudICompany:{value:'Empty Supplier'},
     cloudGalleryInput:{files:[],value:''},
     cloudCameraInput:{files:[],value:''},
     cloudImageList:{innerHTML:'',style:{},addEventListener(){},querySelectorAll(){return[];}},
@@ -263,6 +264,16 @@ function createHarness(options={}){
     assert.equal(test.saved().companies[0].invoices.length,0);
     assert.match(test.state.notices.at(-1),/2-р зураг/);
     assert.equal(test.context.window.__nayadCriticalOperation,undefined);
+  }
+
+  {
+    const test=createHarness();
+    test.context.window.openDirectInvoice();
+    await test.context.window.__saveCloudInvoice();
+
+    assert.equal(test.state.invoices.size,1,'Home direct entry must create one confirmed invoice');
+    assert.equal(test.saved().companies[0].invoices.length,1,'the direct invoice must attach to the selected contact');
+    assert.equal(test.saved().companies[0].invoices[0].status,'confirmed');
   }
 
   console.log('invoice-save-compensation: PASS — auth changes and ambiguous upload responses clean up with the original session');

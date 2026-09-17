@@ -48,14 +48,14 @@ assert.match(swSource,/\.\/cloud-runtime\.js\?v=59/);
 assert.match(indexSource,/\.\/cloud-runtime\.js\?v=59/,'index and service worker must load the same cloud runtime');
 assert.match(swSource,/\.\/money-input\.js\?v=1/);
 assert.match(indexSource,/\.\/money-input\.js\?v=1/,'index and service worker must load the money formatter');
-assert.match(swSource,/\.\/invoice-cloud\.js\?v=71/);
-assert.match(indexSource,/\.\/invoice-cloud\.js\?v=71/,'index and service worker must load the same invoice code');
+assert.match(swSource,/\.\/invoice-cloud\.js\?v=72/);
+assert.match(indexSource,/\.\/invoice-cloud\.js\?v=72/,'index and service worker must load the same invoice code');
 assert.match(swSource,/\.\/payment-center\.js\?v=10/);
 assert.match(indexSource,/\.\/payment-center\.js\?v=10/,'index and service worker must load the same payment center');
 assert.match(swSource,/\.\/loans\.js\?v=3/);
 assert.match(indexSource,/\.\/loans\.js\?v=3/,'index and service worker must load the loan module');
-assert.match(swSource,/\.\/contact-types\.js\?v=9/);
-assert.match(indexSource,/\.\/contact-types\.js\?v=9/,'index and service worker must load the contact type module');
+assert.match(swSource,/\.\/contact-types\.js\?v=10/);
+assert.match(indexSource,/\.\/contact-types\.js\?v=10/,'index and service worker must load the contact type module');
 assert.match(swSource,/\.\/supplier-cloud\.js\?v=58/);
 assert.match(indexSource,/\.\/supplier-cloud\.js\?v=58/,'index and service worker must load the same supplier code');
 assert.match(swSource,/\.\/share\.js\?v=40/);
@@ -85,7 +85,7 @@ assert.ok(
   patchedTwice.indexOf(deleteAsset[0])<patchedTwice.indexOf('./auth-guard.js?v=57')&&
   patchedTwice.indexOf('./auth-guard.js?v=57')<patchedTwice.indexOf('./money-input.js?v=1')&&
   patchedTwice.indexOf('./money-input.js?v=1')<patchedTwice.indexOf('./cloud-runtime.js?v=59')&&
-  patchedTwice.indexOf('./cloud-runtime.js?v=59')<patchedTwice.indexOf('./invoice-cloud.js?v=71'),
+  patchedTwice.indexOf('./cloud-runtime.js?v=59')<patchedTwice.indexOf('./invoice-cloud.js?v=72'),
   'legacy documents must receive the same safe store/auth/cloud script order'
 );
 assert.equal(patchedTwice.split('./profile-menu.js?v=5').length-1,1,'profile drawer must be injected exactly once');

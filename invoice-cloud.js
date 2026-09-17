@@ -4,6 +4,7 @@
   const USER_DATA_PREFIX = "NAYAD_DATA_V3:";
   let cloudCompanyId = null;
   let cloudCompanyTarget = null;
+  let directInvoiceMode = false;
   let pending = [];
   let invoiceSaving = false;
   let reorderBound = false;
@@ -457,13 +458,8 @@
     renderPending();
   }
 
-  window.invoice=function(id,draftId){
-    if(invoiceSaving){notify('Өмнөх падаан хадгалагдаж байна.');return;}
-    cloudCompanyId=id;
-    const company=currentCompany(id);
-    if(!company){notify('Нийлүүлэгч олдсонгүй.');return;}
-    const draft=(company.invoices||[]).find(item=>String(item.id)===String(draftId||'')&&item.status==='draft')||null;
-    cloudCompanyTarget={
+  function invoiceTarget(company,draft=null){
+    return {
       localId:company.id,
       supplierId:company.supabase_supplier_id||null,
       name:company.name||'',
@@ -472,10 +468,27 @@
       invoiceId:draft?.id||null,
       draft:draft?{...draft}:null
     };
+  }
+  function directInvoiceCompanyField(companies){
+    const options=companies.map(company=>`<option value="${esc(company.name||'')}"></option>`).join('');
+    return `<div class="field"><label for="cloudICompany">Харилцагч *</label><input id="cloudICompany" type="search" list="cloudICompanyOptions" autocomplete="off" placeholder="Харилцагч сонгох"><datalist id="cloudICompanyOptions">${options}</datalist></div>`;
+  }
+  window.invoice=function(id,draftId){
+    if(invoiceSaving){notify('Өмнөх падаан хадгалагдаж байна.');return;}
+    const direct=id==null||id==='';
+    directInvoiceMode=direct;
+    const companies=(readLocal().companies||[]).filter(item=>item.status!=='inactive');
+    if(direct&&!companies.length){notify('Эхлээд харилцагч бүртгэнэ үү.');return;}
+    cloudCompanyId=direct?null:id;
+    const company=direct?null:currentCompany(id);
+    if(!direct&&!company){notify('Харилцагч олдсонгүй.');return;}
+    const draft=company?(company.invoices||[]).find(item=>String(item.id)===String(draftId||'')&&item.status==='draft')||null:null;
+    cloudCompanyTarget=company?invoiceTarget(company,draft):null;
     clearPending();
     reorderBound=false;
     const today=new Date().toISOString().slice(0,10);
-    openSheet(`<h2>${draft?'Падаан засах':'Падаан нэмэх'}</h2><div class="card"><b>${esc(company.name)}</b></div>
+    const companyField=direct?directInvoiceCompanyField(companies):`<div class="card"><b>${esc(company.name)}</b></div>`;
+    openSheet(`<div class="row"><h2 style="margin:0">${draft?'Падаан засах':'Падаан нэмэх'}</h2><button type="button" class="secondary" aria-label="Хаах" onclick="window.__cancelCloudInvoice()">✕</button></div>${companyField}
       <div class="field"><label>Падааны огноо</label><input id="cloudIDate" type="date" value="${esc(draft?.date||today)}"></div>
       <div class="field"><label>Төлөх хугацаа</label><input id="cloudIDueDate" type="date" value="${esc(draft?.due_date||'')}"></div>
       <div class="field"><label>Падааны дугаар</label><input id="cloudINo" value="${esc(draft?.no||'')}" placeholder="INV-0001"></div>
@@ -493,10 +506,17 @@
     document.getElementById('cloudCameraInput').onchange=function(){addFiles([...this.files]);this.value=''};
     renderPending();
   };
-  window.__cancelCloudInvoice=function(){if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}cloudCompanyTarget=null;clearPending();close();};
+  window.openDirectInvoice=function(){window.invoice(null);};
+  window.__cancelCloudInvoice=function(){if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}cloudCompanyTarget=null;directInvoiceMode=false;clearPending();close();};
 
   window.__saveCloudInvoice=async function(){
     if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}
+    if(directInvoiceMode){
+      const companyName=val('cloudICompany').trim(),company=currentCompany({name:companyName});
+      if(!company){notify('Харилцагч сонгоно уу.');return;}
+      cloudCompanyId=company.id;
+      cloudCompanyTarget=invoiceTarget(company);
+    }
     const amount=moneyInputValue(val('cloudIAmount'));
     const date=val('cloudIDate')||new Date().toISOString().slice(0,10);
     const dueDate=val('cloudIDueDate')||null;
@@ -598,7 +618,7 @@
           }
           else{local.companies.push({...company,supabase_supplier_id:supplierId,invoices:[...(company.invoices||[]),inv]});}
           try{writeLocal(local);}catch(cacheError){console.warn('Invoice local cache:',cacheError);}
-          cloudCompanyTarget=null;clearPending();close();applyLocalData(local,true);
+          cloudCompanyTarget=null;directInvoiceMode=false;clearPending();close();applyLocalData(local,true);
           notify('Падаан бүртгэгдлээ.');
           setTimeout(()=>window.__nayadStartCloudSync?.({reason:'invoice-saved',force:true}).catch(()=>{}),0);
         }catch(error){

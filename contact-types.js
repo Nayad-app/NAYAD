@@ -49,10 +49,10 @@
       .contactAvatar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
       .contactAvatar.person{background:var(--green-soft);color:var(--green)}.contactAvatar.organization{background:#F0F1EF;color:#6F7470}
       .contactTypeText{font-size:10px;color:var(--muted);margin-left:5px}
-      .homeInvoiceMeta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:10px;color:var(--muted)}
-      .homeInvoiceMeta b{color:var(--text);font-size:10px}.homeDueState{padding:3px 6px;border-radius:7px;font-size:9px;font-weight:800}.homeDueState.overdue{background:#fff0f0;color:#c33}.homeDueState.today,.homeDueState.soon{background:#fff4cc;color:#6a5200}.homeDueState.future{background:#f2f2ee;color:#666}
-      .homeUrgentHead{position:relative;display:flex;align-items:center;justify-content:space-between;gap:10px;overflow:visible}.homeDebtMenuToggle{width:35px;height:35px;padding:0;display:grid;place-items:center;border:0;border-radius:10px;background:transparent;color:var(--text)}.homeDebtMenuToggle:hover,.homeDebtMenuToggle:focus-visible{background:var(--surface-2)}.homeDebtMenuToggle:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}.homeDebtMenuToggle svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
-      .homeDebtMenu{position:absolute;z-index:35;right:0;top:calc(100% + 7px);width:min(295px,calc(100vw - 54px));max-height:min(440px,calc(100vh - 175px));overflow-y:auto;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:0 15px 35px rgba(0,0,0,.19);font-size:12px;font-weight:700;text-transform:none;letter-spacing:0}.homeDebtMenu button{width:100%;min-height:43px;padding:8px 10px;display:grid;grid-template-columns:29px minmax(0,1fr);align-items:center;gap:8px;border:0;border-radius:11px;background:transparent;color:var(--text);font-size:12px;font-weight:700;text-align:left}.homeDebtMenu button:active,.homeDebtMenu button:hover{background:var(--surface-2)}.homeDebtMenu button.active{font-weight:850}.homeDebtMenu button.active .homeDebtMenuIcon{color:#B88A00}.homeDebtMenuIcon{width:24px;height:24px;display:grid;place-items:center;color:var(--muted)}.homeDebtMenuIcon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.homeDebtMenuIcon svg text{fill:currentColor;stroke:none;font-size:8px;font-weight:850}.homeAlphaIcon{display:flex;flex-direction:column;align-items:center;font-size:8px;font-weight:900;line-height:.9}.homeUrgentEmpty{margin-bottom:10px;padding:24px 14px;color:var(--muted);font-size:11px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:17px}
+      .homeInvoiceMeta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;margin-top:6px;font-size:10px;color:var(--muted)}
+      .homeInvoiceMeta b{color:var(--text);font-size:10px}.homeDueState.overdue{color:var(--red);font-size:9px;font-weight:850}
+      .homeUrgentHead{position:relative;display:flex;align-items:center;gap:4px;overflow:visible;margin-top:16px}.homeUrgentTitle{margin-right:auto;white-space:nowrap}.homeQuickFilters{display:flex;align-items:center;gap:0}.homeQuickFilter{width:29px;height:29px;padding:0;display:grid;place-items:center;border:0;border-radius:9px;background:transparent;color:var(--muted)}.homeQuickFilter:hover,.homeQuickFilter:focus-visible{background:var(--surface-2)}.homeQuickFilter.active{color:#E6AB00}.homeQuickFilter:focus-visible{outline:2px solid var(--yellow);outline-offset:1px}.homeQuickFilter svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}.homeQuickFilter svg text{fill:currentColor;stroke:none;font-size:8px;font-weight:850}.homeDebtMenuToggle{width:31px;height:31px;padding:0;display:grid;place-items:center;border:0;border-radius:9px;background:transparent;color:var(--text)}.homeDebtMenuToggle:hover,.homeDebtMenuToggle:focus-visible{background:var(--surface-2)}.homeDebtMenuToggle:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}.homeDebtMenuToggle svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+      .homeDebtMenu{position:absolute;z-index:35;right:0;top:calc(100% + 7px);width:min(295px,calc(100vw - 54px));max-height:min(440px,calc(100vh - 175px));overflow-y:auto;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:0 15px 35px rgba(0,0,0,.19);font-size:12px;font-weight:700;text-transform:none;letter-spacing:0}.homeDebtMenu button{width:100%;min-height:43px;padding:8px 10px;display:grid;grid-template-columns:29px minmax(0,1fr);align-items:center;gap:8px;border:0;border-radius:11px;background:transparent;color:var(--text);font-size:12px;font-weight:700;text-align:left}.homeDebtMenu button:active,.homeDebtMenu button:hover{background:var(--surface-2)}.homeDebtMenu button.active{font-weight:850}.homeDebtMenu button.active .homeDebtMenuIcon{color:#B88A00}.homeDebtMenuIcon{width:24px;height:24px;display:grid;place-items:center;color:var(--muted)}.homeDebtMenuIcon svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.homeDebtMenuIcon svg text{fill:currentColor;stroke:none;font-size:8px;font-weight:850}.homeAlphaIcon{display:flex;flex-direction:column;align-items:center;font-size:8px;font-weight:900;line-height:.9}.homeUrgentEmpty{margin-bottom:10px;padding:24px 14px;color:var(--muted);font-size:11px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:17px}.homeDebtCard{padding:10px 12px;margin-bottom:8px;border-radius:16px}.homeDebtCard .row{align-items:center}.homeDebtCard .contactAvatar{width:38px;height:38px}.homeDebtCard .company{gap:10px}.homeDebtCard .company b{font-size:14px}.homeDebtCard .company span{margin-top:2px;font-size:10px}.homeDebtAmount{display:flex;align-items:center;gap:8px}.homeDebtChevron{width:16px;height:16px;fill:none;stroke:var(--muted);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.homeDebtCard .amount{font-size:13px}.homeStoreRow{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px}.homeInvoiceAdd{width:38px;height:38px;flex:0 0 38px;padding:0;border-radius:50%;background:var(--yellow);color:#111;font-size:24px;font-weight:500;line-height:1;display:grid;place-items:center;box-shadow:var(--shadow-sm)}
       .contactDetailType{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:700}
       .contactDetailType svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
       .contactFieldHint{display:block;margin-top:6px;color:var(--muted);font-size:10px;line-height:1.4}
@@ -106,7 +106,7 @@
   }
   function companyIconLabel(contact){const type=validType(contact?.contactType);return `<span class="contactDetailType">${icon(type)}${typeLabel(type)}</span>`;}
   const HOME_DEBT_VIEW_KEY='NAYAD_HOME_DEBT_VIEW';
-  const validHomeDebtView=value=>['all','next7','next30','nearest','overdue','missing','debt','name-asc','name-desc','invoice-date-asc','invoice-date-desc'].includes(value)?value:'all';
+  const validHomeDebtView=value=>['all','today','next7','next30','nearest','overdue','missing','debt','name-asc','name-desc','invoice-date-asc','invoice-date-desc'].includes(value)?value:'all';
   let homeDebtView=(()=>{try{return validHomeDebtView(localStorage.getItem(HOME_DEBT_VIEW_KEY));}catch(_error){return 'all';}})();
   function homeDue(invoice){return invoice?.effective_due_date||invoice?.due_date||'';}
   function homeDate(value){if(!value)return 'Оруулаагүй';const parts=String(value).split('-');return parts.length===3?`${parts[0]}.${parts[1]}.${parts[2]}`:String(value);}
@@ -130,6 +130,7 @@
   }
   function homeInvoicesForView(contact){
     const invoices=homeOpenInvoices(contact);
+    if(homeDebtView==='today')return invoices.filter(invoice=>homeDueDays(homeDue(invoice))===0);
     if(homeDebtView==='next7')return invoices.filter(invoice=>{const days=homeDueDays(homeDue(invoice));return days!==null&&days>=0&&days<=7;});
     if(homeDebtView==='next30')return invoices.filter(invoice=>{const days=homeDueDays(homeDue(invoice));return days!==null&&days>=0&&days<=30;});
     if(homeDebtView==='overdue')return invoices.filter(invoice=>{const days=homeDueDays(homeDue(invoice));return days!==null&&days<0;});
@@ -147,8 +148,8 @@
   }
   function homeDebtCompanies(companies){
     let rows=(companies||[]).filter(contact=>(Number(contact.debt)||0)>0);
-    if(['next7','next30','overdue','missing'].includes(homeDebtView))rows=rows.filter(contact=>homeInvoicesForView(contact).length>0);
-    if(homeDebtView==='nearest'||['next7','next30','overdue'].includes(homeDebtView))rows.sort((a,b)=>String(homeDue(homeDueInvoice(a))||'9999-99-99').localeCompare(String(homeDue(homeDueInvoice(b))||'9999-99-99')));
+    if(['today','next7','next30','overdue','missing'].includes(homeDebtView))rows=rows.filter(contact=>homeInvoicesForView(contact).length>0);
+    if(homeDebtView==='nearest'||['today','next7','next30','overdue'].includes(homeDebtView))rows.sort((a,b)=>String(homeDue(homeDueInvoice(a))||'9999-99-99').localeCompare(String(homeDue(homeDueInvoice(b))||'9999-99-99')));
     else if(homeDebtView==='debt')rows.sort((a,b)=>(Number(b.debt)||0)-(Number(a.debt)||0));
     else if(homeDebtView==='name-asc'||homeDebtView==='name-desc')rows.sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'mn',{sensitivity:'base'})*(homeDebtView==='name-desc'?-1:1));
     else if(homeDebtView==='invoice-date-asc'||homeDebtView==='invoice-date-desc')rows.sort((a,b)=>{
@@ -175,8 +176,10 @@
   ];
   function homeDebtControls(){
     const sliders='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h7M15 7h5M4 17h5M13 17h7"/><circle cx="13" cy="7" r="2"/><circle cx="11" cy="17" r="2"/></svg>';
+    const quickRows=[['all','Бүгд'],['next7','7 хоногт төлөх'],['next30','1 сард төлөх'],['nearest','Төлөх хугацаа хамгийн ойр'],['overdue','Хугацаа хэтэрсэн']];
+    const quick=quickRows.map(([value,label])=>`<button type="button" class="homeQuickFilter ${homeDebtView===value?'active':''}" aria-label="${esc(label)}" title="${esc(label)}" aria-pressed="${homeDebtView===value}" onclick="event.stopPropagation();setHomeDebtView('${value}')">${homeMenuIcon(value)}</button>`).join('');
     const options=homeMenuRows().map(([value,label])=>{const active=value==='name'?homeDebtView.startsWith('name-'):value==='invoice-date'?homeDebtView.startsWith('invoice-date-'):homeDebtView===value;return `<button type="button" role="menuitemradio" aria-checked="${active}" class="${active?'active':''}" onclick="event.stopPropagation();setHomeDebtView('${value}')"><span class="homeDebtMenuIcon">${homeMenuIcon(value)}</span><span>${esc(label)}</span></button>`;}).join('');
-    return `<button id="homeDebtMenuToggle" class="homeDebtMenuToggle" type="button" aria-label="Яаралтай өрийг шүүх, эрэмбэлэх" aria-haspopup="menu" aria-expanded="false" onclick="toggleHomeDebtMenu(event)">${sliders}</button><div id="homeDebtMenu" class="homeDebtMenu hide" role="menu" aria-label="Яаралтай өрийг шүүх, эрэмбэлэх" onclick="event.stopPropagation()">${options}</div>`;
+    return `<span class="homeQuickFilters">${quick}</span><button id="homeDebtMenuToggle" class="homeDebtMenuToggle" type="button" aria-label="Яаралтай бүртгэлийг шүүх, эрэмбэлэх" aria-haspopup="menu" aria-expanded="false" onclick="toggleHomeDebtMenu(event)">${sliders}</button><div id="homeDebtMenu" class="homeDebtMenu hide" role="menu" aria-label="Яаралтай бүртгэлийг шүүх, эрэмбэлэх" onclick="event.stopPropagation()">${options}</div>`;
   }
   function closeHomeDebtMenu(){const menu=document.getElementById('homeDebtMenu'),button=document.getElementById('homeDebtMenuToggle');menu?.classList.add('hide');button?.setAttribute('aria-expanded','false');}
   function toggleHomeDebtMenu(event){event?.stopPropagation?.();const menu=document.getElementById('homeDebtMenu'),button=document.getElementById('homeDebtMenuToggle');if(!menu||!button)return;const opening=menu.classList.contains('hide');menu.classList.toggle('hide',!opening);button.setAttribute('aria-expanded',String(opening));}
@@ -185,10 +188,30 @@
     try{localStorage.setItem(HOME_DEBT_VIEW_KEY,homeDebtView);}catch(_error){}
     closeHomeDebtMenu();window.render();
   }
+  function showHomeDebtView(value){
+    homeDebtView=validHomeDebtView(value);
+    try{localStorage.setItem(HOME_DEBT_VIEW_KEY,homeDebtView);}catch(_error){}
+    closeHomeDebtMenu();window.render();
+    const scroll=()=>document.getElementById('homeUrgentDebtList')?.scrollIntoView?.({behavior:'smooth',block:'start'});
+    if(typeof window.requestAnimationFrame==='function')window.requestAnimationFrame(scroll);else window.setTimeout?.(scroll,0);
+  }
+  function todayDebtSummary(companies){
+    let amount=0,count=0;
+    for(const contact of companies||[]){
+      const invoices=homeOpenInvoices(contact).filter(invoice=>homeDueDays(homeDue(invoice))===0);
+      if(!invoices.length)continue;
+      count++;
+      amount+=invoices.reduce((sum,invoice)=>sum+Math.max((Number(invoice.amount)||0)-(Number(invoice.paid)||0),0),0);
+    }
+    return {amount,count};
+  }
   function card(contact,pay=false){
     const c=contact||{},type=validType(c.contactType),invoice=homeDueInvoice(c),due=homeDue(invoice),meta=homeDueMeta(due);
-    const dueInfo=pay&&invoice?`<div class="homeInvoiceMeta"><span>${esc(invoice.no||'Дугааргүй')}</span><span>Төлөх өдөр <b>${esc(homeDate(due))}</b></span><span class="homeDueState ${meta.kind}">${esc(meta.label)}</span></div>`:'';
-    return `<div class="card" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(type)}<div><b>${esc(c.name)}</b><span>${typeLabel(type)}<span class="contactTypeText">· ${c.invoices?.length||0} падаан</span></span></div></div><div class="amount redText">${window.money(c.debt)}${pay?`<br><button class="primary" style="padding:6px 9px;margin-top:5px" onclick="event.stopPropagation();payment(${c.id})">Төлөх</button>`:''}</div></div>${dueInfo}</div>`;
+    const overdue=meta.kind==='overdue'?'<span class="homeDueState overdue">Хугацаа хэтэрсэн</span>':'';
+    const dueInfo=pay&&invoice&&due?`<div class="homeInvoiceMeta"><span>Төлөх өдөр <b>${esc(homeDate(due))}</b></span>${overdue}</div>`:'';
+    const chevron=pay?'<svg class="homeDebtChevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>':'';
+    const subline=pay?`${c.invoices?.length||0} падаан`:`${typeLabel(type)}<span class="contactTypeText">· ${c.invoices?.length||0} падаан</span>`;
+    return `<div class="card ${pay?'homeDebtCard':''}" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(type)}<div><b>${esc(c.name)}</b><span>${subline}</span>${dueInfo}</div></div><div class="homeDebtAmount"><div class="amount redText">${window.money(c.debt)}</div>${chevron}</div></div></div>`;
   }
   const contactCallPhone=contact=>validType(contact?.contactType)===PERSON?contact?.phone:contact?.salesPhone;
   const contactCallHref=value=>{
@@ -285,7 +308,7 @@
   }
   document.addEventListener?.('click',event=>{if(!event.target?.closest?.('.homeUrgentHead'))closeHomeDebtMenu();if(!event.target?.closest?.('.contactSearchRow'))closeContactFilterMenu();if(event.target?.id==='modal')setContactCallNoticeMode(false);});
   document.addEventListener?.('keydown',event=>{if(event.key==='Escape'){closeHomeDebtMenu();closeContactFilterMenu();setContactCallNoticeMode(false);}});
-  window.__nayadHomeDebtList=homeDebtCompanies;window.__nayadHomeDebtControls=homeDebtControls;window.__nayadHomeDebtView=()=>homeDebtView;window.toggleHomeDebtMenu=toggleHomeDebtMenu;window.closeHomeDebtMenu=closeHomeDebtMenu;window.setHomeDebtView=setHomeDebtView;
+  window.__nayadHomeDebtList=homeDebtCompanies;window.__nayadHomeDebtControls=homeDebtControls;window.__nayadHomeDebtView=()=>homeDebtView;window.__nayadTodayDebtSummary=todayDebtSummary;window.toggleHomeDebtMenu=toggleHomeDebtMenu;window.closeHomeDebtMenu=closeHomeDebtMenu;window.setHomeDebtView=setHomeDebtView;window.showHomeDebtView=showHomeDebtView;
   window.addCompany=showContactTypePicker;window.showContactTypePicker=showContactTypePicker;window.selectContactType=selectContactType;window.showContactForm=showContactForm;window.card=card;window.companies=companies;window.filter=filterContacts;window.setContactListFilter=setContactListFilter;window.toggleContactFilterMenu=toggleContactFilterMenu;window.closeContactFilterMenu=closeContactFilterMenu;window.company=company;window.showMissingContactPhone=showMissingContactPhone;window.closeMissingContactPhone=closeMissingContactPhone;window.openMissingContactEdit=openMissingContactEdit;window.saveCompany=saveCompany;window.editCompany=editCompany;window.saveEdit=saveEdit;
   injectStyle();
 })();
