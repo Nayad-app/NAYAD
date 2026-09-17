@@ -8,7 +8,8 @@ const userId='logo-user';
 const storeId='11111111-1111-4111-8111-111111111111';
 const supplierId='22222222-2222-4222-8222-222222222222';
 const key='NAYAD_DATA_V3:'+userId;
-const logoFile={type:'image/png',size:1200,name:'logo.png'};
+const logoBytes=new Uint8Array([137,80,78,71]).buffer;
+const logoFile={type:'image/png',size:1200,name:'logo.png',arrayBuffer:async()=>logoBytes};
 const state={companies:[{id:1,supabase_supplier_id:supplierId,name:'Эра жимс',contactType:'organization',logoPath:`${storeId}/old.png`,logoUrl:'https://signed.test/old',invoices:[]}],payments:[]};
 const storage=new Map([[key,JSON.stringify(state)]]);
 const values={eContactType:'organization',eName:'Эра жимс',ePhone:'88888888',eAddress:'',eDirector:'',eDirectorPhone:'',eSales:'',eSalesPhone:'',eNote:'',eBank:'ХААН банк',eBankAccount:'5000000000',eBankAccountHolder:'Эра жимс',eStatus:'active'};
@@ -53,7 +54,7 @@ context.window.nayadSupabase={
   storage:{from(bucket){
     assert.equal(bucket,'contact-logos');
     return {
-      upload:async(filePath,file,options)=>{uploads.push({filePath,file,options});return {data:{path:filePath},error:null};},
+      upload:async(filePath,content,options)=>{uploads.push({filePath,content,options});return {data:{path:filePath},error:null};},
       remove:async paths=>{removals.push(...paths);return {data:{},error:null};},
       createSignedUrl:async filePath=>({data:{signedUrl:'https://signed.test/'+encodeURIComponent(filePath)},error:null})
     };
@@ -68,6 +69,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'supplier-cloud.js'),'utf8'),cont
   await context.window.saveEdit();
   assert.equal(originalSaveCalls,1,'local edit must complete after cloud logo save');
   assert.equal(uploads.length,1,'new logo must upload once');
+  assert.equal(uploads[0].content,logoBytes,'iOS-safe upload must send non-empty binary content instead of a detached File body');
   assert.equal(uploads[0].options.upsert,false,'logo replacement must use a unique path instead of stale CDN upsert');
   assert.match(uploads[0].filePath,new RegExp(`^${storeId}/${supplierId}-33333333-3333-4333-8333-333333333333\\.png$`));
   assert.ok(updates.some(update=>update.logo_path===uploads[0].filePath),'supplier row must point to the new logo path');
@@ -77,4 +79,3 @@ vm.runInContext(fs.readFileSync(path.join(root,'supplier-cloud.js'),'utf8'),cont
   assert.match(selected.logoUrl,/^https:\/\/signed\.test\//);
   console.log('contact-logo: PASS — private logo replacement updates the supplier and cleans the old file');
 })().catch(error=>{console.error(error);process.exitCode=1;});
-

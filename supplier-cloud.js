@@ -95,7 +95,9 @@
     }
     if(!change.file)return {path:String(row?.logo_path||oldPath),url:target?.logoUrl||await signedLogoUrl(row?.logo_path||oldPath)};
     const unique=typeof globalThis.crypto?.randomUUID==='function'?globalThis.crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2),path=`${store.id}/${row.id}-${unique}.${logoExtension(change.file)}`;
-    const upload=await c.storage.from(LOGO_BUCKET).upload(path,change.file,{contentType:change.file.type||'image/jpeg',upsert:false});
+    const content=typeof change.file.arrayBuffer==='function'?await change.file.arrayBuffer():change.file;
+    if(!content||(typeof content.byteLength==='number'&&content.byteLength===0))throw new Error('Логоны зураг хоосон байна. Дахин сонгоно уу.');
+    const upload=await c.storage.from(LOGO_BUCKET).upload(path,content,{contentType:change.file.type||'image/jpeg',upsert:false});
     if(upload.error)throw upload.error;
     const update=await c.from('suppliers').update({logo_path:path}).eq('id',row.id).eq('store_id',store.id);
     if(update.error){await removeLogo(path);throw update.error;}
