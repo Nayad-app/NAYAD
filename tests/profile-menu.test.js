@@ -149,6 +149,6 @@ assert.doesNotMatch(indexSource,/class="homeShareBtn"|class="logoutIconButton"/,
 assert.doesNotMatch(storeSource,/storeSwitcherButton/,'large active-store switcher must be removed');
 assert.doesNotMatch(shareSource,/function addShareButton/,'sharing must only be exposed through the profile drawer');
 assert.match(indexSource,/\.\/profile-menu\.js\?v=5/,'profile drawer must include the minimal menu redesign');
-assert.match(indexSource,/\.\/subscription\.js\?v=4/,'subscription flow must load after the app modules');
+assert.match(indexSource,/\.\/subscription\.js\?v=5/,'subscription flow must load after the app modules');
 
 console.log('profile-menu: PASS — store/profile actions live in the right drawer with logout at the bottom');

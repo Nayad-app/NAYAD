@@ -58,7 +58,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
 
 (async()=>{
   assert.match(indexHtml,/waitForStorePreparation/,'the app must wait for store isolation before rendering');
-  assert.match(indexHtml,/registration-onboarding\.js\?v=2[\s\S]*store-switcher\.js\?v=63[\s\S]*store-recovery\.js\?v=57[\s\S]*registration-delete\.js\?v=2[\s\S]*auth-guard\.js\?v=57/,'onboarding, session recovery, registration deletion and auth guard must load in the safe order');
+  assert.match(indexHtml,/registration-onboarding\.js\?v=2[\s\S]*store-switcher\.js\?v=64[\s\S]*store-recovery\.js\?v=57[\s\S]*registration-delete\.js\?v=2[\s\S]*auth-guard\.js\?v=57/,'onboarding, session recovery, registration deletion and auth guard must load in the safe order');
   const phoneLogin=indexHtml.match(/async function phoneLogin\(\)\{.*?\}\nasync function registerUser/s)?.[0]||'';
   const registerUser=indexHtml.match(/async function registerUser\(\)\{.*?\}\nasync function googleLogin/s)?.[0]||'';
   assert.match(phoneLogin,/await showAuthenticatedApp\(\)/,'password login must prepare the authenticated store before opening the app');

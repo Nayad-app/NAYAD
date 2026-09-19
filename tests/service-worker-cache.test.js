@@ -38,8 +38,8 @@ const indexDeleteAsset=indexSource.match(/\.\/registration-delete\.js\?v=(\d+)/)
 assert.ok(deleteAsset,'the active-registration deletion code must be cached for the installed app');
 assert.ok(indexDeleteAsset,'the active-registration deletion code must load in the live document');
 assert.equal(indexDeleteAsset[1],deleteAsset[1],'index and service worker must load the same registration deletion code');
-assert.match(swSource,/\.\/store-switcher\.js\?v=63/);
-assert.match(indexSource,/\.\/store-switcher\.js\?v=63/,'index and service worker must load the same store switcher');
+assert.match(swSource,/\.\/store-switcher\.js\?v=64/);
+assert.match(indexSource,/\.\/store-switcher\.js\?v=64/,'index and service worker must load the same store switcher');
 assert.match(swSource,/\.\/store-recovery\.js\?v=57/);
 assert.match(indexSource,/\.\/store-recovery\.js\?v=57/,'store recovery must be loaded directly, not only injected by the service worker');
 assert.match(swSource,/\.\/auth-guard\.js\?v=57/);
@@ -64,8 +64,8 @@ assert.match(swSource,/\.\/profile-menu\.js\?v=5/);
 assert.match(indexSource,/\.\/profile-menu\.js\?v=5/,'index and service worker must load the profile drawer');
 assert.match(swSource,/\.\/admin-dashboard\.js\?v=2/);
 assert.match(indexSource,/\.\/admin-dashboard\.js\?v=2/,'index and service worker must load the timestamped payment dashboard');
-assert.match(swSource,/\.\/subscription\.js\?v=4/);
-assert.match(indexSource,/\.\/subscription\.js\?v=4/,'index and service worker must load the subscription flow');
+assert.match(swSource,/\.\/subscription\.js\?v=5/);
+assert.match(indexSource,/\.\/subscription\.js\?v=5/,'index and service worker must load the subscription flow');
 assert.match(swSource,/\.\/member-permissions\.js\?v=1/);
 assert.match(indexSource,/\.\/member-permissions\.js\?v=1/,'index and service worker must load the permission guard');
 
@@ -79,8 +79,8 @@ for(const asset of ['./registration-onboarding.js?v=2',deleteAsset[0],'./store-r
   assert.equal(patchedTwice.split(asset).length-1,1,`${asset} must be injected exactly once`);
 }
 assert.ok(
-  patchedTwice.indexOf('./registration-onboarding.js?v=2')<patchedTwice.indexOf('./store-switcher.js?v=63')&&
-  patchedTwice.indexOf('./store-switcher.js?v=63')<patchedTwice.indexOf('./store-recovery.js?v=57')&&
+  patchedTwice.indexOf('./registration-onboarding.js?v=2')<patchedTwice.indexOf('./store-switcher.js?v=64')&&
+  patchedTwice.indexOf('./store-switcher.js?v=64')<patchedTwice.indexOf('./store-recovery.js?v=57')&&
   patchedTwice.indexOf('./store-recovery.js?v=57')<patchedTwice.indexOf(deleteAsset[0])&&
   patchedTwice.indexOf(deleteAsset[0])<patchedTwice.indexOf('./auth-guard.js?v=57')&&
   patchedTwice.indexOf('./auth-guard.js?v=57')<patchedTwice.indexOf('./money-input.js?v=1')&&
@@ -90,8 +90,8 @@ assert.ok(
 );
 assert.equal(patchedTwice.split('./profile-menu.js?v=5').length-1,1,'profile drawer must be injected exactly once');
 assert.equal(patchedTwice.split('./admin-dashboard.js?v=2').length-1,1,'admin dashboard must be injected exactly once');
-assert.equal(patchedTwice.split('./subscription.js?v=4').length-1,1,'subscription flow must be injected exactly once');
-assert.ok(patchedTwice.indexOf('./subscription.js?v=4')<patchedTwice.indexOf('./member-permissions.js?v=1'),'permission guard must load after all feature modules');
+assert.equal(patchedTwice.split('./subscription.js?v=5').length-1,1,'subscription flow must be injected exactly once');
+assert.ok(patchedTwice.indexOf('./subscription.js?v=5')<patchedTwice.indexOf('./member-permissions.js?v=1'),'permission guard must load after all feature modules');
 assert.equal(patchedTwice.split('./loans.js?v=3').length-1,1,'loan module must be injected exactly once');
 assert.ok(patchedTwice.indexOf('./share.js?v=40')<patchedTwice.indexOf('./profile-menu.js?v=5'),'profile drawer must load after sharing actions');
 

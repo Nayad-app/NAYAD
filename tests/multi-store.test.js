@@ -46,6 +46,13 @@ context.window.nayadSupabase={
   rpc:async name=>{
     assert.equal(name,'get_my_registrations');
     return {data:membershipRows,error:null};
+  },
+  from:table=>{
+    assert.equal(table,'store_subscriptions');
+    return {select:()=>({in:async(_column,ids)=>{
+      assert.deepEqual(Array.from(ids),membershipRows.map(store=>store.id));
+      return {data:[{store_id:ownId,plan_code:'month',status:'active',current_period_end:'2026-10-10T03:46:43Z'}],error:null};
+    }})};
   }
 };
 
@@ -71,6 +78,10 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
   assert.match(pickerHtml,/NAYAD/);
   assert.match(pickerHtml,/Эзэмшигч/);
   assert.match(pickerHtml,/Гишүүн/);
+  assert.match(pickerHtml,/storePickerPlan plus/,'the paid store must show its Plus badge');
+  assert.match(pickerHtml,/2026\.10\.10 хүртэл/,'the paid store must show its expiry date');
+  assert.match(pickerHtml,/storePickerPlan free[^>]*>Үнэгүй/,'a store without an active subscription must show the free plan');
+  assert.match(context.window.__nayadStorePlanBadge(context.window.__nayadActiveStore),/Plus/,'the active paid store must expose the compact home badge');
 
   const switching=context.window.selectNayadStore(sharedId);
   await Promise.resolve();

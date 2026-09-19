@@ -13,7 +13,7 @@
   .storePickerList{display:flex;flex-direction:column;gap:9px}.storePickerItem{width:100%;padding:12px;border:1px solid var(--line);border-radius:16px;background:#fff;display:flex;align-items:center;gap:11px;text-align:left;color:var(--text)}
   .storePickerItem.active{border-color:#E4B000;background:#FFF9E8;box-shadow:0 0 0 2px rgba(255,193,7,.12)}
   .storePickerAvatar{width:42px;height:42px;flex:0 0 42px;border-radius:13px;background:var(--yellow-soft);display:grid;place-items:center;font-weight:900;font-size:16px}
-  .storePickerMeta{min-width:0;flex:1}.storePickerMeta b{display:block;font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.storePickerMeta span{display:block;color:var(--muted);font-size:10px;margin-top:4px}
+  .storePickerMeta{min-width:0;flex:1}.storePickerMeta b{display:block;font-size:13px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.storePickerMeta>.storePickerRole{display:block;color:var(--muted);font-size:10px;margin-top:4px}.storePickerPlanRow{min-height:16px;margin-top:4px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}.storePickerPlan{display:inline-flex;align-items:center;gap:3px;width:max-content;padding:2px 7px;border-radius:999px;font-size:9px;line-height:1.25;font-weight:900}.storePickerPlan svg,.homeStorePlan svg{width:10px;height:10px;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}.storePickerPlan.plus,.homeStorePlan{background:#F6C43B;color:#1D190D}.storePickerPlan.free{background:var(--surface-2);color:var(--muted)}.storePickerPlanEnd{color:var(--muted);font-size:9px;line-height:1.25}.homeStorePlan{display:inline-flex;align-items:center;gap:3px;flex:0 0 auto;padding:2px 6px;border-radius:999px;font-size:8px;line-height:1.2;font-weight:900}
   .storePickerCheck{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--yellow);font-size:13px;font-weight:900}.storePickerItem:not(.active) .storePickerCheck{visibility:hidden}
   .storePickerAdd{width:100%;margin-top:5px;padding:13px;border:1px dashed #d3a600;border-radius:16px;background:var(--yellow-soft);color:var(--text);font-weight:900;display:flex;align-items:center;justify-content:center;gap:8px}.storePickerAdd span{width:24px;height:24px;border-radius:50%;background:var(--yellow);display:grid;place-items:center;font-size:18px;line-height:1}
   </style>`;
@@ -35,6 +35,28 @@
   function activeKey(){return userId()?ACTIVE_PREFIX+userId():'';}
   function initial(name){return String(name||'N').trim().slice(0,1).toUpperCase();}
   function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+  function normalizeSubscription(value){
+    if(!value||typeof value!=='object')return null;
+    return {plan_code:String(value.plan_code||''),status:String(value.status||''),current_period_end:value.current_period_end||null};
+  }
+  function hasActivePlus(store){
+    const subscription=normalizeSubscription(store?.subscription);
+    return Boolean(subscription?.status==='active'&&new Date(subscription.current_period_end).getTime()>Date.now());
+  }
+  function crownIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 8 4 4 4-7 4 7 4-4-2 10H6L4 8Z"/><path d="M7 21h10"/></svg>';}
+  function subscriptionEndText(store){
+    if(!hasActivePlus(store))return '';
+    try{return new Intl.DateTimeFormat('mn-MN',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(store.subscription.current_period_end));}
+    catch(_error){return '';}
+  }
+  function pickerPlan(store){
+    if(hasActivePlus(store)){
+      const end=subscriptionEndText(store);
+      return `<span class="storePickerPlanRow"><span class="storePickerPlan plus">${crownIcon()}Plus</span>${end?`<span class="storePickerPlanEnd">${esc(end)} хүртэл</span>`:''}</span>`;
+    }
+    return store?.subscription_checked?'<span class="storePickerPlanRow"><span class="storePickerPlan free">Үнэгүй</span></span>':'';
+  }
+  function homePlan(store){return hasActivePlus(store)?`<span class="homeStorePlan">${crownIcon()}Plus</span>`:'';}
   function isComplete(store){
     return typeof window.__nayadIsRegistrationComplete==='function'
       ?window.__nayadIsRegistrationComplete(store)
@@ -74,7 +96,23 @@
     return next;
   }
   function normalizeStores(rows){
-    return (rows||[]).map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',permissions:normalizedPermissions(row.permissions,row.role||'member'),created_at:row.created_at,operation_role:row.operation_role||'',business_type:row.business_type||'',entity_type:row.entity_type||'',registration_completed_at:row.registration_completed_at||null})).filter(row=>row.id);
+    return (rows||[]).map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',permissions:normalizedPermissions(row.permissions,row.role||'member'),created_at:row.created_at,operation_role:row.operation_role||'',business_type:row.business_type||'',entity_type:row.entity_type||'',registration_completed_at:row.registration_completed_at||null,subscription:normalizeSubscription(row.subscription),subscription_checked:Boolean(row.subscription_checked)})).filter(row=>row.id);
+  }
+
+  async function attachSubscriptions(rows){
+    const normalized=normalizeStores(rows),client=sb(),ids=normalized.map(store=>store.id);
+    if(!ids.length||!client?.from)return normalized;
+    try{
+      const query=client.from('store_subscriptions')?.select?.('store_id,plan_code,status,current_period_end');
+      if(!query?.in)return normalized;
+      const {data,error}=await query.in('store_id',ids);
+      if(error)throw error;
+      const byStore=new Map((data||[]).map(subscription=>[String(subscription.store_id),normalizeSubscription(subscription)]));
+      return normalized.map(store=>({...store,subscription:byStore.get(String(store.id))||null,subscription_checked:true}));
+    }catch(error){
+      console.warn('Store subscription read:',error);
+      return normalized;
+    }
   }
   function clearRuntimeStoreState(){
     stores=[];
@@ -154,13 +192,19 @@
     if(result.error)throw result.error;
     const rows=Array.isArray(result.data)?result.data:[];
     if(rows.some(row=>row.user_id!=null&&String(row.user_id)!==String(expectedUserId)))throw new Error('Store identity mismatch');
-    return normalizeStores(rows);
+    return attachSubscriptions(rows);
   }
 
   function renderBar(){
     const content=document.getElementById('content');
     if(!content)return;
     content.querySelector('.storeSwitcherBar')?.remove();
+    const activeLabel=content.querySelector('.homeActiveStore');
+    if(activeLabel){
+      activeLabel.querySelector('.homeStorePlan')?.remove();
+      const badge=homePlan(active());
+      if(badge)activeLabel.insertAdjacentHTML('beforeend',badge);
+    }
     if(typeof window.__nayadRefreshProfileMenu==='function')window.__nayadRefreshProfileMenu();
   }
 
@@ -173,7 +217,7 @@
       const complete=isComplete(store),selected=complete&&String(store.id)===String(window.__nayadActiveStoreId);
       const action=complete?`selectNayadStore('${esc(store.id)}')`:`completeNayadRegistration('${esc(store.id)}')`;
       const status=complete?roleLabel(store.role):(store.role==='owner'?'Бүртгэлээ гүйцээх':'Эзэмшигчийн тохиргоо хүлээж байна');
-      return `<button class="storePickerItem ${selected?'active':''}" type="button" onclick="${action}"><span class="storePickerAvatar">${esc(initial(store.name))}</span><span class="storePickerMeta"><b>${esc(store.name)}</b><span>${status}</span></span><span class="storePickerCheck">✓</span></button>`;
+      return `<button class="storePickerItem ${selected?'active':''}" type="button" onclick="${action}"><span class="storePickerAvatar">${esc(initial(store.name))}</span><span class="storePickerMeta"><b>${esc(store.name)}</b><span class="storePickerRole">${status}</span>${complete?pickerPlan(store):''}</span><span class="storePickerCheck">✓</span></button>`;
     }).join('');
     window.sheet(`<div class="storePickerHeader"><h2>Бүртгэл сонгох</h2><button class="storePickerClose" type="button" onclick="closeSheet()" aria-label="Хаах"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="storePickerHint">Та өөрийн болон хуваалцсан бүртгэлүүдийн хооронд шилжиж болно.</div><div class="storePickerList">${rows||'<div class="card">Бүртгэл олдсонгүй.</div>'}<button class="storePickerAdd" type="button" onclick="showNayadStoreCreate()"><span>+</span>Шинэ бүртгэл нэмэх</button></div>`);
   }
@@ -321,6 +365,22 @@
     return runtimeBelongsTo(currentUserId)?active():null;
   }
 
+  function applyStoreSubscription(storeId,value){
+    const id=String(storeId||'');if(!id)return false;
+    let matched=false;
+    stores=stores.map(store=>{
+      if(String(store.id)!==id)return store;
+      matched=true;
+      return {...store,subscription:normalizeSubscription(value),subscription_checked:true};
+    });
+    if(!matched)return false;
+    window.__nayadStores=stores;
+    if(runtimeBelongsTo()&&String(window.__nayadActiveStoreId||'')===id){
+      window.__nayadActiveStore=stores.find(store=>String(store.id)===id)||window.__nayadActiveStore;
+    }
+    return true;
+  }
+
   const originalRender=window.render;
   if(typeof originalRender==='function')window.render=function(){const result=originalRender();renderBar();return result;};
   window.showNayadStorePicker=showPicker;
@@ -334,6 +394,9 @@
   window.__nayadClearStoreRuntime=clearRuntimeStoreState;
   window.__nayadCan=can;
   window.__nayadNormalizePermissions=normalizedPermissions;
+  window.__nayadStoreHasPlus=hasActivePlus;
+  window.__nayadStorePlanBadge=homePlan;
+  window.__nayadApplyStoreSubscription=applyStoreSubscription;
 
   /* Store initialization is intentionally NOT started from load/auth listeners.
      Every store resolution first reconciles window.__nayadUser with the current

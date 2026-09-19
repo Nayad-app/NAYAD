@@ -12,6 +12,7 @@ assert.match(source,/5 харилцагч/);
 assert.match(source,/from\('subscription_plans'\)/,'prices must load from the database');
 assert.match(source,/from\('store_subscriptions'\)/,'the free limit must respect an active Plus subscription');
 assert.match(source,/String\(subscriptionStoreId\|\|''\)===String\(activeStoreId\(\)\|\|''\)/,'Plus access must belong to the active store');
+assert.match(source,/__nayadApplyStoreSubscription/,'a paid or refreshed subscription must update the active store badge');
 assert.match(source,/functions\.invoke\('qpay-billing'/,'payment must go through the server-side QPay function');
 assert.match(source,/action,\.\.\.payload/);
 assert.match(source,/Төлбөр шалгах/);
