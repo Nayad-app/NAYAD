@@ -679,7 +679,7 @@
        newly-created company from local state while its first invoice sheet was
        open, leaving the sheet with an obsolete local ID. */
     const {data:suppliers,error:suppliersError}=await sb.from('suppliers')
-      .select('id,name,reg_no,address,director,director_phone,sales_rep,sales_phone,org_phone,bank_name,bank_account,is_active')
+      .select('id,name,reg_no,address,director,director_phone,sales_rep,sales_phone,org_phone,bank_name,bank_iban,bank_account,is_active')
       .eq('store_id',storeRow.id)
       .order('created_at',{ascending:true});
     if(suppliersError||!suppliers)return;
@@ -693,7 +693,7 @@
     for(const s of suppliers){
       let c=previousCompanies.find(x=>String(x.supabase_supplier_id)===String(s.id))||previousCompanies.find(x=>String(x.name||'').trim().toLowerCase()===String(s.name||'').trim().toLowerCase());
       if(!c)c={id:Date.now()+Math.floor(Math.random()*100000),color:'green',invoices:[]};
-      c.name=s.name;c.reg=s.reg_no||'';c.address=s.address||'';c.director=s.director||'';c.directorPhone=s.director_phone||'';c.sales=s.sales_rep||'';c.salesPhone=s.sales_phone||'';c.orgPhone=s.org_phone||'';c.bank=s.bank_name||'';c.bankAccount=s.bank_account||'';c.status=s.is_active===false?'inactive':'active';
+      c.name=s.name;c.reg=s.reg_no||'';c.address=s.address||'';c.director=s.director||'';c.directorPhone=s.director_phone||'';c.sales=s.sales_rep||'';c.salesPhone=s.sales_phone||'';c.orgPhone=s.org_phone||'';c.bank=s.bank_name||'';c.bankIban=s.bank_iban||'';c.bankAccount=s.bank_account||'';c.status=s.is_active===false?'inactive':'active';
       c.supabase_supplier_id=s.id;c.invoices=c.invoices||[];
       const remote=invoices.filter(i=>String(i.supplier_id)===String(s.id));
       const nextInvoices=remote.map(ri=>{
