@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the responsive tablet/desktop layout.
-const CACHE = "nayad-v133";
+const CACHE = "nayad-v134";
 
 const ASSETS = [
   "./",
@@ -28,7 +28,7 @@ const ASSETS = [
   "./supplier-cloud.js?v=60",
   "./payment-center.js?v=11",
   "./loans.js?v=3",
-  "./contact-types.js?v=12",
+  "./contact-types.js?v=13",
   "./company-label.js",
   "./member-permissions.js?v=1"
 ];
@@ -93,7 +93,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=60");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=3");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=75","./money-input.js?v=1");
-  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=12");
+  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=13");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=64","./registration-onboarding.js?v=2");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=64","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
@@ -104,7 +104,7 @@ function patchDocument(html){
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=75","./payment-center.js?v=11");
   patched=injectScriptAfter(patched,"./payment-center.js?v=11","./loans.js?v=3");
-  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=60","./contact-types.js?v=12");
+  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=60","./contact-types.js?v=13");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=1");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;

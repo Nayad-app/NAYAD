@@ -8,6 +8,7 @@ const source=fs.readFileSync(path.join(root,'contact-types.js'),'utf8');
 const indexSource=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const stored={};
 let renders=0;
+const documentNodes={};
 
 const addDays=days=>{
   const now=new Date(),date=new Date(now.getFullYear(),now.getMonth(),now.getDate()+days);
@@ -28,7 +29,7 @@ const context={
   console,Date,Number,String,Math,Intl,Array,JSON,
   document:{
     head:{appendChild(){}},
-    getElementById:id=>id==='nayadContactTypeStyle'?null:null,
+    getElementById:id=>documentNodes[id]||null,
     createElement:()=>({id:'',textContent:''}),
     querySelectorAll:()=>[],
     addEventListener(){}
@@ -84,6 +85,19 @@ assert.deepEqual(Array.from(context.__nayadHomeDebtList([...companies,todayCompa
 const todaySummary=context.__nayadTodayDebtSummary([...companies,todayCompany]);
 assert.equal(todaySummary.amount,100);
 assert.equal(todaySummary.count,1);
+context.setHomeDebtView('next3');
+assert.deepEqual(Array.from(context.__nayadHomeDebtList(companies),row=>row.name),['Alpha']);
+assert.equal(context.__nayadHomePeriodLabel(false),'3 хоногт төлөх');
+assert.equal(context.__nayadPeriodDebtSummary(companies).amount,100);
+context.setHomeDebtView('next14');
+assert.deepEqual(Array.from(context.__nayadHomeDebtList(companies),row=>row.name),['Alpha']);
+assert.equal(context.__nayadHomePeriodLabel(true),'14 хоногт авах');
+documentNodes.homePeriodStart={value:addDays(2)};
+documentNodes.homePeriodEnd={value:addDays(4)};
+context.applyHomeCustomDateFilter();
+assert.deepEqual(Array.from(context.__nayadHomeDebtList(companies),row=>row.name),['Alpha']);
+assert.equal(stored.NAYAD_HOME_DEBT_RANGE,JSON.stringify({start:addDays(2),end:addDays(4)}));
+assert.equal(context.__nayadHomePeriodLabel(false),'Сонгосон хугацаанд төлөх');
 context.setHomeDebtView('all');
 const homeCard=context.card(companies[0],true);
 assert.doesNotMatch(homeCard,/Төлөх<\/button>|Байгууллага|Дугааргүй|13 хоногийн дараа/,'home cards must keep only the compact approved content');
@@ -97,6 +111,6 @@ assert.match(overdueColorCard,/style="color:#8B2B22"/,'the day after the due dat
 assert.match(overdueColorCard,new RegExp(`Төлөх өдөр ${addDays(-1).replaceAll('-','\\.')}`),'only overdue cards must show their due date below the total');
 const mixedRiskCard=context.card({id:99,name:'Mixed',contactType:'organization',debt:200,invoices:[invoice('SAFE',addDays(30),'confirmed',addDays(0)),invoice('LATE',addDays(-1),'confirmed',addDays(-31))]},true);
 assert.match(mixedRiskCard,/style="color:#8B2B22"/,'a contact total must use the riskiest unpaid invoice color');
-assert.equal(renders,11);
+assert.equal(renders,14);
 
 console.log('home-debt-menu: PASS — anchored icon menu, date filters, amount sort and name toggle are correct');
