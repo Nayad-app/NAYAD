@@ -129,12 +129,12 @@
         +input(prefix+'Address','Хаяг',contact.address||'','Хаягаа оруулна уу')
         +area(prefix+'Note','Нэмэлт тэмдэглэл',contact.note||'','Шаардлагатай зүйлээ тэмдэглэнэ үү')
       : input(prefix+'Name',nameLabel,contact.name||'','Жишээ: MCS Ундаа')
-        +input(prefix+'Phone','Утас *',contact.phone||'','Утасны дугаараа оруулна уу','tel')
+        +`<input id="${prefix}Phone" type="hidden" value="${esc(contact.phone||'')}">`
         +input(prefix+'Address','Хаяг',contact.address||'','Хаягаа оруулна уу')
-        +input(prefix+'Director','Захирал',contact.director||'','Нэрээ оруулна уу')
-        +input(prefix+'DirectorPhone','Захирлын утас',contact.directorPhone||'','Утасны дугаараа оруулна уу','tel')
-        +input(prefix+'Sales','Худалдааны төлөөлөгч',contact.sales||'','Нэрээ оруулна уу')
-        +input(prefix+'SalesPhone','Худалдааны төлөөлөгчийн утас',contact.salesPhone||'','Утасны дугаараа оруулна уу','tel','Харилцагчдын жагсаалтын ногоон залгах товч энэ дугаар руу шууд залгана.')
+        +input(prefix+'Director','Нэр 1',contact.director||'','Нэрээ оруулна уу')
+        +input(prefix+'DirectorPhone','Утасны дугаар 1',contact.directorPhone||'','Утасны дугаараа оруулна уу','tel','Харилцагчийн жагсаалтын ногоон залгах товч энэ дугаар руу шууд залгана.')
+        +input(prefix+'Sales','Нэр 2',contact.sales||'','Нэрээ оруулна уу')
+        +input(prefix+'SalesPhone','Утасны дугаар 2',contact.salesPhone||'','Утасны дугаараа оруулна уу','tel')
         +area(prefix+'Note','Нэмэлт тэмдэглэл',contact.note||'','Шаардлагатай зүйлээ тэмдэглэнэ үү');
     const status=contact.id?`<div class="field"><label for="eStatus">Төлөв</label><select id="eStatus"><option value="active" ${contact.status!=='inactive'?'selected':''}>Идэвхтэй</option><option value="inactive" ${contact.status==='inactive'?'selected':''}>Идэвхгүй</option></select></div>`:'';
     const hidden=`<input id="${prefix}ContactType" type="hidden" value="${kind}">`;
@@ -337,7 +337,7 @@
     const subline=pay?`${c.invoices?.length||0} падаан`:`${typeLabel(type)}<span class="contactTypeText">· ${c.invoices?.length||0} падаан</span>`;
     return `<div class="card ${pay?'homeDebtCard':''}" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(c)}<div><b>${esc(c.name)}</b><span>${subline}</span></div></div><div class="homeDebtAmount"><div class="homeDebtValue"><div class="amount" style="color:${risk.color}">${window.money(c.debt)}</div>${dueInfo}</div>${chevron}</div></div></div>`;
   }
-  const contactCallPhone=contact=>validType(contact?.contactType)===PERSON?contact?.phone:contact?.salesPhone;
+  const contactCallPhone=contact=>validType(contact?.contactType)===PERSON?contact?.phone:contact?.directorPhone;
   const contactCallHref=value=>{
     const raw=String(value||'').trim(),digits=raw.replace(/\D/g,'');
     if(!digits)return '';
@@ -353,8 +353,8 @@
   function showMissingContactPhone(id){
     const contact=data.companies.find(c=>c.id===id);if(!contact)return;
     const organization=validType(contact.contactType)===ORGANIZATION;
-    const title=organization?'Худалдааны төлөөлөгчийн утас бүртгэгдээгүй':'Утасны дугаар бүртгэгдээгүй';
-    const message=organization?'Харилцагчийн “Мэдээлэл засах” хэсгээс худалдааны төлөөлөгчийн утасны дугаарыг оруулна уу.':'Харилцагчийн “Мэдээлэл засах” хэсгээс утасны дугаарыг оруулна уу.';
+    const title=organization?'Утасны дугаар 1 бүртгэгдээгүй':'Утасны дугаар бүртгэгдээгүй';
+    const message=organization?'Харилцагчийн “Мэдээлэл засах” хэсгээс Утасны дугаар 1-ийг оруулна уу.':'Харилцагчийн “Мэдээлэл засах” хэсгээс утасны дугаарыг оруулна уу.';
     window.sheet(`<h2>${title}</h2><p class="contactCallNoticeText">${message}</p><div class="actions"><button type="button" class="secondary" onclick="closeMissingContactPhone()">Болих</button><button type="button" class="primary" onclick="openMissingContactEdit(${contact.id})">Мэдээлэл засах</button></div>`);
     setContactCallNoticeMode(true);
   }
@@ -409,7 +409,7 @@
     selected=data.companies.find(c=>c.id===id);if(!selected)return;window.sync();const c=selected,type=validType(c.contactType),person=type===PERSON;
     const details=person
       ?`<div class="invoice"><div><small>Утас</small><b>${esc(c.phone||'—')}</b></div>${window.tel(c.phone)}</div><div class="invoice"><div><small>Хаяг</small><b>${esc(c.address||'—')}</b></div></div>`
-      :`<div class="invoice"><div><small>Утас</small><b>${esc(c.phone||'—')}</b></div>${window.tel(c.phone)}</div><div class="invoice"><div><small>Хаяг</small><b>${esc(c.address||'—')}</b></div></div><div class="invoice"><div><small>Захирал</small><b>${esc(c.director||'—')}</b></div>${window.tel(c.directorPhone)}</div><div class="invoice"><div><small>Худалдааны төлөөлөгч</small><b>${esc(c.sales||'—')}</b></div>${window.tel(c.salesPhone)}</div>`;
+      :`<div class="invoice"><div><small>Хаяг</small><b>${esc(c.address||'—')}</b></div></div><div class="invoice"><div><small>Нэр 1</small><b>${esc(c.director||'—')}</b><small>Утасны дугаар 1</small><b>${esc(c.directorPhone||'—')}</b></div>${window.tel(c.directorPhone)}</div><div class="invoice"><div><small>Нэр 2</small><b>${esc(c.sales||'—')}</b><small>Утасны дугаар 2</small><b>${esc(c.salesPhone||'—')}</b></div>${window.tel(c.salesPhone)}</div>`;
     const note=c.note?`<div class="invoice"><div><small>Нэмэлт тэмдэглэл</small><b>${esc(c.note)}</b></div></div>`:'';
     const bank=`<div class="invoice"><div><small>Банк</small><b>${esc(c.bank||'—')}</b></div></div>${c.bankIban?`<div class="invoice"><div><small>IBAN</small><b>${esc(c.bankIban)}</b></div></div>`:''}<div class="invoice"><div><small>Дансны дугаар</small><b>${esc(c.bankAccount||'—')}</b></div></div><div class="invoice"><div><small>Данс эзэмшигчийн нэр</small><b>${esc(c.bankAccountHolder||'—')}</b></div></div>`;
     const visibleInvoices=(c.invoices||[]).filter(invoice=>(invoice.status||'confirmed')!=='draft');
@@ -420,13 +420,13 @@
   }
   function saveCompany(){
     if(!requireCompletedRegistration())return;
-    const draft=readContact('new');if(!draft.name)return window.toast('Нэр эсвэл байгууллагын нэрийг оруулна уу.');if(!draft.phone)return window.toast('Утасны дугаараа оруулна уу.');if(!requireBank(draft.bank,draft.bankAccount,draft.bankAccountHolder))return;
+    const draft=readContact('new');if(!draft.name)return window.toast('Нэр эсвэл байгууллагын нэрийг оруулна уу.');if(draft.contactType===PERSON&&!draft.phone)return window.toast('Утасны дугаараа оруулна уу.');if(!requireBank(draft.bank,draft.bankAccount,draft.bankAccountHolder))return;
     if(data.companies.some(c=>String(c.name||'').trim().toLowerCase()===draft.name.toLowerCase()))return window.toast('Ийм нэртэй харилцагч бүртгэлтэй байна.');
     data.companies.push({id:Date.now(),...draft,status:'active',color:draft.contactType===PERSON?'green':'blue',invoices:[]});window.save();window.closeSheet();window.render();window.toast('Харилцагч бүртгэгдлээ.');
   }
   function editCompany(id){setContactCallNoticeMode(false);selected=data.companies.find(c=>c.id===id);if(!selected)return;if(pendingContactLogo?.objectUrl)URL.revokeObjectURL(pendingContactLogo.objectUrl);pendingContactLogo=null;editContactDraft={...selected};showContactForm(validType(selected.contactType),editContactDraft);}
   function saveEdit(){
-    if(!selected)return;const draft=readContact('e');if(!draft.name)return window.toast('Нэр эсвэл байгууллагын нэрийг оруулна уу.');if(!draft.phone)return window.toast('Утасны дугаараа оруулна уу.');if(!requireBank(draft.bank,draft.bankAccount,draft.bankAccountHolder))return;
+    if(!selected)return;const draft=readContact('e');if(!draft.name)return window.toast('Нэр эсвэл байгууллагын нэрийг оруулна уу.');if(draft.contactType===PERSON&&!draft.phone)return window.toast('Утасны дугаараа оруулна уу.');if(!requireBank(draft.bank,draft.bankAccount,draft.bankAccountHolder))return;
     if(data.companies.some(c=>c!==selected&&String(c.name||'').trim().toLowerCase()===draft.name.toLowerCase()))return window.toast('Ийм нэртэй харилцагч бүртгэлтэй байна.');
     Object.assign(selected,draft,{status:fieldValue('eStatus')||'active'});window.save();window.closeSheet();page='companies';window.render();window.toast('Мэдээлэл шинэчлэгдлээ.');
   }
