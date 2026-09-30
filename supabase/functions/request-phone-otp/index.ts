@@ -7,17 +7,30 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const json = (body: Record<string, unknown>, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
+const genericResponse = () =>
+  new Response(JSON.stringify({ accepted: true }), {
+    status: 200,
     headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
 
 function normalizePhone(value: unknown) {
   const digits = String(value ?? "").replace(/\D/g, "");
-  if (digits.startsWith("976") && digits.length === 11) return `+976${digits.slice(3)}`;
-  if (digits.length === 8 && /^[89]/.test(digits)) return `+976${digits}`;
+  if (/^\d{8}$/.test(digits)) return `+976${digits}`;
+  if (/^976\d{8}$/.test(digits)) return `+${digits}`;
   return "";
+}
+
+function serviceRoleKey() {
+  const direct =
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim() ||
+    Deno.env.get("SUPABASE_SECRET_KEY")?.trim();
+  if (direct) return direct;
+  try {
+    const keys = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") ?? "{}");
+    return typeof keys?.default === "string" ? keys.default.trim() : "";
+  } catch {
+    return "";
+  }
 }
 
 async function hashIdentifier(value: string, pepper: string) {
@@ -27,8 +40,8 @@ async function hashIdentifier(value: string, pepper: string) {
 }
 
 function requestIp(request: Request) {
-  return (request.headers.get("x-forwarded-for")?.split(",")[0] ??
-    request.headers.get("cf-connecting-ip") ??
+  return (request.headers.get("cf-connecting-ip") ??
+    request.headers.get("x-forwarded-for")?.split(",")[0] ??
     "unknown").trim().slice(0, 128);
 }
 
@@ -57,7 +70,7 @@ async function consumeLimit(
 async function findAccountByPhone(admin: ReturnType<typeof createClient>, phone: string) {
   const { data, error } = await admin
     .from("phone_login_accounts")
-    .select("user_id,email")
+    .select("user_id")
     .eq("phone", phone)
     .maybeSingle();
   if (error) throw error;
@@ -66,58 +79,60 @@ async function findAccountByPhone(admin: ReturnType<typeof createClient>, phone:
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (request.method !== "POST") return genericResponse();
 
   try {
     const body = await request.json().catch(() => ({}));
     const phone = normalizePhone(body?.phone);
-    const password = String(body?.password ?? "");
-    if (!phone || !password) return json({ error: "Invalid login credentials" }, 401);
+    if (!phone) return genericResponse();
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const serviceRoleKey =
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim() ||
-      Deno.env.get("SUPABASE_SECRET_KEY")?.trim() ||
-      "";
-    const anonKey =
+    const secret = serviceRoleKey();
+    const publishableKey =
       Deno.env.get("SUPABASE_ANON_KEY")?.trim() ||
       Deno.env.get("SUPABASE_PUBLISHABLE_KEY")?.trim() ||
       "";
-    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
-      console.error("phone-login: service configuration is missing");
-      return json({ error: "Login service unavailable" }, 503);
+    if (!supabaseUrl || !secret || !publishableKey) {
+      console.error("request-phone-otp: service configuration is missing");
+      return genericResponse();
     }
 
-    const admin = createClient(supabaseUrl, serviceRoleKey, {
+    const admin = createClient(supabaseUrl, secret, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
-    const pepper = Deno.env.get("AUTH_RATE_LIMIT_PEPPER")?.trim() || serviceRoleKey;
+    const pepper = Deno.env.get("AUTH_RATE_LIMIT_PEPPER")?.trim() || secret;
     const [ipAllowed, phoneAllowed] = await Promise.all([
-      consumeLimit(admin, "phone-login-ip", requestIp(request), pepper, 30, 900, 900),
-      consumeLimit(admin, "phone-login-phone", phone, pepper, 10, 900, 900),
+      consumeLimit(admin, "phone-otp-ip", requestIp(request), pepper, 20, 900, 900),
+      consumeLimit(admin, "phone-otp-phone", phone, pepper, 5, 900, 900),
     ]);
-    if (!ipAllowed || !phoneAllowed) return json({ error: "Too many login attempts" }, 429);
+    if (!ipAllowed || !phoneAllowed) return genericResponse();
 
     const account = await findAccountByPhone(admin, phone);
-    if (!account?.user_id || !account.email) return json({ error: "Invalid login credentials" }, 401);
+    if (!account?.user_id) return genericResponse();
 
-    // Verify the password before returning the Auth email. This prevents phone
-    // enumeration and keeps the browser-side native sign-in as the source of
-    // the final session.
-    const verifier = createClient(supabaseUrl, anonKey, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    });
-    const { data, error } = await verifier.auth.signInWithPassword({
-      email: account.email,
-      password,
-    });
-    if (error || !data?.user || String(data.user.id) !== String(account.user_id)) {
-      return json({ error: "Invalid login credentials" }, 401);
+    const { data: userResult, error: userError } = await admin.auth.admin.getUserById(account.user_id);
+    if (userError || !userResult?.user?.id) return genericResponse();
+    if (normalizePhone(userResult.user.phone) !== phone) {
+      const { error: updateError } = await admin.auth.admin.updateUserById(account.user_id, { phone });
+      if (updateError) {
+        console.error("request-phone-otp: phone sync failed", updateError.message);
+        return genericResponse();
+      }
     }
 
-    return json({ user_id: account.user_id, email: account.email });
+    const authClient = createClient(supabaseUrl, publishableKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
+    const { error } = await authClient.auth.signInWithOtp({
+      phone,
+      options: { shouldCreateUser: false },
+    });
+    if (error) console.error("request-phone-otp: OTP send failed", error.message);
   } catch (error) {
-    console.error("phone-login:", error);
-    return json({ error: "Login service unavailable" }, 503);
+    console.error("request-phone-otp:", error);
   }
+
+  // Keep the same public response for found, missing and rate-limited numbers
+  // so callers cannot discover whether a phone number is registered.
+  return genericResponse();
 });

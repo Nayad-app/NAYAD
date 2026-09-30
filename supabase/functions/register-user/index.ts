@@ -48,20 +48,48 @@ function serviceRoleKey() {
   }
 }
 
-async function findConflicts(admin: ReturnType<typeof createClient>, phone: string, email: string) {
-  for (let page = 1; page <= 100; page += 1) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw error;
-    const users = data?.users ?? [];
-    for (const user of users) {
-      if (String(user.email ?? "").trim().toLowerCase() === email) return "EMAIL_EXISTS";
-      if (normalizePhone(user.user_metadata?.login_phone) === phone || normalizePhone(user.phone) === phone) {
-        return "PHONE_EXISTS";
-      }
-    }
-    if (users.length < 1000) break;
-  }
-  return "";
+async function hashIdentifier(value: string, pepper: string) {
+  const bytes = new TextEncoder().encode(`${pepper}:${value}`);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function requestIp(request: Request) {
+  return (request.headers.get("x-forwarded-for")?.split(",")[0] ??
+    request.headers.get("cf-connecting-ip") ??
+    "unknown").trim().slice(0, 128);
+}
+
+async function consumeLimit(
+  admin: ReturnType<typeof createClient>,
+  action: string,
+  identifier: string,
+  pepper: string,
+  limit: number,
+  windowSeconds: number,
+  blockSeconds: number,
+) {
+  const keyHash = await hashIdentifier(identifier, pepper);
+  const { data, error } = await admin.rpc("consume_auth_rate_limit", {
+    p_action: action,
+    p_key_hash: keyHash,
+    p_limit: limit,
+    p_window_seconds: windowSeconds,
+    p_block_seconds: blockSeconds,
+  });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  return result?.allowed === true;
+}
+
+async function registrationConflict(admin: ReturnType<typeof createClient>, phone: string, email: string) {
+  const [phoneResult, emailResult] = await Promise.all([
+    admin.from("phone_login_accounts").select("user_id").eq("phone", phone).limit(1).maybeSingle(),
+    admin.from("phone_login_accounts").select("user_id").eq("email", email).limit(1).maybeSingle(),
+  ]);
+  if (phoneResult.error) throw phoneResult.error;
+  if (emailResult.error) throw emailResult.error;
+  return Boolean(phoneResult.data || emailResult.data);
 }
 
 Deno.serve(async (request) => {
@@ -102,12 +130,18 @@ Deno.serve(async (request) => {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
 
-    const conflict = await findConflicts(admin, phone, email);
-    if (conflict === "PHONE_EXISTS") {
-      return json({ error: "Phone already registered", code: conflict }, 409);
+    const pepper = Deno.env.get("AUTH_RATE_LIMIT_PEPPER")?.trim() || secret;
+    const [ipAllowed, phoneAllowed, emailAllowed] = await Promise.all([
+      consumeLimit(admin, "register-ip", requestIp(request), pepper, 10, 3600, 3600),
+      consumeLimit(admin, "register-phone", phone, pepper, 3, 3600, 3600),
+      consumeLimit(admin, "register-email", email, pepper, 3, 3600, 3600),
+    ]);
+    if (!ipAllowed || !phoneAllowed || !emailAllowed) {
+      return json({ error: "Registration temporarily unavailable", code: "REGISTRATION_UNAVAILABLE" }, 429);
     }
-    if (conflict === "EMAIL_EXISTS") {
-      return json({ error: "Email already registered", code: conflict }, 409);
+
+    if (await registrationConflict(admin, phone, email)) {
+      return json({ error: "Registration unavailable", code: "REGISTRATION_UNAVAILABLE" }, 409);
     }
 
     const userMetadata: Record<string, string> = {
@@ -129,7 +163,7 @@ Deno.serve(async (request) => {
     if (error || !data?.user?.id) {
       const message = String(error?.message ?? "").toLowerCase();
       if (message.includes("already") || message.includes("registered") || message.includes("exists")) {
-        return json({ error: "Email already registered", code: "EMAIL_EXISTS" }, 409);
+        return json({ error: "Registration unavailable", code: "REGISTRATION_UNAVAILABLE" }, 409);
       }
       console.error("register-user: create user failed", error?.message ?? "unknown");
       return json({ error: "Registration failed", code: "CREATE_FAILED" }, 400);

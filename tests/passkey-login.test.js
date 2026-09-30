@@ -10,11 +10,11 @@ assert.match(source,/experimental:\{passkey:true\}/,'the experimental passkey AP
 assert.match(source,/id="faceIdLogin" type="checkbox"/,'the approved Face ID checkbox must be present');
 assert.match(source,/Цаашид Face ID-аар нэвтрэх/,'the approved checkbox label must remain exact');
 assert.doesNotMatch(source,/FACE ID-ААР НЭВТРЭХ/,'a second Face ID login button must not be added');
-assert.match(source,/async function registerRequestedFaceId\(\)[\s\S]*sb\.auth\.registerPasskey\(\)/,'password login must be able to enroll the passkey');
-assert.match(login,/faceChoice&&faceIdEnabled\(\)/,'only a previously enrolled checked device may skip password entry');
+assert.match(source,/async function registerRequestedFaceId\(\)[\s\S]*sb\.auth\.registerPasskey\(\)/,'verified login must be able to enroll the passkey');
+assert.match(login,/faceChoice&&faceIdEnabled\(\)/,'only a previously enrolled checked device may skip OTP entry');
 assert.match(login,/sb\.auth\.signInWithPasskey\(\)/,'the existing yellow login button must invoke Face ID for enrolled devices');
-assert.match(login,/if\(!usingFaceId\)[\s\S]*!username\|\|!password/,'first enrollment must still require the existing password login');
-assert.match(login,/if\(faceChoice\)enrollment=await registerRequestedFaceId\(\)/,'Face ID enrollment must happen only after password authentication succeeds');
+assert.match(login,/else\{await requestPhoneOtp\(phone,\{remember,faceChoice,context:"login"\}\);return\}/,'first enrollment must require phone OTP');
+assert.match(source,/verifyPhoneOtp\(\)[\s\S]*if\(otpLoginState\.faceChoice\)enrollment=await registerRequestedFaceId\(\)/,'Face ID enrollment must happen only after OTP authentication succeeds');
 assert.match(source,/showAuthMode\("login"\);syncFaceIdChoice\(\)/,'the checkbox must restore the local Face ID preference on logout');
 assert.match(source,/let faceIdUnlockRequired=faceIdEnabled\(\),faceIdUnlocking=false,faceIdBackgrounded=false/,'an enrolled device must start in the locked state');
 assert.match(source,/else if\(session&&faceIdEnabled\(\)\)\{faceIdUnlockRequired=true;profileFromUser\(null\);await showLoginScreen\(\)\}/,'a restored session must remain hidden behind Face ID');

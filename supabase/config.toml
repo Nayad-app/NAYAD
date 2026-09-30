@@ -4,6 +4,9 @@ verify_jwt = false
 [functions.register-user]
 verify_jwt = false
 
+[functions.request-phone-otp]
+verify_jwt = false
+
 [functions.qpay-billing]
 verify_jwt = false
 

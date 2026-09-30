@@ -46,7 +46,7 @@
   function crownIcon(){return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 8 4 4 4-7 4 7 4-4-2 10H6L4 8Z"/><path d="M7 21h10"/></svg>';}
   function subscriptionEndText(store){
     if(!hasActivePlus(store))return '';
-    try{return new Intl.DateTimeFormat('mn-MN',{year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(store.subscription.current_period_end));}
+    try{return new Intl.DateTimeFormat('mn-MN',{timeZone:'UTC',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(store.subscription.current_period_end));}
     catch(_error){return '';}
   }
   function pickerPlan(store){
