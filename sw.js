@@ -1,10 +1,10 @@
-// Invalidate the installed app shell for optional supplier IBAN support.
-const CACHE = "nayad-v136";
+// Invalidate the installed app shell for the Home quick-action menu.
+const CACHE = "nayad-v137";
 
 const ASSETS = [
   "./",
   "./manifest.webmanifest",
-  "./responsive-layout.css?v=1",
+  "./responsive-layout.css?v=2",
   "./icon-180.png",
   "./icon-192.png",
   "./icon-512.png",
@@ -26,11 +26,11 @@ const ASSETS = [
   "./subscription.js?v=5",
   "./invoice-cloud.js?v=76",
   "./supplier-cloud.js?v=61",
-  "./payment-center.js?v=11",
+  "./payment-center.js?v=12",
   "./loans.js?v=3",
-  "./contact-types.js?v=15",
+  "./contact-types.js?v=16",
   "./company-label.js",
-  "./member-permissions.js?v=1"
+  "./member-permissions.js?v=2"
 ];
 
 self.addEventListener("install",event=>{
@@ -89,11 +89,12 @@ function patchDocument(html){
   patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=2");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=5");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=76");
-  patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=1");
+  patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=12");
+  patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=2");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=61");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=3");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=76","./money-input.js?v=1");
-  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=15");
+  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=16");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=64","./registration-onboarding.js?v=2");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=64","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
@@ -102,10 +103,10 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./profile-menu.js?v=5","./admin-dashboard.js?v=2");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
-  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=76","./payment-center.js?v=11");
-  patched=injectScriptAfter(patched,"./payment-center.js?v=11","./loans.js?v=3");
-  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=61","./contact-types.js?v=15");
-  patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=1");
+  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=76","./payment-center.js?v=12");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=12","./loans.js?v=3");
+  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=61","./contact-types.js?v=16");
+  patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;
 }

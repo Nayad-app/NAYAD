@@ -8,7 +8,7 @@ const css = fs.readFileSync(path.join(root, 'responsive-layout.css'), 'utf8');
 const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
 
 assert(
-  html.includes('<link rel="stylesheet" href="./responsive-layout.css?v=1">'),
+  html.includes('<link rel="stylesheet" href="./responsive-layout.css?v=2">'),
   'the responsive stylesheet must be loaded by the app',
 );
 
@@ -31,6 +31,6 @@ assert(
   html.includes('id="profileMenuButton"') && html.includes('onclick="showProfileMenu()"'),
   'the top-right hamburger must keep opening the existing profile menu',
 );
-assert(sw.includes('"./responsive-layout.css?v=1"'), 'the installed app must cache the responsive stylesheet');
+assert(sw.includes('"./responsive-layout.css?v=2"'), 'the installed app must cache the responsive stylesheet');
 
 console.log('responsive-layout tests passed');

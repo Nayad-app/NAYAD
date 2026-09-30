@@ -80,6 +80,15 @@ assert.match(source,/html\.nightMode \.dueDetails b\{color:#F4F4EF/,'supplier na
 
 let paymentSheet='';
 context.window.sheet=html=>{paymentSheet=html;};
+context.window.payment();
+assert.match(paymentSheet,/Төлбөр бүртгэх/,'the Home quick action must open payment registration');
+assert.match(paymentSheet,/id="directPaymentCompany"/,'direct payment must ask for a supplier');
+assert.match(paymentSheet,/Overdue Co/,'suppliers with unpaid confirmed invoices must be selectable');
+assert.doesNotMatch(paymentSheet,/Draft Co/,'suppliers with only draft invoices must not be selectable');
+context.document.getElementById=id=>id==='directPaymentCompany'?{value:'2'}:null;
+context.window.openSelectedPayment();
+assert.match(paymentSheet,/Upcoming Co/,'the selected supplier must open the existing allocation form');
+assert.match(paymentSheet,/inv-upcoming/,'the selected supplier payment must retain invoice allocation');
 state.companies.push({id:5,name:'Invoice Discount Co',color:'green',invoices:[{
   id:'inv-invoice-discount',no:'DISC-3',date:'2026-08-01',due_date:'2099-08-31',amount:1500000,paid:455000,
   status:'confirmed',discount_percent:3,discount_deadline:'2099-08-31',discount_taken:0

@@ -6,8 +6,14 @@ const root=path.resolve(__dirname,'..');
 const indexSource=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const contactSource=fs.readFileSync(path.join(root,'contact-types.js'),'utf8');
 const invoiceSource=fs.readFileSync(path.join(root,'invoice-cloud.js'),'utf8');
+const paymentSource=fs.readFileSync(path.join(root,'payment-center.js'),'utf8');
 
-assert.match(indexSource,/class="homeInvoiceAdd"[^>]+onclick="window\.openDirectInvoice\?\.\(\)"/,'Home plus must open the direct invoice form');
+assert.match(indexSource,/id="homeQuickActionToggle"[^>]+aria-haspopup="menu"[^>]+onclick="toggleHomeQuickActions\(event\)"/,'Home plus must open the compact action menu');
+assert.match(indexSource,/class="homeQuickActionPayment"[^>]+onclick="closeHomeQuickActions\(\);window\.payment\(\)"[^>]*>[\s\S]*?Төлбөр бүртгэх/,'the first quick action must open direct payment registration');
+assert.match(indexSource,/class="homeQuickActionInvoice"[^>]+onclick="closeHomeQuickActions\(\);window\.invoice\(null\)"[^>]*>[\s\S]*?Падаан нэмэх/,'the second quick action must open direct invoice registration');
+assert.match(contactSource,/\.homeQuickActionMenu\{position:absolute/,'the approved actions must stay in a small anchored popover');
+assert.match(contactSource,/if\(!event\.target\?\.closest\?\.\('\.homeQuickActions'\)\)closeHomeQuickActions/,'outside taps must close the quick-action popover');
+assert.match(contactSource,/closeHomeQuickActions\(true\)/,'Escape must close the popover and return focus to the plus button');
 assert.match(indexSource,/supplier\?"ЯАРАЛТАЙ АВЛАГА":"ЯАРАЛТАЙ ӨГЛӨГ"/,'urgent heading must follow the registration direction');
 assert.match(indexSource,/onclick="showHomeDebtView\('all'\)"/,'debt-contact summary must reveal all debt contacts');
 assert.match(indexSource,/onclick="showHomePeriodFilter\(\)"/,'payment-period summary must open the approved centered filter');
@@ -25,5 +31,8 @@ assert.match(invoiceSource,/localeCompare\(String\(b\.name\|\|''\),'mn',\{sensit
 assert.match(invoiceSource,/window\.openDirectInvoice=function\(\)\{window\.invoice\(null\);\}/);
 assert.match(invoiceSource,/if\(directInvoiceMode\)/,'saving a direct invoice must resolve and validate its selected contact');
 assert.match(invoiceSource,/ПАДААН БҮРТГЭХ/,'the existing direct registration action must remain available');
+assert.match(paymentSource,/if\(companyId==null\|\|companyId===''\)\{directPaymentForm\(\);return;\}/,'direct payment must first open the supplier picker');
+assert.match(paymentSource,/id="directPaymentCompany"/,'direct payment must provide a supplier dropdown');
+assert.match(paymentSource,/window\.openSelectedPayment=function\(\)/,'the selected supplier must continue into the existing payment form');
 
-console.log('home-direct-invoice: PASS — compact Home actions and direct invoice entry are wired');
+console.log('home-direct-invoice: PASS — compact Home actions open direct payment and invoice registration');

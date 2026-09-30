@@ -285,10 +285,14 @@
     justify-content: flex-start;
   }
 
-  #app .homeInvoiceAdd {
+  #app .homeQuickActions {
     position: absolute;
     right: 0;
     top: 2px;
+  }
+
+  #app .homeInvoiceAdd {
+    position: static;
   }
 
   #app .homeStats {

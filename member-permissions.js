@@ -7,7 +7,7 @@
   const editActions={
     customers:['addCompany','showContactTypePicker','selectContactType','showContactForm','saveCompany','editCompany','saveEdit'],
     invoices:['invoice','__saveCloudInvoice','editConfirmedInvoice','saveConfirmedInvoiceRevision','showInvoiceAgreement','saveInvoiceAgreement'],
-    payments:['payment','savePayment','reviewPaymentCenter','commitPaymentCenter','showPaymentReversal','reversePayment'],
+    payments:['payment','openDirectPayment','openSelectedPayment','savePayment','reviewPaymentCenter','commitPaymentCenter','showPaymentReversal','reversePayment'],
     loans:['showLoanCreate','showLoanEdit','saveLoan','markLoanInstallmentPaid']
   };
   const ownerActions={customers:['deleteCompany'],invoices:['showInvoiceDeleteConfirm','deleteInvoiceWithHistory']};
@@ -45,6 +45,9 @@
     hide('[onclick*="addCompany"],[onclick*="editCompany"],[onclick*="saveCompany"],[onclick*="saveEdit"]',!can('customers','edit'));
     hide('[onclick*="invoice("],[onclick*="editConfirmedInvoice"],[onclick*="showInvoiceAgreement"]',!can('invoices','edit'));
     hide('[onclick*="payment("],[onclick*="reviewPaymentCenter"],[onclick*="showPaymentReversal"]',!can('payments','edit'));
+    hide('.homeQuickActionInvoice',!can('invoices','edit'));
+    hide('.homeQuickActionPayment',!can('payments','edit'));
+    hide('.homeQuickActions',!can('invoices','edit')&&!can('payments','edit'));
     hide('[onclick*="showLoanCreate"],[onclick*="showLoanEdit"],[onclick*="markLoanInstallmentPaid"]',!can('loans','edit'));
     hide('[onclick*="deleteCompany"]',!can('customers','owner'));
     hide('[onclick*="showInvoiceDeleteConfirm"],[onclick*="deleteInvoiceWithHistory"]',!can('invoices','owner'));

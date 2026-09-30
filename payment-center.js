@@ -142,7 +142,15 @@
       <button class="primary full" onclick="invoice('${esc(company.id)}')">＋ Падаан нэмэх</button><button class="secondary full" style="margin-top:8px" onclick="payment('${esc(company.id)}')">Төлбөр бүртгэх</button><button class="secondary full" style="margin-top:8px" onclick="window.editCompany(Number('${esc(company.id)}'))">✎ Мэдээлэл засах</button>`;
   }
 
+  function directPaymentForm(){
+    const companies=state().companies.filter(company=>company.status!=='inactive'&&(company.invoices||[]).some(invoice=>isConfirmed(invoice)&&balanceOf(invoice)>0)).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'mn',{sensitivity:'base'}));
+    if(!companies.length){notify('Төлөгдөөгүй падаантай нийлүүлэгч алга.');return;}
+    const options=companies.map(company=>`<option value="${esc(company.id)}">${esc(company.name)} — ${amount(company.debt)}</option>`).join('');
+    open(`<h2>Төлбөр бүртгэх</h2><p class="sub">Төлбөр бүртгэх нийлүүлэгчээ сонгоно уу.</p><div class="field"><label>Нийлүүлэгч</label><select id="directPaymentCompany"><option value="">Нийлүүлэгч сонгох</option>${options}</select></div><div class="actions"><button class="secondary" onclick="closeSheet()">Болих</button><button class="primary" onclick="openSelectedPayment()">Үргэлжлүүлэх</button></div>`);
+  }
+
   function paymentForm(companyId,focusInvoiceId){
+    if(companyId==null||companyId===''){directPaymentForm();return;}
     const company=companyById(companyId);if(!company){notify('Нийлүүлэгч олдсонгүй.');return;}
     const invoices=(company.invoices||[]).filter(invoice=>isConfirmed(invoice)&&balanceOf(invoice)>0).sort((a,b)=>String(dueOf(a)||a.date||'').localeCompare(String(dueOf(b)||b.date||'')));
     if(!invoices.length){notify('Төлөгдөөгүй падаан алга.');return;}
@@ -158,6 +166,13 @@
       <div class="actions"><button class="secondary" onclick="closeSheet()">Болих</button><button class="primary" onclick="reviewPaymentCenter('${esc(company.id)}')">Үргэлжлүүлэх</button></div>`);
     setTimeout(()=>window.recalculatePaymentTotal(),0);
   }
+
+  window.openSelectedPayment=function(){
+    const companyId=document.getElementById('directPaymentCompany')?.value||'';
+    if(!companyId){notify('Нийлүүлэгч сонгоно уу.');return;}
+    window.payment(companyId);
+  };
+  window.openDirectPayment=function(){window.payment();};
 
   window.recalculatePaymentTotal=function(){
     let total=0;
