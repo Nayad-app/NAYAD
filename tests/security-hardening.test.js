@@ -5,6 +5,7 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const migration=fs.readFileSync(path.join(root,'supabase/migrations/20260924120000_harden_auth_and_invoice_permissions.sql'),'utf8');
+const coalesceFix=fs.readFileSync(path.join(root,'supabase/migrations/20260930042000_fix_store_permission_coalesce.sql'),'utf8');
 
 assert.match(html,/const base=\{companies:\[\],payments:\[\]\}/,'the public shell must start with no business data');
 const baseStart=html.indexOf('const base=');
@@ -29,5 +30,8 @@ assert.match(migration,/grant execute on function public\.consume_auth_rate_limi
 assert.match(migration,/revoke all on function public\.handle_new_user_profile\(\)[\s\S]*from public, anon, authenticated/);
 assert.match(migration,/to_jsonb\(new\)-'paid'-'updated_at'/);
 assert.match(migration,/to_jsonb\(old\)-'paid'-'updated_at'/);
+assert.match(coalesceFix,/create or replace function private\.enforce_store_module_permission\(\)/);
+assert.match(coalesceFix,/if not coalesce\(v_allowed,false\) then/);
+assert.doesNotMatch(coalesceFix,/pg_catalog\.coalesce/);
 
 console.log('security-hardening: PASS — seed data, auth, XSS and invoice permissions are guarded');
