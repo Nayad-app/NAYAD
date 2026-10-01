@@ -13,7 +13,7 @@
   .profileMenuClose{width:42px;height:42px;flex:0 0 42px;padding:0;border-radius:13px;background:var(--surface-2);display:grid;place-items:center}.profileMenuClose svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
   .profileMenuUser{width:100%;display:flex;align-items:center;gap:14px;padding:16px;background:#FBFBF9;border:1px solid var(--line);border-radius:18px;color:var(--text);text-align:left;position:relative}.profileMenuUser:after{content:'›';margin-left:auto;color:#92938E;font-size:29px;font-weight:300;line-height:1}
   .profileMenuAvatar{width:48px;height:48px;flex:0 0 48px;border-radius:50%;object-fit:cover;border:1px solid var(--line);background:#EDEDE8;display:grid;place-items:center;font-size:17px;font-weight:900;color:#555}
-  .profileMenuUserMeta{min-width:0;flex:1}.profileMenuUserMeta b{display:block;font-size:15px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.profileMenuUserMeta span{display:block;color:var(--muted);font-size:10px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .profileMenuAvatar .identityPhotoDisplay{width:100%;height:100%}.profileMenuUserMeta{min-width:0;flex:1}.profileMenuUserMeta b{display:block;font-size:15px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.profileMenuUserMeta span{display:block;color:var(--muted);font-size:10px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .profileMenuSectionTitle{display:none}
   .profileMenuStore{display:none}
   .profileMenuActions{overflow:visible;border:0;border-radius:0;background:transparent;box-shadow:none}
@@ -74,7 +74,7 @@
     const phone=String(user.user_metadata?.login_phone||'').replace(/^\+976/,'');
     const email=user.email||'';
     const contact=phone?`Утас: ${esc(phone)}`:(email?esc(email):esc(p.provider||'Нэвтрэлт'));
-    const avatar=p.avatar?`<img class="profileMenuAvatar" src="${esc(p.avatar)}" alt="">`:`<div class="profileMenuAvatar">${esc(initial(p.name))}</div>`;
+    const avatar=p.avatar?`<span class="profileMenuAvatar">${window.__nayadPhotos?window.__nayadPhotos.display("profile",p.avatar):`<img class="profileMenuAvatar" src="${esc(p.avatar)}" alt="">`}</span>`:`<div class="profileMenuAvatar">${ICONS.settings}</div>`;
     return `<div class="profileMenuLayout"><div class="profileMenuHeader"><b id="profileMenuTitle">Цэс</b><button class="profileMenuClose" type="button" onclick="closeProfileMenu()" aria-label="Цэс хаах"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><button class="profileMenuUser" type="button" onclick="profileMenuAction('settings')" aria-label="Профайлын тохиргоо">${avatar}<div class="profileMenuUserMeta"><b>${esc(p.name||'Нэр тодорхойгүй')}</b><span>${contact}</span></div></button><div class="profileMenuActions">${action(ICONS.switch,'Дэлгүүр солих','','store')}${action(ICONS.share,'Дэлгүүр хуваалцах','','share')}</div><div class="profileMenuActions">${themeControl()}</div>${upgradeControl()}<div class="profileMenuActions">${action(ICONS.report,'Тайлан','','reports')}</div><div class="profileMenuActions">${supportControl()}</div><div class="profileMenuSpacer"></div><button class="profileMenuLogout" type="button" onclick="profileMenuAction('logout')">${ICONS.logout}<span>Гарах</span></button></div>`;
   }
 

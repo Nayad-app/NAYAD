@@ -1,5 +1,5 @@
-// Invalidate the installed app shell for the Home quick-action overlay fix.
-const CACHE = "nayad-v138";
+// Refresh the installed app shell for private profile and store photos.
+const CACHE = "nayad-v139";
 
 const ASSETS = [
   "./",
@@ -14,14 +14,15 @@ const ASSETS = [
   "./money-input.js?v=1",
   "./image-compress.js?v=1",
   "./registration-onboarding.js?v=2",
-  "./store-switcher.js?v=64",
+  "./identity-photos.js?v=1",
+  "./store-switcher.js?v=65",
   "./store-recovery.js?v=57",
   "./registration-delete.js?v=2",
   "./cloud-runtime.js?v=59",
   "./auth-guard.js?v=57",
   "./mobile-fix.js?v=46",
   "./share.js?v=40",
-  "./profile-menu.js?v=5",
+  "./profile-menu.js?v=6",
   "./admin-dashboard.js?v=2",
   "./subscription.js?v=5",
   "./invoice-cloud.js?v=76",
@@ -79,13 +80,13 @@ function patchDocument(html){
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=39");
   patched=patched.replace(/\.\/money-input\.js\?v=\d+/g,"./money-input.js?v=1");
   patched=patched.replace(/\.\/registration-onboarding\.js\?v=\d+/g,"./registration-onboarding.js?v=2");
-  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=64");
+  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=65");
   patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=57");
   patched=patched.replace(/\.\/registration-delete\.js\?v=\d+/g,"./registration-delete.js?v=2");
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=59");
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=57");
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=40");
-  patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=5");
+  patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=6");
   patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=2");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=5");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=76");
@@ -95,12 +96,13 @@ function patchDocument(html){
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=3");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=76","./money-input.js?v=1");
   patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=17");
-  patched=injectScriptBefore(patched,"./store-switcher.js?v=64","./registration-onboarding.js?v=2");
-  patched=injectScriptAfter(patched,"./store-switcher.js?v=64","./store-recovery.js?v=57");
+  patched=injectScriptBefore(patched,"./store-switcher.js?v=65","./registration-onboarding.js?v=2");
+  patched=injectScriptBefore(patched,"./store-switcher.js?v=65","./identity-photos.js?v=1");
+  patched=injectScriptAfter(patched,"./store-switcher.js?v=65","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
   patched=injectScriptAfter(patched,"./registration-delete.js?v=2","./auth-guard.js?v=57");
-  patched=injectScriptAfter(patched,"./share.js?v=40","./profile-menu.js?v=5");
-  patched=injectScriptAfter(patched,"./profile-menu.js?v=5","./admin-dashboard.js?v=2");
+  patched=injectScriptAfter(patched,"./share.js?v=40","./profile-menu.js?v=6");
+  patched=injectScriptAfter(patched,"./profile-menu.js?v=6","./admin-dashboard.js?v=2");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=76","./payment-center.js?v=12");

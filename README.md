@@ -15,3 +15,19 @@ PWA нь HTTPS эсвэл localhost орчинд ажиллана. ZIP-ийг iP
 - Апп нээлттэй болон дахин идэвхжих үед хугацааны сануулгыг шинэчилнэ.
 
 Банк/QPay-аар мөнгө шилжүүлэх gateway энэ хувилбарт ороогүй; төлбөрийн бүртгэл ба өглөгийн тооцоолол орсон.
+
+## Профайл болон дэлгүүрийн зураг
+
+Профайлын тохиргоонд зураг дээр дарж JPG/PNG/WebP сонгоно. Зурагтай үед × нь нооргоос арилгана; зураггүй үед хүний/дэлгүүрийн icon болон камерын тэмдэг гарна. Өөрчлөлт зөвхөн ХАДГАЛАХ үед хадгалагдана. Дэлгүүрийн зургийг зөвхөн эзэмшигч өөрчилнө.
+
+Publish хийхдээ `20261001025221_identity_photos.sql` migration-ийг frontend-ээс **өмнө** хэрэглэнэ. Энэ нь private `identity-photos` bucket, эрхийн дүрмүүд, `stores.photo_path` nullable багана нэмнэ. Мөнгөн дүн, падаан, төлбөрийн мөрүүдийг өөрчлөхгүй. Зураг 512 px хүртэл жижигрүүлэгдэж, хувийн URL нь нэг цагийн хугацаатай байна.
+
+Шалгалт:
+
+```sh
+node --test tests/*.test.js
+npm install --prefix /tmp/nayad-photo-check --no-package-lock @electric-sql/pglite@0.5.8
+NODE_PATH=/tmp/nayad-photo-check/node_modules node scripts/test-identity-photo-rls.cjs
+```
+
+Эрхийн SQL тест нь тусдаа санах ойн PostgreSQL дээр ажиллана. `tests/identity-photo-rls.sql` fixture-ийг production дээр ажиллуулж болохгүй.

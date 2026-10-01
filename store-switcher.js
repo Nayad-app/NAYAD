@@ -96,7 +96,7 @@
     return next;
   }
   function normalizeStores(rows){
-    return (rows||[]).map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',permissions:normalizedPermissions(row.permissions,row.role||'member'),created_at:row.created_at,operation_role:row.operation_role||'',business_type:row.business_type||'',entity_type:row.entity_type||'',registration_completed_at:row.registration_completed_at||null,subscription:normalizeSubscription(row.subscription),subscription_checked:Boolean(row.subscription_checked)})).filter(row=>row.id);
+    return (rows||[]).map(row=>({id:row.id,name:row.name||'NAYAD',role:row.role||'member',permissions:normalizedPermissions(row.permissions,row.role||'member'),created_at:row.created_at,operation_role:row.operation_role||'',business_type:row.business_type||'',entity_type:row.entity_type||'',registration_completed_at:row.registration_completed_at||null,photo_path:row.photo_path||null,photo_url:row.photo_url||"",subscription:normalizeSubscription(row.subscription),subscription_checked:Boolean(row.subscription_checked)})).filter(row=>row.id);
   }
 
   async function attachSubscriptions(rows){
@@ -192,7 +192,7 @@
     if(result.error)throw result.error;
     const rows=Array.isArray(result.data)?result.data:[];
     if(rows.some(row=>row.user_id!=null&&String(row.user_id)!==String(expectedUserId)))throw new Error('Store identity mismatch');
-    return attachSubscriptions(rows);
+    const withPhotos=window.__nayadPhotos?await window.__nayadPhotos.attachStores(rows):rows;return attachSubscriptions(withPhotos);
   }
 
   function renderBar(){
@@ -200,6 +200,7 @@
     if(!content)return;
     content.querySelector('.storeSwitcherBar')?.remove();
     const activeLabel=content.querySelector('.homeActiveStore');
+    if(activeLabel&&window.__nayadPhotos){const old=activeLabel.querySelector('.identityPhotoDisplay')||activeLabel.querySelector('svg');if(old)old.outerHTML=window.__nayadPhotos.display('store',active()?.photo_url||'');}
     if(activeLabel){
       activeLabel.querySelector('.homeStorePlan')?.remove();
       const badge=homePlan(active());
@@ -217,7 +218,7 @@
       const complete=isComplete(store),selected=complete&&String(store.id)===String(window.__nayadActiveStoreId);
       const action=complete?`selectNayadStore('${esc(store.id)}')`:`completeNayadRegistration('${esc(store.id)}')`;
       const status=complete?roleLabel(store.role):(store.role==='owner'?'Бүртгэлээ гүйцээх':'Эзэмшигчийн тохиргоо хүлээж байна');
-      return `<button class="storePickerItem ${selected?'active':''}" type="button" onclick="${action}"><span class="storePickerAvatar">${esc(initial(store.name))}</span><span class="storePickerMeta"><b>${esc(store.name)}</b><span class="storePickerRole">${status}</span>${complete?pickerPlan(store):''}</span><span class="storePickerCheck">✓</span></button>`;
+      return `<button class="storePickerItem ${selected?'active':''}" type="button" onclick="${action}">${window.__nayadPhotos?window.__nayadPhotos.display("store",store.photo_url,"storePickerAvatar"):`<span class="storePickerAvatar">${esc(initial(store.name))}</span>`}<span class="storePickerMeta"><b>${esc(store.name)}</b><span class="storePickerRole">${status}</span>${complete?pickerPlan(store):''}</span><span class="storePickerCheck">✓</span></button>`;
     }).join('');
     window.sheet(`<div class="storePickerHeader"><h2>Бүртгэл сонгох</h2><button class="storePickerClose" type="button" onclick="closeSheet()" aria-label="Хаах"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="storePickerHint">Та өөрийн болон хуваалцсан бүртгэлүүдийн хооронд шилжиж болно.</div><div class="storePickerList">${rows||'<div class="card">Бүртгэл олдсонгүй.</div>'}<button class="storePickerAdd" type="button" onclick="showNayadStoreCreate()"><span>+</span>Шинэ бүртгэл нэмэх</button></div>`);
   }

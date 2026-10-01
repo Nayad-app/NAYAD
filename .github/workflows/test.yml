@@ -18,3 +18,7 @@ jobs:
         with:
           node-version: 22
       - run: node --test tests/*.test.js
+      - name: Test private photo storage permissions in isolated PostgreSQL
+        run: |
+          npm install --prefix "$RUNNER_TEMP/nayad-photo-check" --no-package-lock @electric-sql/pglite@0.5.8
+          NODE_PATH="$RUNNER_TEMP/nayad-photo-check/node_modules" node scripts/test-identity-photo-rls.cjs
