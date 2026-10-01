@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the Home quick-action overlay fix.
-const CACHE = "nayad-v138";
+const CACHE = "nayad-v140";
 
 const ASSETS = [
   "./",

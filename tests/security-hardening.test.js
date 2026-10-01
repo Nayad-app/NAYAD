@@ -19,8 +19,9 @@ assert.match(authMessage,/replaceChildren/);
 assert.doesNotMatch(authMessage,/innerHTML/);
 
 const phoneLogin=html.slice(html.indexOf('async function phoneLogin(){'),html.indexOf('async function registerUser(){'));
-assert.match(phoneLogin,/await requestPhoneOtp\(phone,/);
-assert.doesNotMatch(phoneLogin,/\/functions\/v1\/phone-login|result\.email/);
+assert.match(phoneLogin,/\/functions\/v1\/phone-login/);
+assert.match(phoneLogin,/sb\.auth\.signInWithPassword\(\{email:result\.email,password\}\)/);
+assert.match(phoneLogin,/result\.user_id/);
 assert.doesNotMatch(phoneLogin,/result\.access_token|result\.refresh_token|setSession/);
 
 assert.match(migration,/create table if not exists public\.auth_rate_limits/);

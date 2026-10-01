@@ -63,8 +63,8 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
   const registerUser=indexHtml.match(/async function registerUser\(\)\{.*?\}\nasync function googleLogin/s)?.[0]||'';
   assert.match(phoneLogin,/await showAuthenticatedApp\(\)/,'password login must prepare the authenticated store before opening the app');
   assert.doesNotMatch(phoneLogin,/classList\.remove\("hide"\);render\(\)/,'password login must never reveal stale cached app data directly');
-  assert.match(registerUser,/await requestPhoneOtp\(phone,/,'registration must wait for phone verification before opening the app');
-  assert.match(indexHtml,/verifyPhoneOtp\(\)[\s\S]*await showAuthenticatedApp\(\)/,'verified OTP login must prepare its own store before opening the app');
+  assert.match(registerUser,/sb\.auth\.signInWithPassword\(\{email,password\}\)[\s\S]*await showAuthenticatedApp\(\)/,'registration must authenticate and prepare its own store before opening the app');
+  assert.doesNotMatch(registerUser,/requestPhoneOtp|verifyOtp/,'registration must not depend on SMS OTP');
   assert.doesNotMatch(registerUser,/classList\.remove\("hide"\);render\(\)/,'registration must never reveal stale cached app data directly');
   assert.doesNotMatch(oauthFix,/window\.__nayadUser=session\.user;\s*if\(typeof profileFromUser/,'OAuth must not hide an account change before profile isolation runs');
   const ready=await context.window.__nayadPrepareUserStore(newUserId);
