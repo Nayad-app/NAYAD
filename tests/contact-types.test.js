@@ -126,7 +126,11 @@ assert.match(companiesHtml,/href="tel:88112233"/,'organization call button must 
 assert.doesNotMatch(companiesHtml,/href="tel:99112233"/,'organization call button must not fall back to the general phone');
 assert.doesNotMatch(companiesHtml,/href="tel:77112233"/,'organization call button must not use phone number 2');
 assert.doesNotMatch(companiesHtml,/contactListArrow|contactListBalance|Нийт үлдэгдэл/,'compact rows must show only the debt amount and call action');
-assert.match(companiesHtml,/ХАРИЛЦАГЧ НЭМЭХ/);
+assert.match(companiesHtml,/class="contactListTitleBlock"/,'store metadata must sit under the customer title');
+assert.match(companiesHtml,/class="contactHeaderAddButton" onclick="addCompany\(\)" aria-label="Харилцагч нэмэх"/,'the header must expose the existing add-customer flow');
+assert.doesNotMatch(companiesHtml,/contactAddButton|ХАРИЛЦАГЧ НЭМЭХ/,'the old bottom add button must be removed');
+assert.match(source,/\.contactListHead\{[^}]*justify-content:space-between/,'the add button must stay at the right edge of the header');
+assert.match(source,/\.contactHeaderAddButton\{[^}]*border-radius:50%[^}]*background:var\(--yellow\)/,'the header add control must be a yellow circle');
 data.companies.push({id:5,name:'Missing phone 1',contactType:'organization',phone:'70001234',directorPhone:'',salesPhone:'70005678',status:'active',invoices:[],debt:0});
 const missingPhoneHtml=context.companies();
 assert.match(missingPhoneHtml,/showMissingContactPhone\(5\)/,'the green call icon must remain visible when phone number 1 is missing');

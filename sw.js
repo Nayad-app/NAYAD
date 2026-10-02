@@ -1,5 +1,5 @@
-// Invalidate the installed app shell for the Home quick-action overlay fix.
-const CACHE = "nayad-v140";
+// Invalidate the installed app shell for the customer header add shortcut.
+const CACHE = "nayad-v141";
 
 const ASSETS = [
   "./",
