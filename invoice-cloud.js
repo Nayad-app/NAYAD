@@ -9,6 +9,35 @@
   let invoiceSaving = false;
   let reorderBound = false;
   let dragState = null;
+  let directInvoiceCompanies = [];
+
+  function ensureDirectInvoiceCompanyStyles(){
+    if(document.getElementById('nayad-invoice-company-styles'))return;
+    if(typeof document.createElement!=='function'||!document.head)return;
+    const style=document.createElement('style');
+    style.id='nayad-invoice-company-styles';
+    style.textContent=`
+      .cloudInvoiceCompanyPicker{position:relative}
+      .cloudInvoiceCompanyControl{position:relative}
+      .cloudInvoiceCompanyControl input{padding-right:52px}
+      .cloudInvoiceCompanyToggle{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:42px;height:42px;border:0;background:transparent;border-radius:12px;display:grid;place-items:center;color:var(--text,#151515);cursor:pointer;font-size:21px;line-height:1}
+      .cloudInvoiceCompanyToggle:focus-visible{outline:3px solid rgba(247,190,42,.35)}
+      .cloudInvoiceCompanyToggle svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease}
+      .cloudInvoiceCompanyPicker.isOpen .cloudInvoiceCompanyToggle svg{transform:rotate(180deg)}
+      .cloudInvoiceCompanyOptions{position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:30;max-height:286px;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:5px;background:#fff;border:1px solid var(--line,#e6e5df);border-radius:15px;box-shadow:0 14px 38px rgba(0,0,0,.18)}
+      .cloudInvoiceCompanyOptions[hidden]{display:none}
+      .cloudInvoiceCompanyOption{width:100%;min-height:42px;padding:9px 12px;border:0;border-radius:10px;background:transparent;color:var(--text,#151515);display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;font:inherit;font-weight:750;cursor:pointer}
+      .cloudInvoiceCompanyOption:hover,.cloudInvoiceCompanyOption:focus-visible{background:#fff6d8;outline:none}
+      .cloudInvoiceCompanyOption.isSelected{background:#fff4c7}
+      .cloudInvoiceCompanyOption small{font-size:11px;font-weight:650;color:var(--muted,#777);white-space:nowrap}
+      .cloudInvoiceCompanyEmpty{padding:18px 12px;text-align:center;color:var(--muted,#777);font-size:13px}
+      @media(max-width:520px){.cloudInvoiceCompanyOptions{max-height:255px}.cloudInvoiceCompanyOption{min-height:40px;padding:8px 10px}}
+      body.night .cloudInvoiceCompanyOptions{background:#252525;border-color:#444;box-shadow:0 14px 38px rgba(0,0,0,.45)}
+      body.night .cloudInvoiceCompanyOption{color:#fff}
+      body.night .cloudInvoiceCompanyOption:hover,body.night .cloudInvoiceCompanyOption:focus-visible,body.night .cloudInvoiceCompanyOption.isSelected{background:#4a4022}
+    `;
+    document.head.appendChild(style);
+  }
 
   if(typeof window.__nayadQueueCloudSync!=='function'){
     window.__nayadCloudSyncQueue=Promise.resolve();
@@ -469,12 +498,66 @@
       draft:draft?{...draft}:null
     };
   }
-  function directInvoiceCompanyField(companies){
-    const options=[...companies]
-      .sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'mn',{sensitivity:'base'}))
-      .map(company=>`<option value="${esc(company.id)}">${esc(company.name||'')}</option>`).join('');
-    return `<div class="field"><label for="cloudICompany">Харилцагч *</label><select id="cloudICompany"><option value="">Харилцагч сонгох</option>${options}</select></div>`;
+  function directInvoiceCompanySearchText(company){
+    return [company?.name,company?.phone,company?.directorPhone,company?.salesPhone,company?.orgPhone]
+      .map(value=>String(value||'').toLocaleLowerCase('mn').replace(/\s+/g,''))
+      .join(' ');
   }
+  function directInvoiceCompanyPhone(company){
+    return company?.phone||company?.directorPhone||company?.salesPhone||company?.orgPhone||'';
+  }
+  function directInvoiceCompanyField(companies){
+    directInvoiceCompanies=[...companies].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'mn',{sensitivity:'base'}));
+    return `<div class="field cloudInvoiceCompanyPicker" id="cloudInvoiceCompanyPicker"><label for="cloudICompanySearch">Харилцагч *</label><input id="cloudICompany" type="hidden" value=""><div class="cloudInvoiceCompanyControl"><input id="cloudICompanySearch" type="text" autocomplete="off" placeholder="Харилцагч сонгох эсвэл хайх" role="combobox" aria-autocomplete="list" aria-controls="cloudICompanyOptions" aria-expanded="false"><button class="cloudInvoiceCompanyToggle" type="button" aria-label="Харилцагчдын жагсаалт нээх" onclick="event.stopPropagation();window.__toggleCloudInvoiceCompanies()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 9 5 5 5-5"/></svg></button></div><div id="cloudICompanyOptions" class="cloudInvoiceCompanyOptions" role="listbox" hidden></div></div>`;
+  }
+  function renderDirectInvoiceCompanies(query=''){
+    const options=document.getElementById('cloudICompanyOptions');
+    if(!options)return;
+    const selectedId=val('cloudICompany');
+    const needle=String(query||'').toLocaleLowerCase('mn').replace(/\s+/g,'');
+    const matches=directInvoiceCompanies.filter(company=>!needle||directInvoiceCompanySearchText(company).includes(needle));
+    options.innerHTML=matches.length?matches.map(company=>{
+      const id=String(company.id??''),phone=directInvoiceCompanyPhone(company);
+      return `<button type="button" class="cloudInvoiceCompanyOption${String(selectedId)===id?' isSelected':''}" role="option" aria-selected="${String(selectedId)===id?'true':'false'}" data-company-id="${esc(id)}" onclick="event.stopPropagation();window.__selectCloudInvoiceCompany(this.dataset.companyId)"><span>${esc(company.name||'')}</span>${phone?`<small>${esc(phone)}</small>`:''}</button>`;
+    }).join(''):`<div class="cloudInvoiceCompanyEmpty">Тохирох харилцагч олдсонгүй.</div>`;
+  }
+  function setDirectInvoiceCompaniesOpen(open,query=''){
+    const picker=document.getElementById('cloudInvoiceCompanyPicker'),options=document.getElementById('cloudICompanyOptions'),input=document.getElementById('cloudICompanySearch');
+    if(!picker||!options||!input)return;
+    if(open){renderDirectInvoiceCompanies(query);options.hidden=false;picker.classList.add('isOpen');input.setAttribute('aria-expanded','true');}
+    else{options.hidden=true;picker.classList.remove('isOpen');input.setAttribute('aria-expanded','false');}
+  }
+  window.__toggleCloudInvoiceCompanies=function(){
+    const options=document.getElementById('cloudICompanyOptions'),input=document.getElementById('cloudICompanySearch');
+    if(!options||!input)return;
+    const opening=options.hidden;
+    setDirectInvoiceCompaniesOpen(opening,'');
+    if(opening)input.focus({preventScroll:true});
+  };
+  window.__filterCloudInvoiceCompanies=function(){
+    const input=document.getElementById('cloudICompanySearch'),selected=document.getElementById('cloudICompany');
+    if(!input||!selected)return;
+    const chosen=directInvoiceCompanies.find(company=>String(company.id)===String(selected.value));
+    if(!chosen||String(chosen.name||'')!==input.value)selected.value='';
+    cloudCompanyId=null;cloudCompanyTarget=null;
+    setDirectInvoiceCompaniesOpen(true,input.value);
+  };
+  window.__selectCloudInvoiceCompany=function(id){
+    const company=directInvoiceCompanies.find(item=>String(item.id)===String(id));
+    if(!company)return;
+    const selected=document.getElementById('cloudICompany'),input=document.getElementById('cloudICompanySearch');
+    if(selected)selected.value=String(company.id);
+    if(input)input.value=String(company.name||'');
+    cloudCompanyId=company.id;cloudCompanyTarget=invoiceTarget(company);
+    setDirectInvoiceCompaniesOpen(false);
+  };
+  window.__cloudInvoiceCompanyKeydown=function(event){
+    if(event.key==='Escape'){setDirectInvoiceCompaniesOpen(false);return;}
+    if(event.key==='ArrowDown'){
+      event.preventDefault();setDirectInvoiceCompaniesOpen(true,event.currentTarget.value);
+      document.querySelector('#cloudICompanyOptions .cloudInvoiceCompanyOption')?.focus();
+    }
+  };
   window.invoice=function(id,draftId){
     if(invoiceSaving){notify('Өмнөх падаан хадгалагдаж байна.');return;}
     const direct=id==null||id==='';
@@ -489,6 +572,7 @@
     clearPending();
     reorderBound=false;
     const today=new Date().toISOString().slice(0,10);
+    if(direct)ensureDirectInvoiceCompanyStyles();
     const companyField=direct?directInvoiceCompanyField(companies):`<div class="card"><b>${esc(company.name)}</b></div>`;
     openSheet(`<div class="row"><h2 style="margin:0">${draft?'Падаан засах':'Падаан нэмэх'}</h2><button type="button" class="secondary" aria-label="Хаах" onclick="window.__cancelCloudInvoice()">✕</button></div>${companyField}
       <div class="field"><label>Падааны огноо</label><input id="cloudIDate" type="date" value="${esc(draft?.date||today)}"></div>
@@ -507,9 +591,12 @@
     document.getElementById('modal')?.classList.add('invoiceFormModal');
     document.getElementById('sheet')?.classList.add('invoiceFormSheet');
     if(direct){
-      document.getElementById('cloudICompany').onchange=function(){
-        const next=currentCompany(this.value);cloudCompanyId=next?.id??null;cloudCompanyTarget=next?invoiceTarget(next):null;
-      };
+      const search=document.getElementById('cloudICompanySearch');
+      if(search){
+        search.oninput=window.__filterCloudInvoiceCompanies;
+        search.onfocus=function(){if(document.getElementById('cloudICompanyOptions')?.hidden)setDirectInvoiceCompaniesOpen(true,this.value);};
+        search.onkeydown=window.__cloudInvoiceCompanyKeydown;
+      }
     }
     document.getElementById('cloudGalleryInput').onchange=function(){addFiles([...this.files]);this.value=''};
     document.getElementById('cloudCameraInput').onchange=function(){addFiles([...this.files]);this.value=''};
@@ -517,6 +604,10 @@
   };
   window.openDirectInvoice=function(){window.invoice(null);};
   window.__cancelCloudInvoice=function(){if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}cloudCompanyTarget=null;directInvoiceMode=false;clearPending();close();};
+
+  document.addEventListener('click',event=>{
+    if(!event.target?.closest?.('#cloudInvoiceCompanyPicker'))setDirectInvoiceCompaniesOpen(false);
+  });
 
   window.__saveCloudInvoice=async function(){
     if(invoiceSaving){notify('Падаан хадгалагдаж байна.');return;}

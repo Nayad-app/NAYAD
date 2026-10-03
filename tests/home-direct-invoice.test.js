@@ -24,9 +24,13 @@ assert.match(contactSource,/align-items:center;justify-content:center/,'the paym
 assert.match(contactSource,/id="homePeriodStart" type="date"/,'custom period must include a start date');
 assert.match(contactSource,/id="homePeriodEnd" type="date"/,'custom period must include an end date');
 
-assert.match(invoiceSource,/<select id="cloudICompany"><option value="">Харилцагч сонгох<\/option>/,'direct invoice form must use a re-openable contact dropdown');
-assert.doesNotMatch(invoiceSource,/cloudICompanyOptions|<datalist/,'the iPhone-incompatible one-shot datalist must be removed');
-assert.match(invoiceSource,/getElementById\('cloudICompany'\)\.onchange=function\(\)/,'changing the dropdown must replace the selected contact');
+assert.match(invoiceSource,/id="cloudICompanySearch" type="text"[^>]+role="combobox"/,'direct invoice form must use an editable searchable combobox');
+assert.match(invoiceSource,/id="cloudICompany" type="hidden"/,'the selected contact id must be stored separately from the search text');
+assert.match(invoiceSource,/id="cloudICompanyOptions" class="cloudInvoiceCompanyOptions" role="listbox" hidden/,'matching contacts must open directly below the field');
+assert.doesNotMatch(invoiceSource,/<select id="cloudICompany"|<datalist/,'the iPhone native select and one-shot datalist must not be used');
+assert.match(invoiceSource,/window\.__filterCloudInvoiceCompanies=function\(\)/,'typing must filter the contact list');
+assert.match(invoiceSource,/window\.__selectCloudInvoiceCompany=function\(id\)/,'tapping a result must select the contact');
+assert.match(invoiceSource,/\.cloudInvoiceCompanyOptions\{position:absolute;left:0;right:0;top:calc\(100% \+ 5px\)/,'the results must stay anchored below the customer field without a second modal');
 assert.match(invoiceSource,/localeCompare\(String\(b\.name\|\|''\),'mn',\{sensitivity:'base'\}\)/,'the direct invoice contact dropdown must be alphabetical in Mongolian');
 assert.match(invoiceSource,/window\.openDirectInvoice=function\(\)\{window\.invoice\(null\);\}/);
 assert.match(invoiceSource,/if\(directInvoiceMode\)/,'saving a direct invoice must resolve and validate its selected contact');
