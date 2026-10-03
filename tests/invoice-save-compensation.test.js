@@ -241,8 +241,8 @@ function createHarness(options={}){
     const test=createHarness({lostUploadResponseAt:2});
     test.openInvoice();
     test.addImages([
-      {name:'page-1.jpg',type:'image/jpeg'},
-      {name:'page-2.jpg',type:'image/jpeg'}
+      {name:'page-1.jpg',type:'image/jpeg',arrayBuffer:async()=>new Uint8Array([1,2]).buffer},
+      {name:'page-2.jpg',type:'image/jpeg',arrayBuffer:async()=>new Uint8Array([3,4]).buffer}
     ]);
     await test.context.window.__saveCloudInvoice();
 
@@ -276,5 +276,19 @@ function createHarness(options={}){
     assert.equal(test.saved().companies[0].invoices[0].status,'confirmed');
   }
 
-  console.log('invoice-save-compensation: PASS — auth changes and ambiguous upload responses clean up with the original session');
+  for(const arrayBuffer of [async()=>new ArrayBuffer(0),async()=>{throw new Error('Camera file unavailable');}]){
+    const test=createHarness();
+    test.openInvoice();
+    test.addImages([{name:'image.jpg',type:'image/jpeg',arrayBuffer}]);
+    await test.context.window.__saveCloudInvoice();
+    assert.equal(test.state.invoices.size,0,'unreadable images must be rejected before creating a draft');
+    assert.equal(test.state.uploads.length,0,'empty image content must never be uploaded');
+    assert.match(test.state.notices.at(-1),/зургийг хасаад бүртгэнэ үү/);
+    assert.equal(test.elements.cloudConfirmInvoiceBtn.disabled,false,'the user must be able to correct the image and retry');
+    test.context.window.__removeCloudInvoiceImage(0);
+    await test.context.window.__saveCloudInvoice();
+    assert.equal(test.state.invoices.size,1,'removing an unreadable image must allow registration without a photo');
+  }
+
+  console.log('invoice-save-compensation: PASS — auth changes, image validation and ambiguous upload responses preserve safe saves');
 })().catch(error=>{console.error(error);process.exitCode=1;});

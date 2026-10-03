@@ -1,5 +1,5 @@
-// Invalidate the installed app shell for the searchable invoice customer picker.
-const CACHE = "nayad-v142";
+// Invalidate the installed app shell for the validated invoice image uploads.
+const CACHE = "nayad-v143";
 
 const ASSETS = [
   "./",
@@ -24,7 +24,7 @@ const ASSETS = [
   "./profile-menu.js?v=5",
   "./admin-dashboard.js?v=2",
   "./subscription.js?v=5",
-  "./invoice-cloud.js?v=77",
+  "./invoice-cloud.js?v=78",
   "./supplier-cloud.js?v=61",
   "./payment-center.js?v=12",
   "./loans.js?v=3",
@@ -67,7 +67,7 @@ function injectScriptBefore(html,anchorSrc,src){
 
 function injectCloudRuntimeBeforeCloudModules(html){
   if(html.includes("./cloud-runtime.js"))return html;
-  const invoiceTag='<script src="./invoice-cloud.js?v=77"></script>';
+  const invoiceTag='<script src="./invoice-cloud.js?v=78"></script>';
   if(html.includes(invoiceTag)){
     return html.replace(invoiceTag,`<script src="./cloud-runtime.js?v=59"></script>${invoiceTag}`);
   }
@@ -88,12 +88,12 @@ function patchDocument(html){
   patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=5");
   patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=2");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=5");
-  patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=77");
+  patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=78");
   patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=12");
   patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=2");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=61");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=3");
-  patched=injectScriptBefore(patched,"./invoice-cloud.js?v=77","./money-input.js?v=1");
+  patched=injectScriptBefore(patched,"./invoice-cloud.js?v=78","./money-input.js?v=1");
   patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=17");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=64","./registration-onboarding.js?v=2");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=64","./store-recovery.js?v=57");
@@ -103,7 +103,7 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./profile-menu.js?v=5","./admin-dashboard.js?v=2");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
-  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=77","./payment-center.js?v=12");
+  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=78","./payment-center.js?v=12");
   patched=injectScriptAfter(patched,"./payment-center.js?v=12","./loans.js?v=3");
   patched=injectScriptBefore(patched,"./supplier-cloud.js?v=61","./contact-types.js?v=17");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");

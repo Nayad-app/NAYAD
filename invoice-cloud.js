@@ -487,6 +487,23 @@
     renderPending();
   }
 
+  async function prepareInvoiceImages(items){
+    const prepared=[];
+    for(let i=0;i<items.length;i++){
+      try{
+        const file=await window.compressInvoiceImage(items[i].file);
+        if(!file||typeof file.arrayBuffer!=='function')throw new Error('Unreadable image');
+        const content=await file.arrayBuffer();
+        if(!content||!Number.isFinite(content.byteLength)||content.byteLength===0)throw new Error('Empty image');
+        prepared.push({name:file.name||items[i].name||'image.jpg',type:file.type||'image/jpeg',content});
+      }catch(error){
+        console.warn('Invoice image preparation:',error);
+        throw new Error(`${i+1}-р зургийг уншиж чадсангүй. Дахин сонгох эсвэл зургийг хасаад бүртгэнэ үү.`);
+      }
+    }
+    return prepared;
+  }
+
   function invoiceTarget(company,draft=null){
     return {
       localId:company.id,
@@ -640,6 +657,9 @@
     window.__nayadCriticalOperation=operationToken;
     try{
       await queueCloudSync(async()=>{
+        /* Read camera File bytes before creating any remote draft. Upload the
+           binary snapshot rather than a temporary iOS File-backed body. */
+        const preparedImages=await prepareInvoiceImages(pendingFiles);
         const sb=client(); if(!sb)throw new Error('Supabase холболт олдсонгүй.');
         let writeClient=sb;
         try{
@@ -671,15 +691,15 @@
           const {error:invoiceError}=await writeClient.rpc('save_invoice_draft',draftArgs);
           if(invoiceError)throw new Error('Падаан хадгалахад алдаа: '+invoiceError.message);
           const imageUrls=[];
-          for(let i=0;i<pendingFiles.length;i++){
-            const file=await window.compressInvoiceImage(pendingFiles[i].file);
+          for(let i=0;i<preparedImages.length;i++){
+            const file=preparedImages[i];
             const ext=(file.name.split('.').pop()||'jpg').toLowerCase();
             const safe=['jpg','jpeg','png','webp','gif','heic','heif'].includes(ext)?ext:'jpg';
             const path=`${storeId}/${supplierId}/${invoiceId}/page-${i+1}-${Date.now()}-${crypto.randomUUID()}.${safe}`;
             /* Track an attempted path before awaiting the response. A network
                error can arrive after Storage already committed the object. */
             uploaded.push(path);
-            const {error:uploadError}=await writeClient.storage.from('invoice-images').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type});
+            const {error:uploadError}=await writeClient.storage.from('invoice-images').upload(path,file.content,{cacheControl:'3600',upsert:false,contentType:file.type});
             if(uploadError)throw new Error(`${i+1}-р зураг хадгалахад алдаа: ${uploadError.message}`);
             const {data:urlData}=writeClient.storage.from('invoice-images').getPublicUrl(path); const storedImageUrl=urlData?.publicUrl||'';
             const signedRows=await resolveInvoiceImageRows([{image_path:path,image_url:storedImageUrl}],3600,writeClient);const imageUrl=signedRows[0]?.resolved_url||'';imageUrls.push(imageUrl);

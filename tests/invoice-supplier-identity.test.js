@@ -143,7 +143,8 @@ vm.runInContext(fs.readFileSync(path.join(root,'invoice-cloud.js'),'utf8'),conte
   context.window.invoice(42);
   assert.match(sheetHtml,/maximus/,'the invoice sheet must capture the selected supplier');
 
-  const imageFile={name:'maximus-page-1.jpg',type:'image/jpeg',size:128};
+  const imageBytes=new Uint8Array([255,216,255,217]).buffer;
+  const imageFile={name:'maximus-page-1.jpg',type:'image/jpeg',size:128,arrayBuffer:async()=>imageBytes};
   elements.cloudGalleryInput.files=[imageFile];
   elements.cloudGalleryInput.onchange();
   assert.match(elements.cloudImageList.innerHTML,/maximus-page-1\.jpg/,'the selected image must be staged in the invoice sheet');
@@ -177,7 +178,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'invoice-cloud.js'),'utf8'),conte
   assert.match(draftSaves[1].p_image_url,/storage\.test/);
   assert.equal(imageUploads.length,1,'the image staged before queueing must upload exactly once');
   assert.equal(imageUploads[0].bucket,'invoice-images');
-  assert.equal(imageUploads[0].file,imageFile);
+  assert.equal(imageUploads[0].file,imageBytes,'upload must send the non-empty binary snapshot instead of the temporary camera File');
   assert.match(imageUploads[0].path,new RegExp(`^${storeId}/${supplierId}/${draftSaves[0].p_invoice_id}/page-1-`));
   assert.equal(imageRowInserts.length,1,'the uploaded image must create exactly one invoice_images row');
   assert.equal(imageRowInserts[0].invoice_id,draftSaves[0].p_invoice_id);
