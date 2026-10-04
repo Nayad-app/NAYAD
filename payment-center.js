@@ -404,15 +404,30 @@
     try{
       const storeId=activeStoreId(),supplierId=company.supabase_supplier_id||company.id;
       if(!storeId)throw new Error('Идэвхтэй дэлгүүр олдсонгүй.');
+      // Snapshot every selected image before uploading or changing the invoice.
+      // iOS camera Files can have a preview while their upload body is unavailable.
+      const preparedImages=[];
       for(let index=0;index<invoiceEditFiles.length;index++){
         const original=invoiceEditFiles[index].file;
-        const file=typeof window.compressInvoiceImage==='function'?await window.compressInvoiceImage(original):original;
-        const sourceExtension=((file.name||original.name||'').split('.').pop()||'jpg').toLowerCase();
+        try{
+          const file=typeof window.compressInvoiceImage==='function'?await window.compressInvoiceImage(original):original;
+          if(!file||typeof file.arrayBuffer!=='function')throw new Error('Unreadable image');
+          const content=await file.arrayBuffer();
+          if(!content||!Number.isFinite(content.byteLength)||content.byteLength===0)throw new Error('Empty image');
+          preparedImages.push({name:file.name||original.name||'image.jpg',type:file.type||original.type||'image/jpeg',content});
+        }catch(error){
+          console.warn('Invoice edit image preparation:',error);
+          throw new Error(`${index+1}-р зургийг уншиж чадсангүй. Дахин сонгох эсвэл зургийг хасаад хадгална уу.`);
+        }
+      }
+      for(let index=0;index<preparedImages.length;index++){
+        const file=preparedImages[index];
+        const sourceExtension=(file.name.split('.').pop()||'jpg').toLowerCase();
         const extension=['jpg','jpeg','png','webp','gif','heic','heif'].includes(sourceExtension)?sourceExtension:'jpg';
         const path=`${storeId}/${supplierId}/${invoiceId}/edit-${index+1}-${Date.now()}-${crypto.randomUUID()}.${extension}`;
         /* Track before awaiting: Storage may commit even when its response is lost. */
         uploadedPaths.push(path);
-        const {error:uploadError}=await sb().storage.from('invoice-images').upload(path,file,{cacheControl:'3600',upsert:false,contentType:file.type||original.type});
+        const {error:uploadError}=await sb().storage.from('invoice-images').upload(path,file.content,{cacheControl:'3600',upsert:false,contentType:file.type});
         if(uploadError)throw uploadError;
         const {data:urlData}=sb().storage.from('invoice-images').getPublicUrl(path);
         const imageUrl=urlData?.publicUrl||'';if(!imageUrl)throw new Error('Зургийн холбоос үүссэнгүй.');

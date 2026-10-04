@@ -13,6 +13,7 @@ const state={companies:[{id:1,supabase_supplier_id:'22222222-2222-4222-8222-2222
 const values={};
 const notices=[];
 const rpcCalls=[];
+const uploads=[];
 let sheetHtml='';
 let syncCount=0;
 
@@ -36,7 +37,11 @@ context.window.toast=message=>notices.push(message);
 context.window.nayadSupabase={
   rpc:async(name,args)=>{rpcCalls.push({name,args});return {data:[{invoice_id:invoice.id,invoice_status:'confirmed'}],error:null};},
   from:()=>({select(){return this;},eq(){return this;},is(){return this;},order(){return this;},limit(){return Promise.resolve({data:[],error:null});}}),
-  storage:{from:()=>({remove:async()=>({error:null})})}
+  storage:{from:()=>({
+    remove:async()=>({error:null}),
+    upload:async(path,content,options)=>{uploads.push({path,content,options});return {error:null};},
+    getPublicUrl:path=>({data:{publicUrl:'https://storage.test/'+path}})
+  })}
 };
 
 vm.createContext(context);
@@ -83,5 +88,30 @@ Object.assign(values,{
   assert.equal(rpcCalls[0].args.p_images,null,'leaving images untouched must preserve existing image rows');
   assert.equal(syncCount,1);
   assert.match(notices.at(-1),/өөрчлөлт хадгалагдлаа/);
+  values.invoiceEditPreviews={innerHTML:''};
+  const validBytes=new Uint8Array([255,216,255,217]).buffer;
+  const validImage={name:'photo.jpg',type:'image/jpeg',arrayBuffer:async()=>validBytes};
+  for(const arrayBuffer of [async()=>new ArrayBuffer(0),async()=>{throw new Error('Camera file unavailable');}]){
+    context.window.selectInvoiceEditFiles([validImage,{name:'empty.jpg',type:'image/jpeg',arrayBuffer}]);
+    await context.window.saveConfirmedInvoiceRevision(invoice.id);
+    assert.equal(uploads.length,0,'validate all pages before any upload');
+    assert.equal(rpcCalls.length,1,'unreadable images must not change the existing invoice');
+    assert.match(notices.at(-1),/2-р зургийг уншиж чадсангүй/);
+    assert.equal(values.saveInvoiceRevisionBtn.disabled,false,'allow correcting the image and retrying');
+  }
+  context.window.removeInvoiceEditFile(1);
+  await context.window.saveConfirmedInvoiceRevision(invoice.id);
+  assert.equal(uploads.length,1,'adding a photo later must upload once');
+  assert.equal(uploads[0].content,validBytes,'upload stable bytes instead of the temporary File');
+  assert.equal(uploads[0].options.contentType,'image/jpeg');
+  assert.equal(rpcCalls.length,2);
+  assert.equal(rpcCalls[1].args.p_images.length,1);
+  assert.equal(rpcCalls[1].args.p_images[0].page_number,1);
+  assert.equal(invoice.paid,455000,'image edits must not change paid money');
+  context.window.selectInvoiceEditFiles([{name:'empty.jpg',type:'image/jpeg',arrayBuffer:async()=>new ArrayBuffer(0)}]);
+  context.window.removeInvoiceEditFile(0);
+  await context.window.saveConfirmedInvoiceRevision(invoice.id);
+  assert.equal(rpcCalls.at(-1).args.p_images,null,'no selected photo remains optional');
+  assert.equal(uploads.length,1);
   console.log('invoice-edit-flow: PASS — paid totals are protected and valid edits preserve payments');
 })().catch(error=>{console.error(error);process.exitCode=1;});
