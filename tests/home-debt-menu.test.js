@@ -100,6 +100,21 @@ assert.equal(stored.NAYAD_HOME_DEBT_RANGE,JSON.stringify({start:addDays(2),end:a
 assert.equal(context.__nayadHomePeriodLabel(false),'Сонгосон хугацаанд төлөх');
 context.setHomeDebtView('all');
 const homeCard=context.card(companies[0],true);
+const countedInvoices=[
+  invoice('OPEN',addDays(30)),
+  {...invoice('PARTIAL',addDays(30)),paid:50},
+  {...invoice('PAID',addDays(30)),paid:100},
+  {...invoice('OVERPAID',addDays(30)),paid:120},
+  invoice('DRAFT',addDays(30),'draft'),
+  invoice('CANCELLED',addDays(30),'cancelled')
+];
+const countedContact={id:98,name:'Invoice count',contactType:'organization',debt:150,invoices:countedInvoices};
+assert.match(context.card(countedContact,true),/<span>2 падаан<\/span>/,'Home counts only invoices with unpaid balances');
+assert.equal(countedContact.invoices.length,6,'paid invoice history is preserved');
+countedInvoices[0].paid=100;
+assert.match(context.card(countedContact,true),/<span>1 падаан<\/span>/,'the count decreases after full payment');
+countedInvoices[0].paid=0;
+assert.match(context.card(countedContact,true),/<span>2 падаан<\/span>/,'reversing payment restores the count');
 assert.doesNotMatch(homeCard,/Төлөх<\/button>|Байгууллага|Дугааргүй|13 хоногийн дараа/,'home cards must keep only the compact approved content');
 assert.match(homeCard,/homeDebtChevron/,'the whole compact card must advertise navigation');
 const colorCard=(id,date,due)=>context.card({id,name:`Color ${id}`,contactType:'organization',debt:100,invoices:[invoice(id,due,'confirmed',date)]},true);
