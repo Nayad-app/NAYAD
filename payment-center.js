@@ -134,7 +134,7 @@
     const company=companyById(id);if(!company)return;
     financeSync();
     try{selected=company;}catch(_){ }
-    const invoices=(company.invoices||[]).filter(invoice=>(invoice.status||'confirmed')!=='draft').slice().sort((a,b)=>String(dueOf(a)||a.date||'').localeCompare(String(dueOf(b)||b.date||'')));
+    const invoices=(company.invoices||[]).filter(invoice=>(invoice.status||'confirmed')!=='draft').sort((a,b)=>{const rank=i=>i.status==='cancelled'?2:Math.max((Number(i.amount)||0)-(Number(i.paid)||0),0)>0?0:1;return rank(a)-rank(b)||String(b.date||b.invoice_date||'').localeCompare(String(a.date||a.invoice_date||''));});
     const content=document.getElementById('content');if(!content)return;
     content.innerHTML=`<button class="back" onclick="page='companies';render()">← Буцах</button><div class="center"><div class="circle ${esc(company.color||'green')}" style="margin:auto;width:48px;height:48px">${esc((company.name||'N').slice(0,1).toUpperCase())}</div><h2 style="margin:8px 0 2px">${esc(company.name)}</h2><div class="bigAmount">${amount(company.debt)}</div><div class="sub">Баталгаажсан нийт өр</div></div>
       <div class="sectionTitle">Харилцагчийн мэдээлэл</div><div class="card"><div class="invoice"><div><small>Регистр</small><b>${esc(company.reg||'—')}</b></div></div><div class="invoice"><div><small>Хаяг</small><b>${esc(company.address||'—')}</b></div></div><div class="invoice"><div><small>Худалдааны төлөөлөгч</small><b>${esc(company.sales||'—')}</b></div><div>${typeof tel==='function'?tel(company.salesPhone):''}</div></div><div class="invoice"><div><small>Банк</small><b>${esc(company.bank||'—')}</b></div></div><div class="invoice"><div><small>Дансны дугаар</small><b>${esc(company.bankAccount||'—')}</b></div></div></div>

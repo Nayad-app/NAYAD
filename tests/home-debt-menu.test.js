@@ -127,5 +127,21 @@ assert.match(overdueColorCard,new RegExp(`Төлөх өдөр ${addDays(-1).repl
 const mixedRiskCard=context.card({id:99,name:'Mixed',contactType:'organization',debt:200,invoices:[invoice('SAFE',addDays(30),'confirmed',addDays(0)),invoice('LATE',addDays(-1),'confirmed',addDays(-31))]},true);
 assert.match(mixedRiskCard,/style="color:#8B2B22"/,'a contact total must use the riskiest unpaid invoice color');
 assert.equal(renders,14);
+const sortedInvoices=[
+  {...invoice('PAID-OLD',addDays(1),'confirmed','2026-07-01'),paid:100},
+  invoice('OPEN-OLD',addDays(-1),'confirmed','2026-08-01'),
+  {...invoice('PAID-NEW',addDays(2),'confirmed','2026-10-01'),paid:100},
+  {...invoice('PARTIAL-NEW',addDays(30),'confirmed','2026-09-01'),paid:50},
+  invoice('HIDDEN-DRAFT',addDays(1),'draft','2026-10-02'),
+  invoice('CANCELLED-LAST',addDays(1),'cancelled','2026-10-03')
+];
+const orderBefore=sortedInvoices.map(i=>i.id);
+companies.push({id:100,name:'Sort test',contactType:'organization',debt:150,invoices:sortedInvoices});
+documentNodes.content={innerHTML:''};
+context.company(100);
+const rendered=documentNodes.content.innerHTML;
+const renderedOrder=Array.from(rendered.matchAll(/onclick="window.showInvoiceDetails\('([^']+)'\)"/g),m=>m[1]);
+assert.deepEqual(renderedOrder,['PARTIAL-NEW','OPEN-OLD','PAID-NEW','PAID-OLD','CANCELLED-LAST'],'unpaid first, newest invoice date first within each group');
+assert.deepEqual(sortedInvoices.map(i=>i.id),orderBefore,'display sorting must not reorder the stored invoice data');
 
 console.log('home-debt-menu: PASS — anchored icon menu, date filters, amount sort and name toggle are correct');
