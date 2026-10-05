@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v147";
+const CACHE = "nayad-v148";
 
 const ASSETS = [
   "./",
@@ -26,8 +26,9 @@ const ASSETS = [
   "./subscription.js?v=5",
   "./invoice-cloud.js?v=78",
   "./supplier-cloud.js?v=62",
-  "./payment-center.js?v=14",
-  "./loans.js?v=3",
+  "./payment-center.js?v=15",
+  "./payment-statement.js?v=1",
+  "./loans.js?v=4",
   "./contact-types.js?v=20",
   "./company-label.js",
   "./member-permissions.js?v=2"
@@ -89,10 +90,10 @@ function patchDocument(html){
   patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=2");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=5");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=78");
-  patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=14");
+  patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=15");
   patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=2");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=62");
-  patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=3");
+  patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=4");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=78","./money-input.js?v=1");
   patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=20");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=64","./registration-onboarding.js?v=2");
@@ -103,11 +104,12 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./profile-menu.js?v=5","./admin-dashboard.js?v=2");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
-  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=78","./payment-center.js?v=14");
-  patched=injectScriptAfter(patched,"./payment-center.js?v=14","./loans.js?v=3");
+  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=78","./payment-center.js?v=15");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=15","./loans.js?v=4");
   patched=injectScriptBefore(patched,"./supplier-cloud.js?v=62","./contact-types.js?v=20");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
+  patched=injectScriptBefore(patched,"./payment-center.js?v=15","./payment-statement.js?v=1");
   return patched;
 }
 

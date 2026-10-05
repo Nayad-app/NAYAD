@@ -299,7 +299,7 @@
   `;document.head.appendChild(style);
 
   const basePayments=window.payments;
-  if(typeof basePayments==='function')window.payments=function(){return basePayments()+paymentLoanSection();};
+  if(typeof basePayments==='function')window.payments=function(){return basePayments()+(window.NayadStatement?.isActive()?'':paymentLoanSection());};
 
   window.loans=loanPage;
   window.__nayadSyncLoans=syncLoans;

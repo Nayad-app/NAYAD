@@ -105,12 +105,14 @@
   }
 
   function paymentCenter(){
+    if(window.NayadStatement?.isActive())return `<div class="paymentHead"><div><div class="hello">Өглөгийн удирдлага</div><div class="name">Төлбөрийн төв</div></div></div>${window.NayadStatement.tabs()}${window.NayadStatement.html()}`;
     financeSync();
     const rows=orderedInvoices(),current=today();
     const dueToday=rows.filter(item=>daysBetween(current,item.due)===0);
     const week=rows.filter(item=>{const days=daysBetween(current,item.due);return days>=0&&days<=7;});
     const overdue=rows.filter(item=>daysBetween(current,item.due)<0);
     return `<div class="paymentHead"><div><div class="hello">Өглөгийн удирдлага</div><div class="name">Төлбөрийн төв</div></div><button class="noticeButton" onclick="showNotificationCenter()" aria-label="Мэдэгдэл"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>${unreadNotifications.length?`<i>${unreadNotifications.length}</i>`:''}</button></div>
+      ${window.NayadStatement?.tabs()||''}
       <div class="paySummaryGrid">
         ${summaryCard('Өнөөдөр төлөх',dueToday.reduce((sum,item)=>sum+item.balance,0),dueToday.length,'today','▣')}
         ${summaryCard('Энэ 7 хоногт төлөх',week.reduce((sum,item)=>sum+item.balance,0),week.length,'week','▦')}
