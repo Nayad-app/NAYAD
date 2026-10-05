@@ -150,7 +150,6 @@
       const name=val('newName'); if(!name){toastMsg('Компанийн нэр оруулна уу.');return;}
       if(duplicateLocalSupplier(name)){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
       const bank=val('newBank'),bankIban=val('newBankIban').replace(/[\s-]+/g,'').toUpperCase().replace(/^MN/,''),bankAccount=val('newBankAccount').replace(/[\s-]+/g,'').toUpperCase(),bankAccountHolder=val('newBankAccountHolder');
-      if(!bank||!bankAccount||!bankAccountHolder){toastMsg('Банк, дансны дугаар, данс эзэмшигчийн нэрийг бөглөнө үү.');return;}
       const draft={contactType:val('newContactType'),name,phone:val('newPhone'),reg:'',address:val('newAddress'),director:val('newDirector'),directorPhone:val('newDirectorPhone'),sales:val('newSales'),salesPhone:val('newSalesPhone'),orgPhone:'',note:val('newNote'),bank,bankIban,bankAccount,bankAccountHolder,logoPath:'',logoUrl:'',status:'active'};
       try{
         await queueSupplierMutation(async()=>{
@@ -179,7 +178,6 @@
         if(!target){originalSaveEdit();return;}
         const draft={...target,contactType:val('eContactType'),name:val('eName')||target.name,phone:val('ePhone'),reg:'',address:val('eAddress'),director:val('eDirector'),directorPhone:val('eDirectorPhone'),sales:val('eSales'),salesPhone:val('eSalesPhone'),orgPhone:'',note:val('eNote'),bank:val('eBank'),bankIban:val('eBankIban').replace(/[\s-]+/g,'').toUpperCase().replace(/^MN/,''),bankAccount:val('eBankAccount').replace(/[\s-]+/g,'').toUpperCase(),bankAccountHolder:val('eBankAccountHolder'),status:val('eStatus')||'active'};
         if(duplicateLocalSupplier(draft.name,target.id)){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
-        if(!draft.bank||!draft.bankAccount||!draft.bankAccountHolder){toastMsg('Банк, дансны дугаар, данс эзэмшигчийн нэрийг бөглөнө үү.');return;}
         await queueSupplierMutation(async()=>{
           const store=await myStore(),cloud=await ensureCloudSupplier(draft),logo=await applyLogoChange(store,cloud,draft,target);
           target.supabase_supplier_id=cloud.id;

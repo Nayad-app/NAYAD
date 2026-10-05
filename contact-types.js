@@ -13,14 +13,10 @@
   const fieldValue=id=>typeof window.v==='function'?window.v(id):document.getElementById(id)?.value?.trim?.()||'';
   const input=(id,label,value='',placeholder='',type='text',hint='')=>`<div class="field"><label for="${id}">${label}</label><input id="${id}" type="${type}" value="${esc(value)}" placeholder="${esc(placeholder)}">${hint?`<small class="contactFieldHint">${esc(hint)}</small>`:''}</div>`;
   const area=(id,label,value='',placeholder='')=>`<div class="field"><label for="${id}">${label}</label><textarea id="${id}" placeholder="${esc(placeholder)}">${esc(value)}</textarea></div>`;
-  const bankHolder=(id,value='')=>input(id,'Данс эзэмшигчийн нэр *',value,'Нэрээ оруулна уу');
+  const bankHolder=(id,value='')=>input(id,'Данс эзэмшигчийн нэр — заавал биш',value,'Нэрээ оруулна уу');
   const copyIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"></path></svg>';
   const bankCopyField=(id,label,value,placeholder,copyAction,hint='')=>`<div class="field bankCopyField"><label for="${id}">${label}</label><div class="bankCopyInput"><input id="${id}" type="text" maxlength="34" autocomplete="off" value="${esc(value||'')}" placeholder="${esc(placeholder)}"><button type="button" class="bankCopyButton" onclick="${copyAction}" aria-label="${esc(label)} хуулах" title="${esc(label)} хуулах">${copyIcon}</button></div>${hint?`<small class="contactFieldHint">${esc(hint)}</small>`:''}</div>`;
-  const bankFields=(prefix,contact)=>`${window.bankSelect(prefix+'Bank','Банк *',contact?.bank||'')}${bankCopyField(prefix+'BankIban','IBAN — заавал биш',contact?.bankIban||'','Жишээ: 69000500',`copyBankIban('${prefix}BankIban','${prefix}BankAccount')`,'Хуулах тэмдэг дарвал IBAN болон дансны дугаар хамт хуулагдана.')}${bankCopyField(prefix+'BankAccount','Дансны дугаар',contact?.bankAccount||'','Дансны дугаараа оруулна уу',`copyBankAccount('${prefix}BankAccount')`)}${bankHolder(prefix+'BankAccountHolder',contact?.bankAccountHolder||'')}`;
-  const requireBank=(bank,account,holder)=>{
-    if(!bank||!account||!holder){window.toast('Банк, дансны дугаар, данс эзэмшигчийн нэрийг бөглөнө үү.');return false;}
-    return true;
-  };
+  const bankFields=(prefix,contact)=>`${window.bankSelect(prefix+'Bank','Банк — заавал биш',contact?.bank||'')}${bankCopyField(prefix+'BankIban','IBAN — заавал биш',contact?.bankIban||'','Жишээ: 69000500',`copyBankIban('${prefix}BankIban','${prefix}BankAccount')`,'Хуулах тэмдэг дарвал IBAN болон дансны дугаар хамт хуулагдана.')}${bankCopyField(prefix+'BankAccount','Дансны дугаар — заавал биш',contact?.bankAccount||'','Дансны дугаараа оруулна уу',`copyBankAccount('${prefix}BankAccount')`)}${bankHolder(prefix+'BankAccountHolder',contact?.bankAccountHolder||'')}`;
   const cleanBankPart=value=>String(value||'').trim().replace(/[\s-]+/g,'').toUpperCase();
   async function copyBankValue(value,success){
     if(!value){window.toast('Хуулах мэдээлэл оруулаагүй байна.');return;}
@@ -423,13 +419,13 @@
   }
   function saveCompany(){
     if(!requireCompletedRegistration())return;
-    const draft=readContact('new');if(!draft.name)return window.toast('Нэр эсвэл байгууллагын нэрийг оруулна уу.');if(draft.contactType===PERSON&&!draft.phone)return window.toast('Утасны дугаараа оруулна уу.');if(!requireBank(draft.bank,draft.bankAccount,draft.bankAccountHolder))return;
+    const draft=readContact('new');if(!draft.name)return window.toast('Нэр эсвэл байгууллагын нэрийг оруулна уу.');if(draft.contactType===PERSON&&!draft.phone)return window.toast('Утасны дугаараа оруулна уу.');
     if(data.companies.some(c=>String(c.name||'').trim().toLowerCase()===draft.name.toLowerCase()))return window.toast('Ийм нэртэй харилцагч бүртгэлтэй байна.');
     data.companies.push({id:Date.now(),...draft,status:'active',color:draft.contactType===PERSON?'green':'blue',invoices:[]});window.save();window.closeSheet();window.render();window.toast('Харилцагч бүртгэгдлээ.');
   }
   function editCompany(id){setContactCallNoticeMode(false);selected=data.companies.find(c=>c.id===id);if(!selected)return;if(pendingContactLogo?.objectUrl)URL.revokeObjectURL(pendingContactLogo.objectUrl);pendingContactLogo=null;editContactDraft={...selected};showContactForm(validType(selected.contactType),editContactDraft);}
   function saveEdit(){
-    if(!selected)return;const draft=readContact('e');if(!draft.name)return window.toast('Нэр эсвэл байгууллагын нэрийг оруулна уу.');if(draft.contactType===PERSON&&!draft.phone)return window.toast('Утасны дугаараа оруулна уу.');if(!requireBank(draft.bank,draft.bankAccount,draft.bankAccountHolder))return;
+    if(!selected)return;const draft=readContact('e');if(!draft.name)return window.toast('Нэр эсвэл байгууллагын нэрийг оруулна уу.');if(draft.contactType===PERSON&&!draft.phone)return window.toast('Утасны дугаараа оруулна уу.');
     if(data.companies.some(c=>c!==selected&&String(c.name||'').trim().toLowerCase()===draft.name.toLowerCase()))return window.toast('Ийм нэртэй харилцагч бүртгэлтэй байна.');
     Object.assign(selected,draft,{status:fieldValue('eStatus')||'active'});window.save();window.closeSheet();page='companies';window.render();window.toast('Мэдээлэл шинэчлэгдлээ.');
   }

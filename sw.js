@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v146";
+const CACHE = "nayad-v147";
 
 const ASSETS = [
   "./",
@@ -25,10 +25,10 @@ const ASSETS = [
   "./admin-dashboard.js?v=2",
   "./subscription.js?v=5",
   "./invoice-cloud.js?v=78",
-  "./supplier-cloud.js?v=61",
+  "./supplier-cloud.js?v=62",
   "./payment-center.js?v=14",
   "./loans.js?v=3",
-  "./contact-types.js?v=19",
+  "./contact-types.js?v=20",
   "./company-label.js",
   "./member-permissions.js?v=2"
 ];
@@ -91,10 +91,10 @@ function patchDocument(html){
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=78");
   patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=14");
   patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=2");
-  patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=61");
+  patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=62");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=3");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=78","./money-input.js?v=1");
-  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=19");
+  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=20");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=64","./registration-onboarding.js?v=2");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=64","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
@@ -105,7 +105,7 @@ function patchDocument(html){
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=78","./payment-center.js?v=14");
   patched=injectScriptAfter(patched,"./payment-center.js?v=14","./loans.js?v=3");
-  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=61","./contact-types.js?v=19");
+  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=62","./contact-types.js?v=20");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   return patched;

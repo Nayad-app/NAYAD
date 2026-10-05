@@ -23,7 +23,7 @@ function deferred(){
 
 const values={
   newContactType:'organization',newName:'maximus',newPhone:'70000000',newAddress:'',newDirector:'',newDirectorPhone:'',
-  newSales:'',newSalesPhone:'',newNote:'',newBank:'ХААН банк',newBankAccount:'5000000000',newBankAccountHolder:'maximus'
+  newSales:'',newSalesPhone:'',newNote:'',newBank:'',newBankAccount:'',newBankAccountHolder:''
 };
 
 function supplierQuery(){
@@ -111,6 +111,9 @@ vm.runInContext(fs.readFileSync(path.join(root,'supplier-cloud.js'),'utf8'),cont
   assert.equal(inserts.length,1,'supplier must be inserted exactly once');
   assert.equal(inserts[0].store_id,storeId);
   assert.equal(inserts[0].name,'maximus');
+  assert.equal(inserts[0].bank_name,null);
+  assert.equal(inserts[0].bank_account,null);
+  assert.equal(inserts[0].bank_account_holder,null);
   assert.equal(originalSaveCalls,1,'the local supplier must be created exactly once');
 
   const saved=JSON.parse(storage.get(key));

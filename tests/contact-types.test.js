@@ -161,4 +161,19 @@ assert.match(source,/window\.setContactListFilter=setContactListFilter/);
 assert.match(source,/\.contactCallButton\{[^}]*width:36px;height:36px;[^}]*background:#20A44B;color:#fff/,'call action must use the approved green circle and white icon');
 assert.match(source,/if\(!event\.target\?\.closest\?\.\('\.contactSearchRow'\)\)closeContactFilterMenu/,'outside taps must close the contact dropdown');
 
-console.log('contact-types: PASS — approved numbered contacts, phone-1 calling and anchored type filter are wired');
+for(const bankFields of [
+  {bank:'',bankIban:'',bankAccount:'',bankAccountHolder:''},
+  {bank:'',bankIban:'',bankAccount:'123456',bankAccountHolder:''},
+  {bank:'ХААН банк',bankIban:'69000500',bankAccount:'123456',bankAccountHolder:'Holder'}
+]){
+  const contact={id:200+data.companies.length,name:'Optional '+data.companies.length,contactType:'organization',...bankFields,invoices:[]};
+  data.companies.push(contact);
+  context.editCompany(contact.id);
+  values.eContactType='organization';values.eName=contact.name+' edited';
+  values.eBank=bankFields.bank;values.eBankIban=bankFields.bankIban;
+  values.eBankAccount=bankFields.bankAccount;values.eBankAccountHolder=bankFields.bankAccountHolder;
+  context.saveEdit();
+  assert.match(contact.name,/ edited$/,'editing must save with blank or partial bank information');
+  for(const key of Object.keys(bankFields))assert.equal(contact[key],bankFields[key],'existing banking values are preserved');
+}
+console.log('contact-types: PASS — optional bank fields and contact controls work');
