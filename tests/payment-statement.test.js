@@ -6,12 +6,17 @@ const records=Array.from({length:251},(_,i)=>({id:'p'+i,status:'posted',supplier
 const ctx={console,Intl,Date,setTimeout:()=>0,document:{head:{appendChild(){}},createElement:()=>({}),getElementById:id=>elements[id]||{classList:{add(){}}}},page:'payments',render(){},__nayadActiveStoreId:'store-a',__nayadState:{read:()=>({companies:[{supabase_supplier_id:'supplier-a',name:'Example',invoices:[]}]})},sheet(s){modal=s;},closeSheet(){},toast(s){ctx.message=s;}};
 ctx.window=ctx;
 ctx.nayadSupabase={from(table){const q={};return {select(){return this;},eq(k,v){q[k]=v;return this;},gte(){return this;},lte(){return this;},order(){return this;},in(k,v){q[k]=v;return this;},async range(a,b){scopes.push({...q,table,a});if(requestHold){const p=requestHold;requestHold=null;await p;}if(fail)return {error:{message:'offline'}};return {data:table==='payments'?records.slice(a,b+1):a===0&&q.payment_id.includes('p0')?[{payment_id:'p0',invoice_id:'i1',cash_amount:60,invoices:{invoice_no:'INV-1'}},{payment_id:'p0',invoice_id:'i2',cash_amount:40,invoices:{invoice_no:'INV-2'}}]:[]};}};}};
-vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../payment-statement.js'),'utf8'),ctx);
+ctx.nayadSupabase.rpc=(name,args)=>({async range(offset){scopes.push({table:name,...args});return {data:offset?[]:[{id:'invoice:i1',kind:'invoice',supplier_id:'supplier-a',supplier_name:'Баясах',amount:450,invoice_no:'INV-103',created_at:'2026-10-05T02:00:00Z',actor_name:'Test Owner'},{id:'audit:1',kind:'change',supplier_id:'supplier-a',amount:450,before:{amount:500},after:{amount:450},created_at:'2026-10-05T03:00:00Z',actor_name:'Test Owner'}]};}});
+vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../statement-search.js'),'utf8'),ctx);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../payment-statement.js'),'utf8'),ctx);
 (async()=>{
  const api=ctx.NayadStatement;
  await api.reload();
  assert.match(api.html(),/251 гүйлгээ/,'must paginate past first page');
  assert.match(api.html(),/25,100/,'sum payments once, not once per allocation');
+ assert.match(api.html(),/Test Owner/);assert.match(api.html(),/500 ₮ → 450 ₮/);
+ assert.ok(scopes.filter(q=>q.table==='statement_activity').every(q=>q.p_store==='store-a'));
+ api.details('audit:1');assert.match(modal,/500 ₮ → 450 ₮/);
+ assert.equal(api.filterRows([{kind:'invoice',created_at:'2026-10-05T01:00:00Z',supplier_name:'Баясах',amount:10}],{from:'2026-10-05',to:'2026-10-05',min:'',max:'',kind:'invoice',query:'bayasah'}).length,1);
  assert.ok(scopes.filter(q=>q.table==='payments').every(q=>q.store_id==='store-a'));
  assert.ok(scopes.filter(q=>q.table==='payment_allocations').every(q=>q['payments.store_id']==='store-a'));
  const f={from:'2026-10-05',to:'2026-10-05',supplier:'supplier-a',min:'100',max:'100',note:'БАРАА',invoice:'inv-2'};
