@@ -124,5 +124,6 @@ async function dispatch(request){
   console.log('service-worker-cache: PASS — Supabase API traffic always bypasses CacheStorage');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
-assert.equal(patchedTwice.split('./payment-statement.js?v=1').length-1,1,'statement module injected once');
-assert.ok(patchedTwice.indexOf('./payment-statement.js?v=1')<patchedTwice.indexOf('./payment-center.js?v=15'),'statement loads before center');
+assert.equal(patchedTwice.split('./payment-statement.js?v=2').length-1,1,'statement module injected once');
+assert.ok(patchedTwice.indexOf('./payment-statement.js?v=2')<patchedTwice.indexOf('./payment-center.js?v=15'),'statement loads before center');
+assert.ok(patchedTwice.indexOf('./statement-search.js?v=1')<patchedTwice.indexOf('./payment-statement.js?v=2'),'search loads before statement');
