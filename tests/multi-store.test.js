@@ -25,7 +25,7 @@ const content={firstChild:null,querySelector:()=>null,insertBefore(){}};
 const app={classList:{contains:()=>false}};
 
 const context={
-  console,Intl,setTimeout:fn=>{fn();return 1;},clearTimeout(){},
+  console,Intl,Date:class extends Date{constructor(...args){super(...(args.length?args:['2026-09-01T00:00:00Z']))}static now(){return Date.parse('2026-09-01T00:00:00Z')}},setTimeout:fn=>{fn();return 1;},clearTimeout(){},
   localStorage:{getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,String(value)),removeItem:key=>values.delete(key)},
   document:{
     head:{insertAdjacentHTML(){}},
@@ -73,6 +73,10 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
   assert.equal(stores.length,2,'both owned and shared stores must be listed');
   assert.equal(context.window.__nayadActiveStoreId,ownId);
   assert.equal(renderedCompany,'OWN DATA','remembered owned store data must load');
+  let modalCloses=0;
+  context.window.closeSheet=()=>{modalCloses++;};
+  await context.window.__nayadRefreshStores({sync:false});
+  assert.equal(modalCloses,0,'background store refresh must preserve the current dialog');
   context.window.showNayadStorePicker();
   assert.match(pickerHtml,/tsendun store/);
   assert.match(pickerHtml,/NAYAD/);

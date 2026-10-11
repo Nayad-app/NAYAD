@@ -298,7 +298,7 @@
     const current=window.__nayadActiveStoreId;
     const completed=stores.filter(isComplete);
     const selectedId=[requested,remembered,current].find(id=>id&&completed.some(s=>String(s.id)===String(id)))||completed[0]?.id;
-    if(selectedId)await activateStore(selectedId,{sync:options.sync!==false,close:options.close});
+    if(selectedId)await activateStore(selectedId,{sync:options.sync!==false,close:options.close===true});
     else{
       window.__nayadActiveStore=null;window.__nayadActiveStoreId=null;
       localStorage.removeItem(ACTIVE_PREFIX+uid);
