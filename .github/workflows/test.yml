@@ -18,3 +18,6 @@ jobs:
         with:
           node-version: 22
       - run: node --test tests/*.test.js
+      - run: npm ci --prefix tests/push-validation --ignore-scripts
+      - run: NODE_PATH="$PWD/tests/push-validation/node_modules" node tests/push-database.cjs
+      - run: NODE_PATH="$PWD/tests/push-validation/node_modules" node tests/push-settings.cjs
