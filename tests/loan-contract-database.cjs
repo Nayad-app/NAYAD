@@ -1,0 +1,42 @@
+const {PGlite}=require('@electric-sql/pglite'),fs=require('fs'),assert=require('node:assert/strict'),S=require('../loan-contract-schedule');
+(async()=>{
+ const db=new PGlite();await db.exec(`create role anon;create role authenticated;create schema auth;
+ create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ create table public.stores(id uuid primary key);create table public.store_members(store_id uuid,user_id uuid,role text);
+ create schema private;create function private.has_store_permission(s uuid,m text,a text) returns boolean language sql as $$select exists(select 1 from public.store_members where store_id=s and user_id=auth.uid() and role in ('owner','manager'))$$;
+ create table public.finance_audit_events(store_id uuid,entity_type text,entity_id uuid,action text,actor_id uuid,details jsonb);
+ grant usage on schema auth to authenticated;grant select on public.store_members to authenticated;`);
+ const base=fs.readFileSync('supabase/migrations/20260823100000_add_loan_module.sql','utf8').split('insert into storage.buckets')[0];await db.exec(base);
+ await db.exec(fs.readFileSync('supabase/migrations/20260823100100_harden_loan_privileges.sql','utf8'));
+ await db.exec(fs.readFileSync('supabase/migrations/20261012044121_contract_loan_schedules.sql','utf8'));
+ const u='11111111-1111-4111-8111-111111111111',s='22222222-2222-4222-8222-222222222222',other='33333333-3333-4333-8333-333333333333';
+ await db.exec(`insert into auth.users values('${u}'),('${other}');insert into stores values('${s}');insert into store_members values('${s}','${u}','owner');set role authenticated;select set_config('request.jwt.claim.sub','${u}',false);`);
+ const d={principal:36800000,startDate:'2026-01-20',firstDate:'2026-02-05',paymentDay:5,term:18,regular:2369500,last:2369437.37};let rows=S.generate(d);
+ async function save(id=null,rev=null,r=rows,principal=d.principal){return (await db.query('select save_contract_loan($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) as id',[s,id,rev,'bank','Test lender','Test loan',principal,d.startDate,5,JSON.stringify(r)])).rows[0].id;}
+ const request='44444444-4444-4444-8444-444444444444';
+ const args=[s,null,null,'bank','Test lender','Test loan',d.principal,d.startDate,5,JSON.stringify(rows),request];
+ const once=(await db.query('select save_contract_loan($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) as id',args)).rows[0].id;
+ const twice=(await db.query('select save_contract_loan($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) as id',args)).rows[0].id;
+ assert.equal(once,twice,'lost response retry is idempotent');
+ const id=once;let loan=(await db.query('select * from loans where id=$1',[id])).rows[0];assert.equal(loan.schedule_revision,18);
+ assert.equal((await db.query('select sum(total_amount) as total from loan_installments where loan_id=$1',[id])).rows[0].total,'42650937.37');
+ assert.equal((await db.query('select count(*) as c from loan_installments where principal_amount is null')).rows[0].c,18);
+ rows[0].due_date='2026-02-06';await save(id,loan.schedule_revision);loan=(await db.query('select * from loans where id=$1',[id])).rows[0];
+ // Another device pays while editor is open.
+ await db.query("update loan_installments set status='paid',paid_amount=total_amount,paid_at='2026-02-06T12:00:00+08:00' where loan_id=$1 and installment_number=1",[id]);
+ await assert.rejects(()=>save(id,loan.schedule_revision),/өөр төхөөрөмж/);
+ loan=(await db.query('select * from loans where id=$1',[id])).rows[0];
+ await assert.rejects(()=>save(id,loan.schedule_revision),/Төлсөн мөр/);
+ rows=(await db.query('select * from loan_installments where loan_id=$1 order by installment_number',[id])).rows.map(r=>({...r,total_amount:Number(r.total_amount)}));
+ rows[1].due_date='2026-03-06';await save(id,loan.schedule_revision);
+ const before=(await db.query('select count(*) c from loans')).rows[0].c;
+ const invalid=S.generate(d);invalid[1].due_date=invalid[0].due_date;await assert.rejects(()=>save(null,null,invalid));
+ assert.equal((await db.query('select count(*) c from loans')).rows[0].c,before,'atomic rejection');
+ const paid=S.generate(d);paid[0].status='paid';paid[0].paid_at='2026-02-05T12:00:00+08:00';const paidId=await save(null,null,paid);
+ assert.equal((await db.query('select paid_amount from loan_installments where loan_id=$1 and installment_number=1',[paidId])).rows[0].paid_amount,'2369500.00');
+ const bad=S.generate(d);bad[0].principal_amount=100;bad[0].interest_amount=1;await assert.rejects(()=>save(null,null,bad),/нийт дүн/);
+ await db.exec(`select set_config('request.jwt.claim.sub','${other}',false)`);await assert.rejects(()=>save(),/эрхгүй/);assert.equal((await db.query('select * from loans')).rows.length,0);
+ await db.exec('reset role;set role anon');await assert.rejects(()=>save(),/permission denied/);
+ await db.exec('reset role');const rights=await db.query("select has_function_privilege('anon','public.save_contract_loan(uuid,uuid,integer,text,text,text,numeric,date,integer,jsonb,uuid)','EXECUTE') as anon");assert.equal(rights.rows[0].anon,false);
+ console.log('PASS: contract SQL, exact totals, null breakdown, atomic rejection, paid preservation, stale-edit protection, RLS and RPC privileges');await db.close();
+})().catch(e=>{console.error(e);process.exitCode=1;});

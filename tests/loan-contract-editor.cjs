@@ -1,0 +1,23 @@
+const {JSDOM}=require('jsdom'),fs=require('fs'),assert=require('node:assert/strict');
+(async()=>{
+ const dom=new JSDOM('<button id="origin">Зээл нэмэх</button>',{url:'https://nayad.store',runScripts:'outside-only'}),w=dom.window;
+ let store='store',writes=[],uploadFail=false,uploads=0,loan=null,message='',resolveRPC;
+ w.__nayadUser={id:'user'};w.confirm=()=>true;w.toast=s=>message=s;
+ w.NayadLoanEditorBridge={client:()=>({rpc:async(name,args)=>{writes.push({name,args});if(resolveRPC)await new Promise(r=>resolveRPC=r);return {data:'new-loan'};}}),storeId:()=>store,canManage:()=>true,find:()=>loan,closeLegacy(){},sync:async()=>{},upload:async()=>{uploads++;if(uploadFail)throw Error('upload failed');}};
+ for(const f of ['loan-contract-schedule.js','loan-contract-editor.js'])w.eval(fs.readFileSync(f,'utf8'));
+ const $=id=>w.document.getElementById(id),click=action=>w.document.querySelector(`[data-action="${action}"]`).click(),change=id=>$(id).dispatchEvent(new w.Event('change',{bubbles:true})),tick=()=>new Promise(r=>setImmediate(r));
+ function fill(){for(const [id,v] of Object.entries({cLender:'Test',cName:'Loan',cPrincipal:'36,800,000',cStart:'2026-01-20',cFirst:'2026-02-05',cDay:'5',cTerm:'18',cRegular:'2369500',cLast:'2369437.37'}))$(id).value=v;}
+ w.showLoanCreate();fill();click('preview');assert.equal(w.document.querySelectorAll('.contractRow').length,18);assert.match($('cSum').textContent,/42,650,937.37/);
+ $('cDate0').value='2026-02-06';change('cDate0');click('back');click('preview');assert.equal($('cDate0').value,'2026-02-06','back preserves edits');
+ $('cHistory').checked=true;change('cHistory');const check=w.document.querySelector('[data-key="paid"]');check.checked=true;check.dispatchEvent(new w.Event('change',{bubbles:true}));
+ click('save');await tick();assert.equal(writes.length,0,'paid date required');
+ const paidDate=w.document.querySelector('[data-key="paid_at"]');paidDate.value='2026-02-06';paidDate.dispatchEvent(new w.Event('change',{bubbles:true}));
+ click('save');click('save');await tick();assert.equal(writes.length,1,'double click guarded');assert.equal(writes[0].args.p_rows[0].status,'paid');assert.equal(writes[0].args.p_rows[1].status,'pending');assert.ok(writes[0].args.p_request_id);assert.equal($('loanContractOverlay'),null);
+ w.showLoanCreate();fill();click('preview');store='other';click('save');await tick();assert.equal(writes.length,1);assert.match($('contractError').textContent,/өөрчлөгдсөн/);store='store';click('close');
+ w.showLoanCreate();fill();const file=new w.File(['test'],'schedule.pdf',{type:'application/pdf'});Object.defineProperty($('cFiles'),'files',{value:[file]});change('cFiles');click('preview');uploadFail=true;click('save');await tick();assert.equal(writes.length,2);assert.match($('contractTitle').textContent,/хадгалагдсан/);
+ uploadFail=false;click('save');await tick();assert.equal(writes.length,2,'upload retry cannot create another loan');assert.equal(uploads,2);assert.equal($('loanContractOverlay'),null);
+ loan={id:'old-loan',schedule_revision:7,lender_type:'bank',lender_name:'Lender',loan_name:'Existing',principal:100,start_date:'2026-01-01',payment_day:5,term_months:2,installments:[{installment_number:1,due_date:'2026-02-05',total_amount:60,principal_amount:50,interest_amount:10,status:'paid',paid_at:'2026-02-05T04:00:00Z'},{installment_number:2,due_date:'2026-03-05',total_amount:60,principal_amount:50,interest_amount:10,status:'pending',paid_at:null}]};
+ w.showLoanEdit('old-loan');click('preview');assert.equal($('cDate0').disabled,true);assert.equal($('cTotal0').disabled,true);assert.equal($('cHistory'),null);
+ $('cDate1').value='2026-03-07';change('cDate1');click('save');await tick();assert.equal(writes.at(-1).args.p_expected_revision,7);assert.equal(writes.at(-1).args.p_rows[0].paid_at,'2026-02-05T04:00:00Z');assert.equal(writes.at(-1).args.p_rows[1].due_date,'2026-03-07');
+ console.log('PASS: editor generation, row/back preservation, explicit historical dates, duplicate click, context switch, upload retry without duplicate loan');dom.window.close();
+})().catch(e=>{console.error(e);process.exitCode=1;});
