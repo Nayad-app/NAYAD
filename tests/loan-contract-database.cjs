@@ -9,6 +9,7 @@ const {PGlite}=require('@electric-sql/pglite'),fs=require('fs'),assert=require('
  const base=fs.readFileSync('supabase/migrations/20260823100000_add_loan_module.sql','utf8').split('insert into storage.buckets')[0];await db.exec(base);
  await db.exec(fs.readFileSync('supabase/migrations/20260823100100_harden_loan_privileges.sql','utf8'));
  await db.exec(fs.readFileSync('supabase/migrations/20261012044121_contract_loan_schedules.sql','utf8'));
+ await db.exec(fs.readFileSync('supabase/migrations/20261012051948_loan_payment_details.sql','utf8'));
  const u='11111111-1111-4111-8111-111111111111',s='22222222-2222-4222-8222-222222222222',other='33333333-3333-4333-8333-333333333333';
  await db.exec(`insert into auth.users values('${u}'),('${other}');insert into stores values('${s}');insert into store_members values('${s}','${u}','owner');set role authenticated;select set_config('request.jwt.claim.sub','${u}',false);`);
  const d={principal:36800000,startDate:'2026-01-20',firstDate:'2026-02-05',paymentDay:5,term:18,regular:2369500,last:2369437.37};let rows=S.generate(d);
@@ -35,8 +36,25 @@ const {PGlite}=require('@electric-sql/pglite'),fs=require('fs'),assert=require('
  const paid=S.generate(d);paid[0].status='paid';paid[0].paid_at='2026-02-05T12:00:00+08:00';const paidId=await save(null,null,paid);
  assert.equal((await db.query('select paid_amount from loan_installments where loan_id=$1 and installment_number=1',[paidId])).rows[0].paid_amount,'2369500.00');
  const bad=S.generate(d);bad[0].principal_amount=100;bad[0].interest_amount=1;await assert.rejects(()=>save(null,null,bad),/нийт дүн/);
+
+ const details={bank:'Test bank',holder:'Test holder',iban:'mn12 1234',account:'001 234',reference:'Loan 123'};
+ const newArgs=[s,null,null,'bank','Test lender','Test loan',d.principal,d.startDate,5,JSON.stringify(S.generate(d)),'55555555-5555-4555-8555-555555555555',JSON.stringify(details)];
+ const v2=()=>db.query('select save_contract_loan_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) as id',newArgs);
+ const newId=(await v2()).rows[0].id;assert.equal((await v2()).rows[0].id,newId);
+ let info=(await db.query('select * from loans where id=$1',[newId])).rows[0];assert.equal(info.payment_details.iban,'MN121234');assert.equal(info.payment_details.account,'001234');
+ newArgs[11]=JSON.stringify({...details,account:'999'});await assert.rejects(v2,/өмнө нь/);
+ newArgs[1]=newId;newArgs[2]=info.schedule_revision;newArgs[11]='{}';await v2();info=(await db.query('select * from loans where id=$1',[newId])).rows[0];assert.equal(info.payment_details.account,'','can clear optional details');
+ const paymentRow=(await db.query('select * from loan_installments where loan_id=$1 order by installment_number',[newId])).rows[0];
+ const pay=rev=>db.query('select record_loan_installment_payment($1,$2,$3,$4)',[s,newId,paymentRow.id,rev]);
+ await assert.rejects(()=>pay(-1),/өөрчлөгдсөн/);await pay(info.schedule_revision);await pay(info.schedule_revision);
+ const paidRow=(await db.query('select * from loan_installments where id=$1',[paymentRow.id])).rows[0];assert.equal(paidRow.status,'paid');assert.equal(paidRow.paid_amount,paidRow.total_amount);
+ newArgs[1]=null;newArgs[2]=null;newArgs[10]='66666666-6666-4666-8666-666666666666';newArgs[9]=JSON.stringify([{installment_number:1,due_date:'2026-02-05',total_amount:d.principal,principal_amount:null,interest_amount:null,status:'pending',paid_at:null}]);
+ const single=(await v2()).rows[0].id;const one=(await db.query('select id from loan_installments where loan_id=$1',[single])).rows[0].id;
+ const singleRev=(await db.query('select schedule_revision from loans where id=$1',[single])).rows[0].schedule_revision;
+ await db.query('select record_loan_installment_payment($1,$2,$3,$4)',[s,single,one,singleRev]);assert.equal((await db.query('select status from loans where id=$1',[single])).rows[0].status,'closed');
+ await db.exec(`select set_config('request.jwt.claim.sub','${other}',false)`);await assert.rejects(v2,/эрхгүй/);await assert.rejects(()=>pay(info.schedule_revision),/эрхгүй/);
  await db.exec(`select set_config('request.jwt.claim.sub','${other}',false)`);await assert.rejects(()=>save(),/эрхгүй/);assert.equal((await db.query('select * from loans')).rows.length,0);
- await db.exec('reset role;set role anon');await assert.rejects(()=>save(),/permission denied/);
+ await db.exec('reset role;set role anon');await assert.rejects(()=>save(),/permission denied/);await assert.rejects(v2,/permission denied/);await assert.rejects(()=>pay(0),/permission denied/);
  await db.exec('reset role');const rights=await db.query("select has_function_privilege('anon','public.save_contract_loan(uuid,uuid,integer,text,text,text,numeric,date,integer,jsonb,uuid)','EXECUTE') as anon");assert.equal(rights.rows[0].anon,false);
  console.log('PASS: contract SQL, exact totals, null breakdown, atomic rejection, paid preservation, stale-edit protection, RLS and RPC privileges');await db.close();
 })().catch(e=>{console.error(e);process.exitCode=1;});
