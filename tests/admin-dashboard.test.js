@@ -38,7 +38,7 @@ assert.doesNotMatch(edge,/\.insert\(|\.update\(|\.delete\(/,'the approved dashbo
 assert.match(config,/\[functions\.admin-dashboard\]\s*verify_jwt\s*=\s*true/);
 
 // The feature remains inside Profile and is included in the installed PWA shell.
-assert.match(index,/\.\/profile-menu\.js\?v=5[\s\S]*\.\/admin-dashboard\.js\?v=2/);
+assert.match(index,/\.\/profile-menu\.js\?v=6[\s\S]*\.\/admin-dashboard\.js\?v=2/);
 assert.match(sw,/\.\/admin-dashboard\.js\?v=2/);
 assert.match(source,/Админы удирдлага/);
 assert.match(source,/Хэрэглэгч ба бүртгэл/);
