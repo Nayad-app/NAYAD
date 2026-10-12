@@ -398,6 +398,7 @@
     if(dueDate<invoiceDate){notify('Төлөх хугацаа падааны өдрөөс өмнө байж болохгүй.');return;}
     if(discountPercent<0||discountPercent>=100){notify('Хөнгөлөлтийн хувь 0–99.99 хооронд байна.');return;}
     if(discountPercent>0&&!discountDeadline){notify('Хөнгөлөлтийн эцсийн өдрийг оруулна уу.');return;}
+    if(discountPercent>0&&discountDeadline<invoiceDate){notify('Хөнгөлөлтийн эцсийн өдөр падааны огнооноос өмнө байж болохгүй.');return;}
     if(window.__nayadCriticalOperation){notify('Өмнөх хадгалалт дууссаны дараа дахин оролдоно уу.');return;}
     const button=document.getElementById('saveInvoiceRevisionBtn');if(button){button.disabled=true;button.textContent='Хадгалж байна...';}
     const operationToken='invoice-edit:'+crypto.randomUUID();

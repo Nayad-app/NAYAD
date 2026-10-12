@@ -645,6 +645,7 @@
     if(!dueDate){notify('Төлөх хугацаа оруулна уу.');return;}
     if(dueDate<date){notify('Төлөх хугацаа падааны өдрөөс өмнө байж болохгүй.');return;}
     if(discountPercent>0&&!discountDeadline){notify('Хөнгөлөлтийн эцсийн өдрийг оруулна уу.');return;}
+    if(discountPercent>0&&discountDeadline<date){notify('Хөнгөлөлтийн эцсийн өдөр падааны огнооноос өмнө байж болохгүй.');return;}
     if(window.__nayadCriticalOperation){notify('Өмнөх хадгалалт дууссаны дараа дахин оролдоно уу.');return;}
     const target=cloudCompanyTarget?{...cloudCompanyTarget}:{localId:cloudCompanyId,supplierId:null,name:'',storeId:window.__nayadActiveStoreId||null,userId:window.__nayadUser?.id||null};
     const pendingFiles=pending.map(item=>({file:item.file,name:item.name||''}));
