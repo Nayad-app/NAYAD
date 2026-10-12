@@ -56,5 +56,28 @@ const {PGlite}=require('@electric-sql/pglite'),fs=require('fs'),assert=require('
  await db.exec(`select set_config('request.jwt.claim.sub','${other}',false)`);await assert.rejects(()=>save(),/эрхгүй/);assert.equal((await db.query('select * from loans')).rows.length,0);
  await db.exec('reset role;set role anon');await assert.rejects(()=>save(),/permission denied/);await assert.rejects(v2,/permission denied/);await assert.rejects(()=>pay(0),/permission denied/);
  await db.exec('reset role');const rights=await db.query("select has_function_privilege('anon','public.save_contract_loan(uuid,uuid,integer,text,text,text,numeric,date,integer,jsonb,uuid)','EXECUTE') as anon");assert.equal(rights.rows[0].anon,false);
+
+ await db.exec(fs.readFileSync('supabase/migrations/20261012054050_loan_actions.sql','utf8'));
+ await db.exec(`set role authenticated;select set_config('request.jwt.claim.sub','${u}',false)`);
+ const currentRev=async lid=>(await db.query('select schedule_revision from loans where id=$1',[lid])).rows[0].schedule_revision;
+ const action=async(lid,op,row=null,word=null,rev=null)=>db.query('select manage_loan_action($1,$2,$3,$4,$5,$6)',[s,lid,rev??await currentRev(lid),op,row,word]);
+ await action(single,'reverse',one);assert.equal((await db.query('select status from loans where id=$1',[single])).rows[0].status,'active');
+ assert.equal((await db.query('select paid_amount from loan_installments where id=$1',[one])).rows[0].paid_amount,'0.00');
+ await assert.rejects(()=>action(single,'delete',null,'устгах'),/түүхтэй/);
+ await db.query('select record_loan_installment_payment($1,$2,$3,$4)',[s,single,one,await currentRev(single)]);
+ await action(single,'close');await action(single,'reverse',one);
+ assert.equal((await db.query('select status from loans where id=$1',[single])).rows[0].status,'closed','manual closure survives reversal');
+ await assert.rejects(()=>db.query('select record_loan_installment_payment($1,$2,$3,$4)',[s,single,one,0]),/Хаасан/);
+ await db.exec('reset role');
+ assert.equal((await db.query("select count(*) c from finance_audit_events where action='loan_payment_reversed' and entity_id=$1",[single])).rows[0].c,2);await db.exec('set role authenticated');
+ newArgs[1]=null;newArgs[10]='77777777-7777-4777-8777-777777777777';const disposable=(await v2()).rows[0].id;
+ await assert.rejects(()=>action(disposable,'delete',null,'yes'),/устгах/);
+ await assert.rejects(()=>action(disposable,'close',null,null,-1),/өөрчлөгдсөн/);
+ await db.exec('reset role');await db.query("update store_members set role='manager' where user_id=$1",[u]);await db.exec('set role authenticated');
+ await assert.rejects(()=>action(disposable,'delete',null,'устгах'),/эзэн/);
+ await db.exec('reset role');await db.query("update store_members set role='owner' where user_id=$1",[u]);await db.exec('set role authenticated');
+ await action(disposable,'delete',null,'устгах');assert.equal((await db.query('select id from loans where id=$1',[disposable])).rows.length,0);
+ await db.exec(`select set_config('request.jwt.claim.sub','${other}',false)`);await assert.rejects(()=>action(single,'reverse',one, null,0),/эрхгүй/);
+ await db.exec('reset role;set role anon');await assert.rejects(()=>action(single,'close',null,null,0),/permission denied/);
  console.log('PASS: contract SQL, exact totals, null breakdown, atomic rejection, paid preservation, stale-edit protection, RLS and RPC privileges');await db.close();
 })().catch(e=>{console.error(e);process.exitCode=1;});
