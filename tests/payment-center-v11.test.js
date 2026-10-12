@@ -62,7 +62,7 @@ assert.ok(html.indexOf('Overdue Co')<html.indexOf('Upcoming Co'),'overdue invoic
 assert.ok(html.indexOf('Upcoming Co')<html.indexOf('Unknown Co'),'dated upcoming invoices must precede missing due dates');
 assert.doesNotMatch(html,/999,999 ₮[\s\S]*Өнөөдөр төлөх/,'draft amount must not enter payable summaries');
 assert.match(html,/4% хэмнэнэ/,'invoice-specific discount must be visible on the payment order');
-assert.match(html,/noticeButton[\s\S]*<svg viewBox="0 0 24 24"/,'payment center must render a modern SVG notification bell');
+assert.doesNotMatch(html,/noticeButton/,'notification control has moved to the menu');
 
 const source=fs.readFileSync(path.join(root,'payment-center.js'),'utf8');
 assert.doesNotMatch(source,/Бүгдийг сонгох|Бүх падааныг сонгох/,'payment allocation should keep individual invoice selection without a select-all action');
