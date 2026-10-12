@@ -28,7 +28,7 @@
   function daysBetween(from,to){return Math.round((new Date(to+'T00:00:00Z')-new Date(from+'T00:00:00Z'))/86400000);}
   function dueText(value){const days=daysBetween(today(),value);if(days<0)return `${Math.abs(days)} хоног хэтэрсэн`;if(days===0)return 'Өнөөдөр';if(days===1)return 'Маргааш';return `${days} хоногийн дараа`;}
   function lenderTypeLabel(value){return value==='bank'?'Банк':value==='nbfi'?'ББСБ':'Хувь хүн';}
-  function methodLabel(value){return value==='equal_principal'?'Үндсэн төлбөр тэнцүү':'Тэнцүү төлөлт';}
+  function methodLabel(value){if(value==='contract')return 'Банкны хуваарь';return value==='equal_principal'?'Үндсэн төлбөр тэнцүү':'Тэнцүү төлөлт';}
   function initials(value){return String(value||'З').trim().slice(0,1).toUpperCase();}
   function uuid(){return window.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(16).slice(2)}`;}
 
@@ -48,7 +48,7 @@
     activeSync=(async()=>{
       try{
         const [loanResult,installmentResult,documentResult]=await Promise.all([
-          client.from('loans').select('id,store_id,lender_type,lender_name,loan_name,principal,annual_interest_rate,start_date,term_months,payment_day,repayment_method,status,created_at').eq('store_id',storeId).order('created_at',{ascending:false}),
+          client.from('loans').select('id,store_id,lender_type,lender_name,loan_name,principal,annual_interest_rate,start_date,term_months,payment_day,repayment_method,status,schedule_revision,created_at').eq('store_id',storeId).order('created_at',{ascending:false}),
           client.from('loan_installments').select('id,loan_id,store_id,installment_number,due_date,principal_amount,interest_amount,total_amount,paid_amount,status,paid_at').eq('store_id',storeId).order('due_date',{ascending:true}),
           client.from('loan_documents').select('id,loan_id,store_id,storage_path,file_name,mime_type,page_number,size_bytes').eq('store_id',storeId).order('page_number',{ascending:true})
         ]);
@@ -67,7 +67,7 @@
   }
 
   function pendingRows(loan){return (loan.installments||[]).filter(row=>row.status!=='paid').sort((a,b)=>String(a.due_date).localeCompare(String(b.due_date)));}
-  function outstandingPrincipal(loan){return round2(pendingRows(loan).reduce((sum,row)=>sum+Number(row.principal_amount||0),0));}
+  function outstandingPrincipal(loan){if(pendingRows(loan).some(r=>r.principal_amount==null))return null;return round2(pendingRows(loan).reduce((sum,row)=>sum+Number(row.principal_amount||0),0));}
   function nextInstallment(loan){return pendingRows(loan)[0]||null;}
   function allPending(){return state.loans.filter(loan=>loan.status==='active').flatMap(loan=>pendingRows(loan).map(row=>({loan,row})));}
 
@@ -76,20 +76,20 @@
     if(!canManage())return `<div class="hello">Санхүүгийн хяналт</div><div class="name">Зээлүүд</div><div class="card center" style="margin-top:22px;padding:34px 18px"><b>Зээлийн мэдээлэл хязгаарлагдсан</b><span class="sub">Зөвхөн дэлгүүрийн эзэн болон менежер харах боломжтой.</span></div>`;
     if(storeId&&String(state.storeId)!==String(storeId)&&!state.loading)setTimeout(syncLoans,0);
     const pending=allPending(),current=today(),month=current.slice(0,7);
-    const outstanding=state.loans.filter(loan=>loan.status==='active').reduce((sum,loan)=>sum+outstandingPrincipal(loan),0);
+    const outstanding=state.loans.filter(loan=>loan.status==='active').reduce((sum,loan)=>sum+pendingRows(loan).reduce((s,r)=>s+Number(r.total_amount)-Number(r.paid_amount||0),0),0);
     const thisMonth=pending.filter(item=>String(item.row.due_date).slice(0,7)===month).reduce((sum,item)=>sum+Number(item.row.total_amount||0),0);
     const overdue=pending.filter(item=>item.row.due_date<current).reduce((sum,item)=>sum+Number(item.row.total_amount||0),0);
     const cards=state.loans.filter(loan=>loan.status==='active').map(loan=>loanCard(loan)).join('');
     return `<div class="loanHead"><div><div class="hello">Санхүүгийн хяналт</div><div class="name">Зээлүүд</div></div><button class="primary loanAddMini" type="button" onclick="showLoanCreate()" aria-label="Зээл нэмэх">＋</button></div>
-      <div class="loanSummaryGrid"><div class="loanSummary"><small>Нийт үлдэгдэл</small><b>${amount(outstanding)}</b></div><div class="loanSummary"><small>Энэ сард төлөх</small><b>${amount(thisMonth)}</b></div><div class="loanSummary overdue"><small>Хугацаа хэтэрсэн</small><b>${amount(overdue)}</b></div></div>
+      <div class="loanSummaryGrid"><div class="loanSummary"><small>Нийт төлөх үлдэгдэл</small><b>${amount(outstanding)}</b></div><div class="loanSummary"><small>Энэ сард төлөх</small><b>${amount(thisMonth)}</b></div><div class="loanSummary overdue"><small>Хугацаа хэтэрсэн</small><b>${amount(overdue)}</b></div></div>
       <div class="paymentSectionTitle"><span>ТӨЛӨХ ХУВААРЬ</span><small>Ойрын төлөлтөөр</small></div>
       <div class="loanList">${state.loading&&!state.loans.length?'<div class="card center sub">Зээлийн мэдээлэл ачаалж байна...</div>':cards||'<div class="emptyPay"><b>Зээл бүртгэгдээгүй</b><span>Банк, ББСБ эсвэл хувь хүний зээлээ энд бүртгэнэ.</span></div>'}</div>
-      <button class="primary full loanAddFull" type="button" onclick="showLoanCreate()">＋ Зээл нэмэх</button>`;
+      ${state.loans.some(l=>l.status==='closed')?`<details><summary>Хаасан зээлүүд</summary>${state.loans.filter(l=>l.status==='closed').map(loanCard).join('')}</details>`:''}<button class="primary full loanAddFull" type="button" onclick="showLoanCreate()">＋ Зээл нэмэх</button>`;
   }
 
   function loanCard(loan){
     const next=nextInstallment(loan),overdue=next&&next.due_date<today();
-    return `<article class="loanCard ${overdue?'overdue':''}" role="button" tabindex="0" onclick="showLoanDetails('${esc(loan.id)}')"><div class="loanCardTop"><span class="loanAvatar ${esc(loan.lender_type)}">${esc(initials(loan.lender_name))}</span><span class="loanCardName"><b>${esc(loan.lender_name)}</b><small>${esc(loan.loan_name)}</small></span><span class="loanBalance"><b>${amount(outstandingPrincipal(loan))}</b><small>Нийт үлдэгдэл</small></span></div>${next?`<div class="loanDue"><span class="loanDueInfo"><small>Дараагийн төлөлт</small><b class="${overdue?'redText':''}">${amount(next.total_amount)}</b><em>${dateLabel(next.due_date)} · ${esc(dueText(next.due_date))}</em></span><button class="primary" type="button" onclick="event.stopPropagation();markLoanInstallmentPaid('${esc(loan.id)}','${esc(next.id)}')">Төлөх</button></div>`:'<div class="loanDue"><b class="greenText">Бүрэн төлөгдсөн</b></div>'}</article>`;
+    return `<article class="loanCard ${overdue?'overdue':''}" role="button" tabindex="0" onclick="showLoanDetails('${esc(loan.id)}')"><div class="loanCardTop"><span class="loanAvatar ${esc(loan.lender_type)}">${esc(initials(loan.lender_name))}</span><span class="loanCardName"><b>${esc(loan.lender_name)}</b><small>${esc(loan.loan_name)}</small></span><span class="loanBalance">${outstandingPrincipal(loan)===null?`<b>${amount(pendingRows(loan).reduce((s,r)=>s+Number(r.total_amount)-Number(r.paid_amount||0),0))}</b><small>Хүүтэй төлөх үлдэгдэл</small>`:`<b>${amount(outstandingPrincipal(loan))}</b><small>Нийт үлдэгдэл</small>`}</span></div>${next?`<div class="loanDue"><span class="loanDueInfo"><small>Дараагийн төлөлт</small><b class="${overdue?'redText':''}">${amount(next.total_amount)}</b><em>${dateLabel(next.due_date)} · ${esc(dueText(next.due_date))}</em></span><button class="primary" type="button" onclick="event.stopPropagation();markLoanInstallmentPaid('${esc(loan.id)}','${esc(next.id)}')">Төлөх</button></div>`:'<div class="loanDue"><b class="greenText">Бүрэн төлөгдсөн</b></div>'}</article>`;
   }
 
   function overlay(){return document.getElementById('loanFormOverlay');}
@@ -263,7 +263,7 @@
   function showLoanDetails(loanId){
     const loan=state.loans.find(item=>String(item.id)===String(loanId));if(!loan)return notify('Зээл олдсонгүй.');const pending=pendingRows(loan),next=pending[0];
     const contractButton=loan.documents.length?`<button class="secondary" onclick="showLoanDocuments('${esc(loan.id)}')">Гэрээ харах · ${loan.documents.length}</button>`:'<button class="secondary" type="button" disabled>Гэрээ байхгүй</button>';
-    window.sheet?.(`<div class="row"><div><div class="hello">${esc(lenderTypeLabel(loan.lender_type))}</div><h2 style="margin:4px 0">${esc(loan.lender_name)}</h2><span class="sub">${esc(loan.loan_name)}</span></div><button class="secondary" onclick="closeSheet()">✕</button></div><div class="loanDetailHero"><small>Үлдэгдэл</small><b>${amount(outstandingPrincipal(loan))}</b><span>${esc(methodLabel(loan.repayment_method))} · ${loan.term_months} сар · Сарын хүү ${rateLabel(monthlyRateFromAnnual(loan.annual_interest_rate))}% · Жилийн хүү ${rateLabel(loan.annual_interest_rate)}%</span></div><div class="loanDetailActions"><button class="secondary" onclick="showLoanEdit('${esc(loan.id)}')">✎ Зээл засах</button>${contractButton}</div><div class="paymentSectionTitle"><span>ТӨЛӨЛТИЙН ХУВААРЬ</span><small>${pending.length} үлдсэн</small></div><div class="loanScheduleList">${loan.installments.map(row=>`<div class="loanScheduleRow ${row.status==='paid'?'paid':row.due_date<today()?'overdue':''}"><span><b>${row.installment_number}-р төлөлт</b><small>${dateLabel(row.due_date)} · Үндсэн ${amount(row.principal_amount)} · Хүү ${amount(row.interest_amount)}</small></span><span><b>${amount(row.total_amount)}</b>${row.status==='paid'?'<small class="greenText">Төлсөн</small>':`<button class="primary" onclick="markLoanInstallmentPaid('${esc(loan.id)}','${esc(row.id)}')">Төлөх</button>`}</span></div>`).join('')}</div>${next?`<button class="primary full" style="margin-top:12px" onclick="markLoanInstallmentPaid('${esc(loan.id)}','${esc(next.id)}')">${amount(next.total_amount)} төлсөн гэж тэмдэглэх</button>`:''}`);
+    window.sheet?.(`<div class="row"><div><div class="hello">${esc(lenderTypeLabel(loan.lender_type))}</div><h2 style="margin:4px 0">${esc(loan.lender_name)}</h2><span class="sub">${esc(loan.loan_name)}</span></div><button class="secondary" onclick="closeSheet()">✕</button></div><div class="loanDetailHero"><small>${outstandingPrincipal(loan)===null?'Хүүтэй төлөх үлдэгдэл':'Үндсэн зээлийн үлдэгдэл'}</small><b>${amount(outstandingPrincipal(loan)??pending.reduce((s,r)=>s+Number(r.total_amount)-Number(r.paid_amount||0),0))}</b><span>${esc(methodLabel(loan.repayment_method))} · ${loan.term_months} сар${loan.repayment_method==='contract'?'':` · Сарын хүү ${rateLabel(monthlyRateFromAnnual(loan.annual_interest_rate))}% · Жилийн хүү ${rateLabel(loan.annual_interest_rate)}%`}</span></div><div class="loanDetailActions"><button class="secondary" onclick="showLoanEdit('${esc(loan.id)}')">✎ Зээл засах</button>${contractButton}</div><div class="paymentSectionTitle"><span>ТӨЛӨЛТИЙН ХУВААРЬ</span><small>${pending.length} үлдсэн</small></div><div class="loanScheduleList">${loan.installments.map(row=>`<div class="loanScheduleRow ${row.status==='paid'?'paid':row.due_date<today()?'overdue':''}"><span><b>${row.installment_number}-р төлөлт</b><small>${dateLabel(row.due_date)}${row.principal_amount==null?' · Задаргаа оруулаагүй':` · Үндсэн ${amount(row.principal_amount)} · Хүү ${amount(row.interest_amount)}`} </small></span><span><b>${amount(row.total_amount)}</b>${row.status==='paid'?'<small class="greenText">Төлсөн</small>':`<button class="primary" onclick="markLoanInstallmentPaid('${esc(loan.id)}','${esc(row.id)}')">Төлөх</button>`}</span></div>`).join('')}</div>${next?`<button class="primary full" style="margin-top:12px" onclick="markLoanInstallmentPaid('${esc(loan.id)}','${esc(next.id)}')">${amount(next.total_amount)} төлсөн гэж тэмдэглэх</button>`:''}`);
   }
 
   async function showLoanDocuments(loanId){
@@ -301,6 +301,7 @@
   const basePayments=window.payments;
   if(typeof basePayments==='function')window.payments=function(){return basePayments()+(window.NayadStatement?.isActive()?'':paymentLoanSection());};
 
+  window.NayadLoanEditorBridge={client:sb,storeId:activeStoreId,canManage,find:id=>state.loans.find(l=>String(l.id)===String(id)),closeLegacy:closeLoanCreate,sync:syncLoans,upload:async(loan,store,user,files)=>{state.files=files;try{return await uploadContracts(loan,store,user);}finally{state.files=[];}}};
   window.loans=loanPage;
   window.__nayadSyncLoans=syncLoans;
   window.__nayadLoanCount=()=>state.loans.length;
