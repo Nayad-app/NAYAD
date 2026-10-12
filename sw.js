@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v152";
+const CACHE = "nayad-v153";
 
 const ASSETS = [
   "./",
@@ -21,12 +21,13 @@ const ASSETS = [
   "./auth-guard.js?v=57",
   "./mobile-fix.js?v=46",
   "./share.js?v=40",
-  "./profile-menu.js?v=5",
+  "./profile-menu.js?v=6",
+  "./notification-settings.js?v=1",
   "./admin-dashboard.js?v=2",
   "./subscription.js?v=5",
   "./invoice-cloud.js?v=78",
   "./supplier-cloud.js?v=62",
-  "./payment-center.js?v=16",
+  "./payment-center.js?v=17",
   "./statement-search.js?v=1",
   "./payment-statement.js?v=3",
   "./loans.js?v=4",
@@ -87,11 +88,11 @@ function patchDocument(html){
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=59");
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=57");
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=40");
-  patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=5");
+  patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=6");
   patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=2");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=5");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=78");
-  patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=16");
+  patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=17");
   patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=2");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=62");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=4");
@@ -101,17 +102,18 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./store-switcher.js?v=65","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
   patched=injectScriptAfter(patched,"./registration-delete.js?v=2","./auth-guard.js?v=57");
-  patched=injectScriptAfter(patched,"./share.js?v=40","./profile-menu.js?v=5");
-  patched=injectScriptAfter(patched,"./profile-menu.js?v=5","./admin-dashboard.js?v=2");
+  patched=injectScriptAfter(patched,"./share.js?v=40","./profile-menu.js?v=6");
+  patched=injectScriptAfter(patched,"./profile-menu.js?v=6","./admin-dashboard.js?v=2");
+  patched=injectScriptAfter(patched,"./profile-menu.js?v=6","./notification-settings.js?v=1");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
-  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=78","./payment-center.js?v=16");
-  patched=injectScriptAfter(patched,"./payment-center.js?v=16","./loans.js?v=4");
+  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=78","./payment-center.js?v=17");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=17","./loans.js?v=4");
   patched=injectScriptBefore(patched,"./supplier-cloud.js?v=62","./contact-types.js?v=20");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   patched=patched.replace(/payment-statement\.js\?v=\d+/g,'payment-statement.js?v=3');
-  patched=injectScriptBefore(patched,"./payment-center.js?v=16","./payment-statement.js?v=3");
+  patched=injectScriptBefore(patched,"./payment-center.js?v=17","./payment-statement.js?v=3");
   patched=injectScriptBefore(patched,"./payment-statement.js?v=3","./statement-search.js?v=1");
   return patched;
 }
@@ -217,4 +219,21 @@ self.addEventListener("fetch",event=>{
       return response;
     }))
   );
+});
+
+// Web Push works even when the app is closed. Only open our own origin.
+self.addEventListener('push',event=>{
+ let payload={};try{payload=event.data?.json()||{};}catch{}
+ event.waitUntil(self.registration.showNotification(payload.title||'NAYAD · Сануулга',{
+  body:payload.body||'Төлбөрийн сануулгаа шалгана уу.',icon:'./icon-192.png',badge:'./icon-192.png',
+  tag:payload.tag||'nayad-reminder',data:{store_id:payload.store_id||''},
+ }));
+});
+self.addEventListener('notificationclick',event=>{
+ event.notification.close();
+ event.waitUntil((async()=>{
+  const windows=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+  for(const client of windows){if(new URL(client.url).origin===self.location.origin){await client.focus();client.postMessage({type:'NAYAD_OPEN_REMINDERS',store_id:event.notification.data?.store_id||''});return;}}
+  await self.clients.openWindow(new URL('/?reminders='+encodeURIComponent(event.notification.data?.store_id||'1'),self.location.origin).href);
+ })());
 });

@@ -1,0 +1,48 @@
+const {PGlite}=require('@electric-sql/pglite'),fs=require('fs'),assert=require('node:assert/strict');
+(async()=>{const db=new PGlite();await db.exec(`
+create role anon;create role authenticated;create role service_role bypassrls;
+create schema auth;create schema private;create schema vault;
+create table auth.users(id uuid primary key);
+create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+create table public.stores(id uuid primary key,name text);
+create table public.store_members(user_id uuid,store_id uuid,role text,permissions jsonb);
+create function public.is_store_member(s uuid) returns boolean language sql security definer as $$select exists(select 1 from public.store_members where store_id=s and user_id=auth.uid())$$;
+create table public.invoices(id uuid primary key,store_id uuid,status text,amount numeric,paid numeric,due_date date,discount_percent numeric,discount_deadline date);
+create table public.invoice_agreements(invoice_id uuid,agreed_due_date date,status text);
+create table public.loans(id uuid primary key,store_id uuid,status text);
+create table public.loan_installments(loan_id uuid,store_id uuid,status text,total_amount numeric,paid_amount numeric,due_date date);
+create table vault.decrypted_secrets(name text,decrypted_secret text);
+grant usage on schema auth,public to authenticated,service_role;grant select on all tables in schema public to service_role;
+`);await db.exec(fs.readFileSync(process.argv[2]||require('path').join(__dirname,'../supabase/migrations/20261012020331_web_push_reminders.sql'),'utf8'));
+const u='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222',s='33333333-3333-4333-8333-333333333333';
+await db.exec(`insert into auth.users values('${u}'),('${other}');insert into stores values('${s}','Test Store');insert into store_members values('${u}','${s}','owner','{}');
+insert into invoices values(gen_random_uuid(),'${s}','confirmed',100,0,current_date,0,null),(gen_random_uuid(),'${s}','confirmed',100,100,current_date,0,null),(gen_random_uuid(),'${s}','cancelled',100,0,current_date,0,null);
+set role authenticated;select set_config('request.jwt.claim.sub','${u}',false);
+insert into push_reminder_settings(user_id,store_id,enabled,timezone,reminder_time) values('${u}','${s}',true,'UTC','00:00:00');
+insert into web_push_subscriptions(user_id,endpoint,p256dh,auth) values('${u}','https://fcm.googleapis.com/fcm/send/test',repeat('a',87),repeat('a',22));reset role;
+alter table push_reminder_settings disable trigger validate_push_settings;update push_reminder_settings set enabled_at=now()-interval '1 day';alter table push_reminder_settings enable trigger validate_push_settings;
+set role service_role;`);
+let rows=(await db.query('select * from claim_push_reminders()')).rows;assert.equal(rows.length,1);assert.match(rows[0].payload.body,/Падаан: 1/);
+assert.equal((await db.query('select * from claim_push_reminders()')).rows.length,0,'lease prevents duplicate');
+await db.query('select finish_push_reminder($1,$2,201)',[rows[0].delivery_id,rows[0].claim_token]);assert.equal((await db.query('select * from claim_push_reminders()')).rows.length,0,'sent digest never repeated');
+await db.exec(`reset role;delete from push_delivery_receipts;update invoices set paid=amount;set role service_role;`);assert.equal((await db.query('select * from claim_push_reminders()')).rows.length,0,'paid excluded');
+await db.exec(`reset role;update invoices set paid=0 where status='confirmed';update store_members set role='member',permissions='{"invoices":"none","loans":"none"}';set role service_role;`);assert.equal((await db.query('select * from claim_push_reminders()')).rows.length,0,'permissions enforced');
+await db.exec(`reset role;set role authenticated;select set_config('request.jwt.claim.sub','${other}',false);`);assert.equal((await db.query('select * from push_reminder_settings')).rows.length,0,'cross-user RLS');
+await assert.rejects(()=>db.query('select * from claim_push_reminders()'));await assert.rejects(()=>db.query('select push_server_config()'));
+await db.exec(`reset role;update store_members set role='owner';delete from push_delivery_receipts;
+update invoices set paid=amount;
+insert into invoices values(gen_random_uuid(),'${s}','confirmed',200,0,current_date+10,5,current_date+1);
+insert into invoices values('44444444-4444-4444-8444-444444444444','${s}','confirmed',200,0,current_date-10,0,null);
+insert into invoice_agreements values('44444444-4444-4444-8444-444444444444',current_date+1,'active');
+insert into loans values('55555555-5555-4555-8555-555555555555','${s}','active');
+insert into loan_installments values('55555555-5555-4555-8555-555555555555','${s}','pending',100,0,current_date+1);
+set role service_role;`);
+const multi=(await db.query('select * from claim_push_reminders()')).rows;
+assert.equal(multi.length,1);assert.match(multi[0].payload.body,/Хөнгөлөлт: 1/);assert.match(multi[0].payload.body,/Тохиролцоо: 1/);assert.match(multi[0].payload.body,/Зээл: 1/);assert.doesNotMatch(multi[0].payload.body,/Падаан:/,'agreement replaces original deadline');
+await db.exec(`reset role;delete from push_delivery_receipts;update push_reminder_settings set enabled=false;set role service_role;`);assert.equal((await db.query('select * from claim_push_reminders()')).rows.length,0,'disabled sends nothing');
+await db.exec('reset role');
+await assert.rejects(()=>db.query("update push_reminder_settings set timezone='Mars/Invalid'"));
+for(const [offset,advance,on,overdue,want] of [[1,[1],true,1,true],[2,[1,3,7],true,1,false],[0,[],true,0,true],[-1,[],false,3,true],[-2,[],false,3,false],[-4,[],false,3,true],[-1,[1],true,0,false]]){
+ const x=await db.query('select private.push_due_matches(current_date+$1::integer,current_date,$2::integer[],$3,$4) as yes',[offset,advance,on,overdue]);assert.equal(x.rows[0].yes,want);
+}
+console.log('PASS: SQL migration, digest, paid/cancelled exclusion, lease, sent dedupe, module permissions, RLS, RPC restriction, timing');await db.close();})();

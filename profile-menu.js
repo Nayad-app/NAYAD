@@ -31,6 +31,7 @@
   </style>`;
 
   const ICONS={
+    bell:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>',
     store:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10v10h16V10M3 10h18l-1.5-6h-15Z"/><path d="M8 10v2a2 2 0 0 0 4 0v-2M12 10v2a2 2 0 0 0 4 0v-2M9 20v-5h6v5"/></svg>',
     switch:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h12l-3-3M17 17H5l3 3"/><path d="m19 7-3 3M5 17l3-3"/></svg>',
     share:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19v-1.5A4.5 4.5 0 0 1 8 13h2a4.5 4.5 0 0 1 4.5 4.5V19M18 8v6M15 11h6"/></svg>',
@@ -75,7 +76,7 @@
     const email=user.email||'';
     const contact=phone?`Утас: ${esc(phone)}`:(email?esc(email):esc(p.provider||'Нэвтрэлт'));
     const avatar=p.avatar?`<img class="profileMenuAvatar" src="${esc(p.avatar)}" alt="">`:`<div class="profileMenuAvatar">${esc(initial(p.name))}</div>`;
-    return `<div class="profileMenuLayout"><div class="profileMenuHeader"><b id="profileMenuTitle">Цэс</b><button class="profileMenuClose" type="button" onclick="closeProfileMenu()" aria-label="Цэс хаах"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><button class="profileMenuUser" type="button" onclick="profileMenuAction('settings')" aria-label="Профайлын тохиргоо">${avatar}<div class="profileMenuUserMeta"><b>${esc(p.name||'Нэр тодорхойгүй')}</b><span>${contact}</span></div></button><div class="profileMenuActions">${action(ICONS.switch,'Дэлгүүр солих','','store')}${action(ICONS.share,'Дэлгүүр хуваалцах','','share')}</div><div class="profileMenuActions">${themeControl()}</div>${upgradeControl()}<div class="profileMenuActions">${action(ICONS.report,'Тайлан','','reports')}</div><div class="profileMenuActions">${supportControl()}</div><div class="profileMenuSpacer"></div><button class="profileMenuLogout" type="button" onclick="profileMenuAction('logout')">${ICONS.logout}<span>Гарах</span></button></div>`;
+    return `<div class="profileMenuLayout"><div class="profileMenuHeader"><b id="profileMenuTitle">Цэс</b><button class="profileMenuClose" type="button" onclick="closeProfileMenu()" aria-label="Цэс хаах"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><button class="profileMenuUser" type="button" onclick="profileMenuAction('settings')" aria-label="Профайлын тохиргоо">${avatar}<div class="profileMenuUserMeta"><b>${esc(p.name||'Нэр тодорхойгүй')}</b><span>${contact}</span></div></button><div class="profileMenuActions">${action(ICONS.switch,'Дэлгүүр солих','','store')}${action(ICONS.share,'Дэлгүүр хуваалцах','','share')}</div><div class="profileMenuActions">${themeControl()}${action(ICONS.bell,'Notification','','notifications')}</div>${upgradeControl()}<div class="profileMenuActions">${action(ICONS.report,'Тайлан','','reports')}</div><div class="profileMenuActions">${supportControl()}</div><div class="profileMenuSpacer"></div><button class="profileMenuLogout" type="button" onclick="profileMenuAction('logout')">${ICONS.logout}<span>Гарах</span></button></div>`;
   }
 
   function ensureRoot(){
@@ -129,6 +130,7 @@
       return;
     }
     const actions={
+      notifications:()=>window.NayadPush?.open(),
       store:window.showNayadStorePicker,
       share:window.showStoreShare,
       subscription:window.showNayadSubscription,

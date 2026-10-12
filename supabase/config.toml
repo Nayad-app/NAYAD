@@ -15,3 +15,7 @@ verify_jwt = true
 
 [functions.admin-dashboard]
 verify_jwt = true
+
+# Authenticated with a dedicated Vault-backed scheduler secret inside the handler.
+[functions.send-payment-reminders]
+verify_jwt = false

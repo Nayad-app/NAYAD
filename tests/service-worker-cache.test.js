@@ -50,8 +50,8 @@ assert.match(swSource,/\.\/money-input\.js\?v=1/);
 assert.match(indexSource,/\.\/money-input\.js\?v=1/,'index and service worker must load the money formatter');
 assert.match(swSource,/\.\/invoice-cloud\.js\?v=78/);
 assert.match(indexSource,/\.\/invoice-cloud\.js\?v=78/,'index and service worker must load the same invoice code');
-assert.match(swSource,/\.\/payment-center\.js\?v=16/);
-assert.match(indexSource,/\.\/payment-center\.js\?v=16/,'index and service worker must load the same payment center');
+assert.match(swSource,/\.\/payment-center\.js\?v=17/);
+assert.match(indexSource,/\.\/payment-center\.js\?v=17/,'index and service worker must load the same payment center');
 assert.match(swSource,/\.\/loans\.js\?v=4/);
 assert.match(indexSource,/\.\/loans\.js\?v=4/,'index and service worker must load the loan module');
 assert.match(swSource,/\.\/contact-types\.js\?v=20/);
@@ -60,8 +60,8 @@ assert.match(swSource,/\.\/supplier-cloud\.js\?v=62/);
 assert.match(indexSource,/\.\/supplier-cloud\.js\?v=62/,'index and service worker must load the same supplier code');
 assert.match(swSource,/\.\/share\.js\?v=40/);
 assert.match(indexSource,/\.\/share\.js\?v=40/,'index and service worker must load the same sharing code');
-assert.match(swSource,/\.\/profile-menu\.js\?v=5/);
-assert.match(indexSource,/\.\/profile-menu\.js\?v=5/,'index and service worker must load the profile drawer');
+assert.match(swSource,/\.\/profile-menu\.js\?v=6/);
+assert.match(indexSource,/\.\/profile-menu\.js\?v=6/,'index and service worker must load the profile drawer');
 assert.match(swSource,/\.\/admin-dashboard\.js\?v=2/);
 assert.match(indexSource,/\.\/admin-dashboard\.js\?v=2/,'index and service worker must load the timestamped payment dashboard');
 assert.match(swSource,/\.\/subscription\.js\?v=5/);
@@ -88,12 +88,12 @@ assert.ok(
   patchedTwice.indexOf('./cloud-runtime.js?v=59')<patchedTwice.indexOf('./invoice-cloud.js?v=78'),
   'legacy documents must receive the same safe store/auth/cloud script order'
 );
-assert.equal(patchedTwice.split('./profile-menu.js?v=5').length-1,1,'profile drawer must be injected exactly once');
+assert.equal(patchedTwice.split('./profile-menu.js?v=6').length-1,1,'profile drawer must be injected exactly once');
 assert.equal(patchedTwice.split('./admin-dashboard.js?v=2').length-1,1,'admin dashboard must be injected exactly once');
 assert.equal(patchedTwice.split('./subscription.js?v=5').length-1,1,'subscription flow must be injected exactly once');
 assert.ok(patchedTwice.indexOf('./subscription.js?v=5')<patchedTwice.indexOf('./member-permissions.js?v=2'),'permission guard must load after all feature modules');
 assert.equal(patchedTwice.split('./loans.js?v=4').length-1,1,'loan module must be injected exactly once');
-assert.ok(patchedTwice.indexOf('./share.js?v=40')<patchedTwice.indexOf('./profile-menu.js?v=5'),'profile drawer must load after sharing actions');
+assert.ok(patchedTwice.indexOf('./share.js?v=40')<patchedTwice.indexOf('./profile-menu.js?v=6'),'profile drawer must load after sharing actions');
 
 async function dispatch(request){
   let responsePromise;
@@ -125,5 +125,5 @@ async function dispatch(request){
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 assert.equal(patchedTwice.split('./payment-statement.js?v=3').length-1,1,'statement module injected once');
-assert.ok(patchedTwice.indexOf('./payment-statement.js?v=3')<patchedTwice.indexOf('./payment-center.js?v=16'),'statement loads before center');
+assert.ok(patchedTwice.indexOf('./payment-statement.js?v=3')<patchedTwice.indexOf('./payment-center.js?v=17'),'statement loads before center');
 assert.ok(patchedTwice.indexOf('./statement-search.js?v=1')<patchedTwice.indexOf('./payment-statement.js?v=3'),'search loads before statement');
