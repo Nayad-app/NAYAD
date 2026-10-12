@@ -23,3 +23,5 @@ jobs:
       - run: NODE_PATH="$PWD/tests/push-validation/node_modules" node tests/push-settings.cjs
       - run: NODE_PATH="$PWD/tests/push-validation/node_modules" node tests/loan-contract-database.cjs
       - run: NODE_PATH="$PWD/tests/push-validation/node_modules" node tests/loan-contract-editor.cjs
+
+      - run: NODE_PATH="$PWD/tests/push-validation/node_modules" node tests/loan-payment.cjs

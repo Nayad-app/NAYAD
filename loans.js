@@ -48,7 +48,7 @@
     activeSync=(async()=>{
       try{
         const [loanResult,installmentResult,documentResult]=await Promise.all([
-          client.from('loans').select('id,store_id,lender_type,lender_name,loan_name,principal,annual_interest_rate,start_date,term_months,payment_day,repayment_method,status,schedule_revision,created_at').eq('store_id',storeId).order('created_at',{ascending:false}),
+          client.from('loans').select('id,store_id,lender_type,lender_name,loan_name,principal,annual_interest_rate,start_date,term_months,payment_day,repayment_method,status,schedule_revision,payment_details,created_at').eq('store_id',storeId).order('created_at',{ascending:false}),
           client.from('loan_installments').select('id,loan_id,store_id,installment_number,due_date,principal_amount,interest_amount,total_amount,paid_amount,status,paid_at').eq('store_id',storeId).order('due_date',{ascending:true}),
           client.from('loan_documents').select('id,loan_id,store_id,storage_path,file_name,mime_type,page_number,size_bytes').eq('store_id',storeId).order('page_number',{ascending:true})
         ]);
@@ -263,7 +263,7 @@
   function showLoanDetails(loanId){
     const loan=state.loans.find(item=>String(item.id)===String(loanId));if(!loan)return notify('Зээл олдсонгүй.');const pending=pendingRows(loan),next=pending[0];
     const contractButton=loan.documents.length?`<button class="secondary" onclick="showLoanDocuments('${esc(loan.id)}')">Гэрээ харах · ${loan.documents.length}</button>`:'<button class="secondary" type="button" disabled>Гэрээ байхгүй</button>';
-    window.sheet?.(`<div class="row"><div><div class="hello">${esc(lenderTypeLabel(loan.lender_type))}</div><h2 style="margin:4px 0">${esc(loan.lender_name)}</h2><span class="sub">${esc(loan.loan_name)}</span></div><button class="secondary" onclick="closeSheet()">✕</button></div><div class="loanDetailHero"><small>${outstandingPrincipal(loan)===null?'Хүүтэй төлөх үлдэгдэл':'Үндсэн зээлийн үлдэгдэл'}</small><b>${amount(outstandingPrincipal(loan)??pending.reduce((s,r)=>s+Number(r.total_amount)-Number(r.paid_amount||0),0))}</b><span>${esc(methodLabel(loan.repayment_method))} · ${loan.term_months} сар${loan.repayment_method==='contract'?'':` · Сарын хүү ${rateLabel(monthlyRateFromAnnual(loan.annual_interest_rate))}% · Жилийн хүү ${rateLabel(loan.annual_interest_rate)}%`}</span></div><div class="loanDetailActions"><button class="secondary" onclick="showLoanEdit('${esc(loan.id)}')">✎ Зээл засах</button>${contractButton}</div><div class="paymentSectionTitle"><span>ТӨЛӨЛТИЙН ХУВААРЬ</span><small>${pending.length} үлдсэн</small></div><div class="loanScheduleList">${loan.installments.map(row=>`<div class="loanScheduleRow ${row.status==='paid'?'paid':row.due_date<today()?'overdue':''}"><span><b>${row.installment_number}-р төлөлт</b><small>${dateLabel(row.due_date)}${row.principal_amount==null?' · Задаргаа оруулаагүй':` · Үндсэн ${amount(row.principal_amount)} · Хүү ${amount(row.interest_amount)}`} </small></span><span><b>${amount(row.total_amount)}</b>${row.status==='paid'?'<small class="greenText">Төлсөн</small>':`<button class="primary" onclick="markLoanInstallmentPaid('${esc(loan.id)}','${esc(row.id)}')">Төлөх</button>`}</span></div>`).join('')}</div>${next?`<button class="primary full" style="margin-top:12px" onclick="markLoanInstallmentPaid('${esc(loan.id)}','${esc(next.id)}')">${amount(next.total_amount)} төлсөн гэж тэмдэглэх</button>`:''}`);
+    window.sheet?.(`<div class="row"><div><div class="hello">${esc(lenderTypeLabel(loan.lender_type))}</div><h2 style="margin:4px 0">${esc(loan.lender_name)}</h2><span class="sub">${esc(loan.loan_name)}</span></div><button class="secondary" onclick="closeSheet()">✕</button></div><div class="loanDetailHero"><small>${outstandingPrincipal(loan)===null?'Хүүтэй төлөх үлдэгдэл':'Үндсэн зээлийн үлдэгдэл'}</small><b>${amount(outstandingPrincipal(loan)??pending.reduce((s,r)=>s+Number(r.total_amount)-Number(r.paid_amount||0),0))}</b><span>${esc(methodLabel(loan.repayment_method))} · ${loan.term_months} сар${loan.repayment_method==='contract'?'':` · Сарын хүү ${rateLabel(monthlyRateFromAnnual(loan.annual_interest_rate))}% · Жилийн хүү ${rateLabel(loan.annual_interest_rate)}%`}</span></div><div class="loanDetailActions"><button class="secondary" onclick="showLoanEdit('${esc(loan.id)}')">✎ Зээл засах</button>${contractButton}</div><div class="paymentSectionTitle"><span>ТӨЛӨЛТИЙН ХУВААРЬ</span><small>${pending.length} үлдсэн</small></div><div class="loanScheduleList">${loan.installments.map(row=>`<div class="loanScheduleRow ${row.status==='paid'?'paid':row.due_date<today()?'overdue':''}"><span><b>${row.installment_number}-р төлөлт</b><small>${dateLabel(row.due_date)}${row.principal_amount==null?' · Задаргаа оруулаагүй':` · Үндсэн ${amount(row.principal_amount)} · Хүү ${amount(row.interest_amount)}`} </small></span><span><b>${amount(row.total_amount)}</b>${row.status==='paid'?'<small class="greenText">Төлсөн</small>':`<button class="primary" onclick="markLoanInstallmentPaid('${esc(loan.id)}','${esc(row.id)}')">Төлөх</button>`}</span></div>`).join('')}</div>${next?`<button class="primary full" style="margin-top:12px" onclick="markLoanInstallmentPaid('${esc(loan.id)}','${esc(next.id)}')">${amount(next.total_amount)} төлөх</button>`:''}`);
   }
 
   async function showLoanDocuments(loanId){
@@ -275,16 +275,8 @@
     }catch(error){console.warn('Loan documents:',error);notify(error?.message||'Гэрээ нээж чадсангүй.');}
   }
 
-  async function markLoanInstallmentPaid(loanId,installmentId){
-    const loan=state.loans.find(item=>String(item.id)===String(loanId)),row=loan?.installments.find(item=>String(item.id)===String(installmentId));if(!loan||!row||row.status==='paid')return;
-    if(!confirm(`${dateLabel(row.due_date)}-ны ${amount(row.total_amount)} төлөлтийг төлсөн гэж тэмдэглэх үү?`))return;
-    window.__nayadCriticalOperation='loan-payment';
-    try{
-      const {error}=await sb().from('loan_installments').update({status:'paid',paid_amount:row.total_amount,paid_at:new Date().toISOString()}).eq('id',row.id).eq('store_id',activeStoreId());if(error)throw error;
-      const remaining=loan.installments.filter(item=>item.status!=='paid'&&String(item.id)!==String(row.id));if(!remaining.length){const {error:loanError}=await sb().from('loans').update({status:'closed',updated_at:new Date().toISOString()}).eq('id',loan.id).eq('store_id',activeStoreId());if(loanError)throw loanError;}
-      window.closeSheet?.();notify('Зээлийн төлөлт тэмдэглэгдлээ.');await syncLoans();window.render?.();
-    }catch(error){console.error('Loan payment:',error);notify(error?.message||'Төлөлт хадгалахад алдаа гарлаа.');}
-    finally{if(window.__nayadCriticalOperation==='loan-payment')delete window.__nayadCriticalOperation;}
+  function markLoanInstallmentPaid(loanId,installmentId){
+    window.NayadLoanPayment?.open(loanId,installmentId);
   }
 
   function paymentLoanSection(){
