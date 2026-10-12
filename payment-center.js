@@ -111,7 +111,7 @@
     const dueToday=rows.filter(item=>daysBetween(current,item.due)===0);
     const week=rows.filter(item=>{const days=daysBetween(current,item.due);return days>=0&&days<=7;});
     const overdue=rows.filter(item=>daysBetween(current,item.due)<0);
-    return `<div class="paymentHead"><div><div class="hello">Өглөгийн удирдлага</div><div class="name">Төлбөрийн төв</div></div><button class="noticeButton" onclick="showNotificationCenter()" aria-label="Мэдэгдэл"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>${unreadNotifications.length?`<i>${unreadNotifications.length}</i>`:''}</button></div>
+    return `<div class="paymentHead"><div><div class="hello">Өглөгийн удирдлага</div><div class="name">Төлбөрийн төв</div></div></div>
       ${window.NayadStatement?.tabs()||''}
       <div class="paySummaryGrid">
         ${summaryCard('Өнөөдөр төлөх',dueToday.reduce((sum,item)=>sum+item.balance,0),dueToday.length,'today','▣')}
@@ -544,8 +544,8 @@
   `;
   document.head.appendChild(nightStyle);
 
-  window.addEventListener('load',()=>setTimeout(()=>refreshNotifications(true),2200));
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>refreshNotifications(false),500);});
+  // Scheduled pushes are delivered by the server after explicit opt-in.
+
   document.addEventListener('click',event=>{if(event.target?.id==='modal')resetInvoiceDeleteUi();});
   document.addEventListener('keydown',event=>{if(event.key==='Escape')resetInvoiceDeleteUi();});
 })();
