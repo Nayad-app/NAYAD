@@ -21,7 +21,7 @@
     validate(d,rows);return rows;
   }
   function validate(d,rows){
-    money(d.principal);if(!validDate(d.startDate))throw Error('Авсан огноог зөв сонгоно уу.');
+    if(d.principal!=null)money(d.principal);if(!validDate(d.startDate))throw Error('Авсан огноог зөв сонгоно уу.');
     if(rows.length!==d.term)throw Error('Хуваарийн мөрийн тоо зөрсөн байна.');
     let prev=d.startDate,principal=0,total=0,allKnown=true;
     rows.forEach((r,i)=>{
@@ -33,10 +33,23 @@
       if(r.status==='paid'&&(!validDate(String(r.paid_at||'').slice(0,10))||String(r.paid_at).slice(0,10)>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ulaanbaatar'}).format(new Date())||String(r.paid_at).slice(0,10)<d.startDate))throw Error(`${i+1}-р төлөлтийн төлсөн огноог шалгана уу.`);
     });
     if(!Number.isSafeInteger(total))throw Error('Нийт төлбөрийн дүн хэт их байна.');
-    if(total<cents(d.principal))throw Error('Нийт төлбөр зээлийн үндсэн дүнгээс бага байна.');
-    if(principal>cents(d.principal)||(allKnown&&principal!==cents(d.principal)))throw Error('Үндсэн төлбөрүүдийн нийлбэр зээлийн дүнтэй таарахгүй байна.');
+    if(d.principal==null&&rows.some(r=>r.principal_amount!=null||r.interest_amount!=null))throw Error('Задаргаа оруулах бол дэлгэрэнгүй бүртгэлээр зээлийн үндсэн дүнг оруулна уу.');
+    if(d.principal!=null&&total<cents(d.principal))throw Error('Нийт төлбөр зээлийн үндсэн дүнгээс бага байна.');
+    if(d.principal!=null&&(principal>cents(d.principal)||(allKnown&&principal!==cents(d.principal))))throw Error('Үндсэн төлбөрүүдийн нийлбэр зээлийн дүнтэй таарахгүй байна.');
     return total/100;
   }
-  const api={generate,validate,money,validDate,monthDate};root.NayadLoanSchedule=api;
+  function simple(firstDate,endDate,regular){
+    if(!validDate(firstDate)||!validDate(endDate)||endDate<firstDate)throw Error('Дуусах өдөр дараагийн төлөх өдрөөс өмнө байж болохгүй.');
+    const day=Number(firstDate.slice(-2)),dates=[firstDate];
+    for(let i=1;dates.at(-1)<endDate;i++){
+      if(i>=600)throw Error('Төлөлтийн тоо 1–600 байна.');
+      const next=monthDate(firstDate,i,day);dates.push(next<endDate?next:endDate);
+    }
+    const anchor=new Date(firstDate+'T00:00:00Z');anchor.setUTCDate(anchor.getUTCDate()-1);
+    const d={principal:null,startDate:anchor.toISOString().slice(0,10),firstDate,endDate,paymentDay:day,term:dates.length,regular:money(regular),last:''};
+    const rows=dates.map((due_date,i)=>({installment_number:i+1,due_date,total_amount:d.regular,principal_amount:null,interest_amount:null,status:'pending',paid_at:null,paid_amount:0}));
+    validate(d,rows);return {draft:d,rows};
+  }
+  const api={generate,validate,simple,money,validDate,monthDate};root.NayadLoanSchedule=api;
   if(typeof module!=='undefined')module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

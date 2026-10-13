@@ -10,9 +10,17 @@ const {PGlite}=require('@electric-sql/pglite'),fs=require('fs'),assert=require('
  await db.exec(fs.readFileSync('supabase/migrations/20260823100100_harden_loan_privileges.sql','utf8'));
  await db.exec(fs.readFileSync('supabase/migrations/20261012044121_contract_loan_schedules.sql','utf8'));
  await db.exec(fs.readFileSync('supabase/migrations/20261012051948_loan_payment_details.sql','utf8'));
+ await db.exec(fs.readFileSync('supabase/migrations/20261013095810_simple_loan_registration.sql','utf8'));
  const u='11111111-1111-4111-8111-111111111111',s='22222222-2222-4222-8222-222222222222',other='33333333-3333-4333-8333-333333333333';
  await db.exec(`insert into auth.users values('${u}'),('${other}');insert into stores values('${s}');insert into store_members values('${s}','${u}','owner');set role authenticated;select set_config('request.jwt.claim.sub','${u}',false);`);
  const d={principal:36800000,startDate:'2026-01-20',firstDate:'2026-02-05',paymentDay:5,term:18,regular:2369500,last:2369437.37};let rows=S.generate(d);
+ const simple=S.simple('2026-10-20','2027-10-20',850000);
+ const simpleArgs=[s,null,null,'person','Simple loan','Simple loan',null,simple.draft.startDate,20,JSON.stringify(simple.rows),'77777777-7777-4777-8777-777777777777','{}'];
+ const simpleSave=()=>db.query('select save_contract_loan_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) as id',simpleArgs);
+ const simpleId=(await simpleSave()).rows[0].id;assert.equal((await simpleSave()).rows[0].id,simpleId);
+ let simpleLoan=(await db.query('select * from loans where id=$1',[simpleId])).rows[0];assert.equal(simpleLoan.principal,null);assert.equal(simpleLoan.term_months,13);
+ simpleArgs[1]=simpleId;simpleArgs[2]=simpleLoan.schedule_revision;simple.rows[12].total_amount=800000;simpleArgs[9]=JSON.stringify(simple.rows);await simpleSave();
+ simpleLoan=(await db.query('select * from loans where id=$1',[simpleId])).rows[0];simpleArgs[2]=simpleLoan.schedule_revision;simple.rows[0].principal_amount=850000;simple.rows[0].interest_amount=0;simpleArgs[9]=JSON.stringify(simple.rows);await assert.rejects(simpleSave,/нийлбэр/);
  async function save(id=null,rev=null,r=rows,principal=d.principal){return (await db.query('select save_contract_loan($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) as id',[s,id,rev,'bank','Test lender','Test loan',principal,d.startDate,5,JSON.stringify(r)])).rows[0].id;}
  const request='44444444-4444-4444-8444-444444444444';
  const args=[s,null,null,'bank','Test lender','Test loan',d.principal,d.startDate,5,JSON.stringify(rows),request];
@@ -21,7 +29,7 @@ const {PGlite}=require('@electric-sql/pglite'),fs=require('fs'),assert=require('
  assert.equal(once,twice,'lost response retry is idempotent');
  const id=once;let loan=(await db.query('select * from loans where id=$1',[id])).rows[0];assert.equal(loan.schedule_revision,18);
  assert.equal((await db.query('select sum(total_amount) as total from loan_installments where loan_id=$1',[id])).rows[0].total,'42650937.37');
- assert.equal((await db.query('select count(*) as c from loan_installments where principal_amount is null')).rows[0].c,18);
+ assert.equal((await db.query('select count(*) as c from loan_installments where principal_amount is null and loan_id=$1',[id])).rows[0].c,18);
  rows[0].due_date='2026-02-06';await save(id,loan.schedule_revision);loan=(await db.query('select * from loans where id=$1',[id])).rows[0];
  // Another device pays while editor is open.
  await db.query("update loan_installments set status='paid',paid_amount=total_amount,paid_at='2026-02-06T12:00:00+08:00' where loan_id=$1 and installment_number=1",[id]);
