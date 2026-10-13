@@ -4,6 +4,7 @@
       if(typeof sync==='function')sync();
       const content=document.getElementById('content');
       if(!content)return;
+      window.__nayadRouter?.sync(page);
       let html='';
       if(page==='companies')html=companies();
       else if(page==='payments')html=payments();

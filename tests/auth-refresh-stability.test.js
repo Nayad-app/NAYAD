@@ -47,5 +47,8 @@ test('service worker waits for both editing and saving before reloading',()=>{
   context.closed=true;context.window.__nayadCriticalOperation=true;
   timers.shift()();assert.equal(reloads,0);
   context.window.__nayadCriticalOperation=false;
+  context.window.__nayadHasOpenDialog=()=>true;
+  timers.shift()();assert.equal(reloads,0,'loan editor blocks an update reload');
+  context.window.__nayadHasOpenDialog=()=>false;
   timers.shift()();assert.equal(reloads,1);
 });

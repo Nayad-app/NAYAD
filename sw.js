@@ -1,15 +1,16 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v158";
+const CACHE = "nayad-v159";
 
 const ASSETS = [
   "./",
+  "./section-router.js?v=1",
   "./manifest.webmanifest",
   "./responsive-layout.css?v=2",
   "./icon-180.png",
   "./icon-192.png",
   "./icon-512.png",
   "./oauth-fix.js?v=45",
-  "./render.js",
+  "./render.js?v=2",
   "./app-state.js?v=39",
   "./money-input.js?v=1",
   "./image-compress.js?v=1",
@@ -83,6 +84,8 @@ function injectCloudRuntimeBeforeCloudModules(html){
 }
 
 function patchDocument(html){
+  html=html.includes('<base href="/">')?html:html.replace('<head>','<head><base href="/">');
+  html=html.includes("/section-router.js")?html:html.replace('<head>','<head><script src="/section-router.js?v=1"></script>');
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=39");
   patched=patched.replace(/\.\/money-input\.js\?v=\d+/g,"./money-input.js?v=1");
@@ -128,6 +131,7 @@ function patchDocument(html){
   patched=patched.replace(/loan-contract-editor\.css\?v=\d+/g,'loan-contract-editor.css?v=4');
   patched=injectScriptAfter(patched,"./loan-contract-editor.js?v=4","./loan-payment.js?v=1");
   patched=injectScriptAfter(patched,"./loan-payment.js?v=1","./loan-actions.js?v=1");
+  patched=patched.replace(/\.\/render\.js(?:\?v=\d+)?(?=")/g,"./render.js?v=2");
   return patched;
 }
 
@@ -189,7 +193,7 @@ self.addEventListener("fetch",event=>{
 
   if(request.mode==="navigate"||request.destination==="document"){
     event.respondWith(
-      fetch(request,{cache:"no-store"})
+      fetch(["/nuur","/hariltsagch","/tulbur","/zeel"].includes(url.pathname.replace(/\/$/,""))?new URL("/"+url.search,self.location.origin).href:request,{cache:"no-store"})
         .then(response=>patchedResponse(response).catch(error=>{
           console.warn("NAYAD document patch:",error);
           return response;
