@@ -87,5 +87,16 @@ const {PGlite}=require('@electric-sql/pglite'),fs=require('fs'),assert=require('
  await action(disposable,'delete',null,'устгах');assert.equal((await db.query('select id from loans where id=$1',[disposable])).rows.length,0);
  await db.exec(`select set_config('request.jwt.claim.sub','${other}',false)`);await assert.rejects(()=>action(single,'reverse',one, null,0),/эрхгүй/);
  await db.exec('reset role;set role anon');await assert.rejects(()=>action(single,'close',null,null,0),/permission denied/);
- console.log('PASS: contract SQL, exact totals, null breakdown, atomic rejection, paid preservation, stale-edit protection, RLS and RPC privileges');await db.close();
+ // Reproduce the production permission trigger: schedule shortening is an edit.
+ await db.exec(`reset role; create or replace function private.has_store_permission(s uuid,m text,a text) returns boolean language sql as $$select exists(select 1 from public.store_members where store_id=s and user_id=auth.uid() and (role='owner' or (role='manager' and a in ('view','edit'))))$$;`);
+ await db.exec(fs.readFileSync('supabase/migrations/20260930042000_fix_store_permission_coalesce.sql','utf8'));
+ await db.exec(`create trigger enforce_loan_installment_permissions before insert or update or delete on loan_installments for each row execute function private.enforce_store_module_permission('loans'); create trigger enforce_loan_permissions before insert or update or delete on loans for each row execute function private.enforce_store_module_permission('loans'); update store_members set role='manager' where user_id='${u}'; set role authenticated;select set_config('request.jwt.claim.sub','${u}',false);`);
+ simple.rows[0].principal_amount=null;simple.rows[0].interest_amount=null;simple.rows.pop();simpleArgs[9]=JSON.stringify(simple.rows);simpleArgs[2]=await currentRev(simpleId);
+ await assert.rejects(simpleSave,/Permission denied for loans delete/);
+ assert.equal((await db.query('select count(*) c from loan_installments where loan_id=$1',[simpleId])).rows[0].c,13,'failed edit is atomic');
+ await db.exec('reset role');await db.exec(fs.readFileSync('supabase/migrations/20261013140801_fix_loan_schedule_edit_permission.sql','utf8'));await db.exec('set role authenticated');
+ await simpleSave();assert.equal((await db.query('select count(*) c from loan_installments where loan_id=$1',[simpleId])).rows[0].c,12);
+ await assert.rejects(()=>db.query('delete from loan_installments where loan_id=$1',[simpleId]),/permission denied/);
+ await assert.rejects(()=>action(simpleId,'delete',null,'устгах'),/эзэн/);
+ console.log('PASS: contract SQL, schedule edit permission regression, paid preservation, stale edits, RLS and RPC privileges');await db.close();
 })().catch(e=>{console.error(e);process.exitCode=1;});
