@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v156";
+const CACHE = "nayad-v157";
 
 const ASSETS = [
   "./",
@@ -32,7 +32,7 @@ const ASSETS = [
   "./payment-statement.js?v=3",
   "./loans.js?v=7",
   "./loan-contract-schedule.js?v=2",
-  "./loan-contract-editor.js?v=3",
+  "./loan-contract-editor.js?v=4",
   "./loan-contract-editor.css?v=3",
   "./loan-payment.js?v=1",
   "./contact-types.js?v=20",
@@ -121,11 +121,11 @@ function patchDocument(html){
   patched=injectScriptBefore(patched,"./payment-statement.js?v=3","./statement-search.js?v=1");
   patched=injectScriptBefore(patched,"./loans.js?v=7","./loan-contract-schedule.js?v=2");
   patched=patched.replace(/loan-contract-schedule\.js\?v=\d+/g,'loan-contract-schedule.js?v=2');
-  patched=injectScriptAfter(patched,"./loans.js?v=7","./loan-contract-editor.js?v=3");
+  patched=injectScriptAfter(patched,"./loans.js?v=7","./loan-contract-editor.js?v=4");
   if(!patched.includes('./loan-contract-editor.css'))patched=patched.replace('</head>','<link rel="stylesheet" href="./loan-contract-editor.css?v=3"></head>');
-  patched=patched.replace(/loan-contract-editor\.js\?v=\d+/g,'loan-contract-editor.js?v=3');
+  patched=patched.replace(/loan-contract-editor\.js\?v=\d+/g,'loan-contract-editor.js?v=4');
   patched=patched.replace(/loan-contract-editor\.css\?v=\d+/g,'loan-contract-editor.css?v=3');
-  patched=injectScriptAfter(patched,"./loan-contract-editor.js?v=3","./loan-payment.js?v=1");
+  patched=injectScriptAfter(patched,"./loan-contract-editor.js?v=4","./loan-payment.js?v=1");
   return patched;
 }
 

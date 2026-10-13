@@ -64,26 +64,26 @@
     frame(loan?'Зээл засах':'Зээл бүртгэх',`
       <label class="contractField"><span>Зээл олгогчийн төрөл</span><select id="cType">${[['bank','Банк'],['nbfi','ББСБ'],['person','Хувь хүн']].map(([v,t])=>`<option value="${v}" ${draft.lenderType===v?'selected':''}>${t}</option>`).join('')}</select></label>
       ${field('Банк / ББСБ / хүний нэр','cLender',draft.lenderName,'text','maxlength="120"')}${field('Зээлийн нэр','cName',draft.loanName,'text','maxlength="120"')}
-      ${field('Зээлийн дүн','cPrincipal',draft.principal,'text','inputmode="decimal"')}
+      ${field(loan&&loan.principal==null?'Зээлийн дүн · заавал биш':'Зээлийн дүн','cPrincipal',draft.principal,'text','inputmode="decimal"')}
       <div class="contractGrid">${field('Зээл авсан огноо','cStart',draft.startDate,'date')}${field('Анхны төлөлт','cFirst',draft.firstDate,'date')}${field('Сар бүр төлөх өдөр','cDay',draft.paymentDay,'number','min="1" max="31"')}${field('Төлөлтийн тоо','cTerm',draft.term,'number','min="1" max="600"')}</div>
       ${field('Сар бүр төлөх дүн','cRegular',draft.regular,'text','inputmode="decimal"')}${field('Сүүлийн төлөлтийн дүн','cLast',draft.last,'text','inputmode="decimal" placeholder="Ижил бол хоосон үлдээнэ"')}
       <details class="contractBankDetails" ${Object.values(draft.paymentDetails||{}).some(Boolean)?'open':''}><summary>Төлбөрийн дансны мэдээлэл · заавал биш</summary>
       ${field('Банк','cBank',draft.paymentDetails?.bank||'','text','maxlength="120"')}${field('Данс эзэмшигч','cHolder',draft.paymentDetails?.holder||'','text','maxlength="120"')}${field('IBAN','cIban',draft.paymentDetails?.iban||'','text','maxlength="120" autocapitalize="characters"')}${field('Дансны дугаар','cAccount',draft.paymentDetails?.account||'','text','maxlength="120"')}${field('Гүйлгээний утга','cReference',draft.paymentDetails?.reference||'','text','maxlength="300" placeholder="Гэрээний дугаар, шаардсан утга"')}
       <p class="contractHelp">Дараа нь нөхөж оруулж болно. Төлөх үед энд хадгалсан мэдээллийг хуулна.</p></details>
-      ${loan?'<p class="contractHelp">Хавсаргасан гэрээ болон төлсөн түүх хэвээр хадгалагдана.</p>':`<label class="contractFile">▧ Хуваарийн зураг / PDF хавсаргах<input id="cFiles" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" multiple></label><small class="contractHelp">Заавал биш · 20 хүртэл файл · тус бүр 10MB</small><div id="cFileList">${fileList()}</div>`}`,'ХУВААРЬ ХАРАХ','preview');
+      ${loan?'<p class="contractHelp">Хавсаргасан гэрээ болон төлсөн түүх хэвээр хадгалагдана.</p><button type="button" class="contractDisclosure" data-action="preview">Хуваарь харах / засах <span>›</span></button>':`<label class="contractFile">▧ Хуваарийн зураг / PDF хавсаргах<input id="cFiles" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf" multiple></label><small class="contractHelp">Заавал биш · 20 хүртэл файл · тус бүр 10MB</small><div id="cFileList">${fileList()}</div>`}`,loan?'ХАДГАЛАХ':'ХУВААРЬ ХАРАХ',loan?'editSave':'preview');
   }
   function fileList(){return files.map((f,i)=>`<div class="contractFileRow"><span>${esc(f.name)}</span><button type="button" data-action="removeFile" data-index="${i}" aria-label="Файл хасах">×</button></div>`).join('');}
   function readForm(){
-    const d={lenderType:value('cType'),lenderName:value('cLender').trim(),loanName:value('cName').trim(),principal:S.money(value('cPrincipal')),startDate:value('cStart'),firstDate:value('cFirst'),paymentDay:Number(value('cDay')),term:Number(value('cTerm')),regular:S.money(value('cRegular')),last:value('cLast')===''?'':S.money(value('cLast'))};
+    const d={lenderType:value('cType'),lenderName:value('cLender').trim(),loanName:value('cName').trim(),principal:loan&&loan.principal==null&&value('cPrincipal').trim()===''?null:S.money(value('cPrincipal')),startDate:value('cStart'),firstDate:value('cFirst'),paymentDay:Number(value('cDay')),term:Number(value('cTerm')),regular:S.money(value('cRegular')),last:value('cLast')===''?'':S.money(value('cLast'))};
     if(!d.lenderName||!d.loanName)throw Error('Зээл олгогч болон зээлийн нэрийг оруулна уу.');
     d.paymentDetails=Object.fromEntries([['bank','cBank'],['holder','cHolder'],['iban','cIban'],['account','cAccount'],['reference','cReference']].map(([k,id])=>[k,value(id).trim()]));
-    const generated=S.generate(d),keys=['startDate','firstDate','paymentDay','term','regular','last'];
+    const keys=['startDate','firstDate','paymentDay','term','regular','last'];
     const changed=rows.length&&keys.some(k=>String(d[k])!==String(draft[k]));
     if(changed){
       if(loan&&savedRows.some(r=>r.status==='paid'))throw Error('Төлсөн түүхтэй зээлийн хуваарийг дахин үүсгэхгүй. Хуваарь дотор төлөөгүй мөрүүдээ засна уу.');
       if(!confirm('Хуваарийн огноо эсвэл дүн өөрчлөгдсөн байна. Мөрүүдэд хийсэн засварыг шинэ хуваариар солих уу?'))return false;
     }
-    if(!rows.length||changed)rows=generated;draft=d;S.validate(draft,rows);return true;
+    if(!rows.length||changed)rows=S.generate(d);draft=d;S.validate(draft,rows);return true;
   }
   function drawSchedule(){
     step=2;const total=rows.reduce((sum,r)=>sum+Math.round(r.total_amount*100),0)/100;
@@ -110,7 +110,7 @@
       draft.loanName=value('cName').trim();draft.regular=value('cRegular');draft.firstDate=value('cFirst');draft.endDate=value('cEnd');draft.paymentDay=Number(draft.firstDate.slice(-2))||'';draft.paymentDetails=paymentDetails();
       if(!loan){draft.lenderName=draft.paymentDetails.bank||draft.loanName;draft.principal='';}
       simpleMode=false;drawForm();break;
-      case 'close':close();break;case 'preview':if(readForm())drawSchedule();break;case 'back':captureRows();drawForm();break;case 'save':save();break;case 'finish':close();B.sync();break;case 'removeFile':files.splice(Number(b.dataset.index),1);$('cFileList').innerHTML=fileList();break;}}
+      case 'editSave':if(readForm())save();break;case 'close':close();break;case 'preview':if(readForm())drawSchedule();break;case 'back':captureRows();drawForm();break;case 'save':save();break;case 'finish':close();B.sync();break;case 'removeFile':files.splice(Number(b.dataset.index),1);$('cFileList').innerHTML=fileList();break;}}
     catch(e){error(e);}
   }
   function onChange(e){
@@ -144,7 +144,7 @@
     }catch(e){
       busy=false;
       if(savedId){frame('Зээл хадгалагдсан','<p>Зээл болон хуваарь хадгалагдсан. Харин хавсралт хадгалагдсангүй. Дахин оролдоход зээл давхар бүртгэгдэхгүй.</p><button type="button" class="secondary" data-action="finish">Хавсралтгүй дуусгах</button>','ХАВСРАЛТЫГ ДАХИН ХАДГАЛАХ','save');error(e);await B.sync();}
-      else{if(simpleMode&&step===1)drawSimple();else drawSchedule();error(e);}
+      else{if(step===1)drawForm();else drawSchedule();error(e);}
     }finally{busy=false;if(window.__nayadCriticalOperation==='loan-contract-save')delete window.__nayadCriticalOperation;}
   }
   window.showLoanCreate=()=>open();window.showLoanEdit=id=>open(id);

@@ -128,7 +128,7 @@ assert.equal(patchedTwice.split('./payment-statement.js?v=3').length-1,1,'statem
 assert.ok(patchedTwice.indexOf('./payment-statement.js?v=3')<patchedTwice.indexOf('./payment-center.js?v=17'),'statement loads before center');
 assert.ok(patchedTwice.indexOf('./statement-search.js?v=1')<patchedTwice.indexOf('./payment-statement.js?v=3'),'search loads before statement');
 
-for(const asset of ['./loan-contract-editor.js?v=3','./loan-contract-schedule.js?v=2'])assert.equal(patchedTwice.split(asset).length-1,1);
-assert.ok(patchedTwice.indexOf('./loans.js?v=7')<patchedTwice.indexOf('./loan-contract-editor.js?v=3'));
+for(const asset of ['./loan-contract-editor.js?v=4','./loan-contract-schedule.js?v=2'])assert.equal(patchedTwice.split(asset).length-1,1);
+assert.ok(patchedTwice.indexOf('./loans.js?v=7')<patchedTwice.indexOf('./loan-contract-editor.js?v=4'));
 
 assert.equal(patchedTwice.split('./loan-payment.js?v=1').length-1,1);
