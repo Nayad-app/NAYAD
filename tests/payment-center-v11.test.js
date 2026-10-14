@@ -110,3 +110,17 @@ vm.runInContext('sync()',context);
 assert.equal(vm.runInContext('data.companies.find(c=>c.id===4).debt',context),0,'draft invoice must not create debt');
 
 console.log('payment-center-v11: PASS — due ordering, direct invoices, edits and invoice-level discounts are correct');
+
+// Every stage is protected, including confirmation which has no inputs.
+const modalClasses=new Set();
+const modal={classList:{add:value=>modalClasses.add(value)}};
+context.window.sheet=html=>{paymentSheet=html;modalClasses.clear();};
+context.document.getElementById=id=>id==='modal'?modal:null;
+context.window.payment();
+assert.ok(modalClasses.has('paymentFormModal'),'supplier selection stays open');
+context.window.payment(5);
+assert.ok(modalClasses.has('paymentFormModal'),'amount entry stays open');
+context.document.querySelectorAll=()=>[groupedCheck];
+context.window.reviewPaymentCenter(5);
+assert.match(paymentSheet,/Төлбөр баталгаажуулах/);
+assert.ok(modalClasses.has('paymentFormModal'),'confirmation stays open');

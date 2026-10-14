@@ -33,6 +33,7 @@
   function isConfirmed(invoice){return (invoice.status||'confirmed')==='confirmed';}
   function notify(message){if(typeof window.toast==='function')window.toast(message);}
   function open(html){if(typeof window.sheet==='function')window.sheet(html);}
+  function openPayment(html){open(html);document.getElementById('modal')?.classList?.add?.('paymentFormModal');}
   function close(){if(typeof window.closeSheet==='function')window.closeSheet();}
   function activeStoreId(){return window.__nayadActiveStoreId||window.__nayadActiveStore?.id||null;}
   function companyById(id){return state().companies.find(company=>String(company.id)===String(id))||null;}
@@ -148,7 +149,7 @@
     const companies=state().companies.filter(company=>company.status!=='inactive'&&(company.invoices||[]).some(invoice=>isConfirmed(invoice)&&balanceOf(invoice)>0)).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'mn',{sensitivity:'base'}));
     if(!companies.length){notify('Төлөгдөөгүй падаантай нийлүүлэгч алга.');return;}
     const options=companies.map(company=>`<option value="${esc(company.id)}">${esc(company.name)} — ${amount(company.debt)}</option>`).join('');
-    open(`<h2>Төлбөр бүртгэх</h2><p class="sub">Төлбөр бүртгэх нийлүүлэгчээ сонгоно уу.</p><div class="field"><label>Нийлүүлэгч</label><select id="directPaymentCompany"><option value="">Нийлүүлэгч сонгох</option>${options}</select></div><div class="actions"><button class="secondary" onclick="closeSheet()">Болих</button><button class="primary" onclick="openSelectedPayment()">Үргэлжлүүлэх</button></div>`);
+    openPayment(`<h2>Төлбөр бүртгэх</h2><p class="sub">Төлбөр бүртгэх нийлүүлэгчээ сонгоно уу.</p><div class="field"><label>Нийлүүлэгч</label><select id="directPaymentCompany"><option value="">Нийлүүлэгч сонгох</option>${options}</select></div><div class="actions"><button class="secondary" onclick="closeSheet()">Болих</button><button class="primary" onclick="openSelectedPayment()">Үргэлжлүүлэх</button></div>`);
   }
 
   function paymentForm(companyId,focusInvoiceId){
@@ -157,7 +158,7 @@
     const invoices=(company.invoices||[]).filter(invoice=>isConfirmed(invoice)&&balanceOf(invoice)>0).sort((a,b)=>String(dueOf(a)||a.date||'').localeCompare(String(dueOf(b)||b.date||'')));
     if(!invoices.length){notify('Төлөгдөөгүй падаан алга.');return;}
     const focus=focusInvoiceId?String(focusInvoiceId):'';
-    open(`<h2>Төлбөр бүртгэх</h2><div class="paySupplierCard"><b>${esc(company.name)}</b><span>${esc(company.bank||'Банк сонгоогүй')}${company.bankAccount?' · '+esc(company.bankAccount):''}</span></div>
+    openPayment(`<h2>Төлбөр бүртгэх</h2><div class="paySupplierCard"><b>${esc(company.name)}</b><span>${esc(company.bank||'Банк сонгоогүй')}${company.bankAccount?' · '+esc(company.bankAccount):''}</span></div>
       <div class="paymentSectionTitle"><span>ТӨЛӨГДӨӨГҮЙ ПАДААНУУД</span></div>
       <div id="allocationList">${invoices.map((invoice,index)=>{const discount=discountInfo(invoice),checked=focus?String(invoice.id)===focus:index===0;return `<label class="allocationRow"><input class="allocationCheck" type="checkbox" data-invoice="${esc(invoice.id)}" ${checked?'checked':''} onchange="togglePaymentAllocation(this)"><span><b>${esc(invoice.no||'Дугааргүй')}</b><small>Төлөх өдөр ${dateLabel(dueOf(invoice))} · Үлдэгдэл ${amount(balanceOf(invoice))}</small>${discount.eligible?`<em>${discount.percent}% хөнгөлөлт · ${amount(discount.saving)} хэмнэнэ</em>`:''}</span><input class="allocationAmount" data-money-input data-invoice="${esc(invoice.id)}" data-default-amount="${discount.cash}" type="text" inputmode="decimal" autocomplete="off" value="${moneyInputText(checked?discount.cash:0)}" oninput="recalculatePaymentTotal()"></label>`;}).join('')}</div>
       <div class="payTotal"><span>Нийт төлөх дүн</span><b id="paymentCenterTotal">0 ₮</b></div>
@@ -207,7 +208,7 @@
     const selectedInvoices=allocations.map(item=>invoiceById(item.invoice_id)).filter(Boolean);
     const discount=allocations.reduce((sum,item,index)=>{const inv=selectedInvoices[index],info=inv?discountInfo(inv,document.getElementById('pcDate')?.value||today()):{saving:0,cash:0};return sum+(Math.abs(item.amount-info.cash)<0.01?info.saving:0);},0);
     pendingPayment={companyId,companyName:company.name,supplierId:company.supabase_supplier_id,allocations,total,discount,date:document.getElementById('pcDate')?.value||today(),method:document.getElementById('pcMethod')?.value||'Бусад',reference:document.getElementById('pcReference')?.value.trim()||null,note:document.getElementById('pcNote')?.value.trim()||null,previousDebt:Number(company.debt)||0};
-    open(`<h2>Төлбөр баталгаажуулах</h2><div class="confirmPay"><span>Нийлүүлэгч<b>${esc(company.name)}</b></span><span>Өмнөх өр<b>${amount(pendingPayment.previousDebt)}</b></span><span>Банкнаас төлөх<b>${amount(total)}</b></span>${discount?`<span class="discountLine">Хөнгөлөлтөөр хаагдах<b>${amount(discount)}</b></span>`:''}<span class="newBalance">Төлсний дараах өр<b>${amount(Math.max(pendingPayment.previousDebt-total-discount,0))}</b></span></div><p class="sub">Төлбөр баталгаажсаны дараа устгахгүй. Алдаа гарвал шалтгаантай буцаалт хийнэ.</p><div class="actions"><button class="secondary" onclick="payment('${esc(companyId)}')">Буцах</button><button id="commitPaymentBtn" class="primary" onclick="commitPaymentCenter()">Баталгаажуулах</button></div>`);
+    openPayment(`<h2>Төлбөр баталгаажуулах</h2><div class="confirmPay"><span>Нийлүүлэгч<b>${esc(company.name)}</b></span><span>Өмнөх өр<b>${amount(pendingPayment.previousDebt)}</b></span><span>Банкнаас төлөх<b>${amount(total)}</b></span>${discount?`<span class="discountLine">Хөнгөлөлтөөр хаагдах<b>${amount(discount)}</b></span>`:''}<span class="newBalance">Төлсний дараах өр<b>${amount(Math.max(pendingPayment.previousDebt-total-discount,0))}</b></span></div><p class="sub">Төлбөр баталгаажсаны дараа устгахгүй. Алдаа гарвал шалтгаантай буцаалт хийнэ.</p><div class="actions"><button class="secondary" onclick="payment('${esc(companyId)}')">Буцах</button><button id="commitPaymentBtn" class="primary" onclick="commitPaymentCenter()">Баталгаажуулах</button></div>`);
   };
 
   window.commitPaymentCenter=async function(){
