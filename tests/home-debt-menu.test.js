@@ -43,12 +43,13 @@ const context={
 };
 context.window=context;
 vm.createContext(context);
+vm.runInContext(fs.readFileSync(path.join(root,'statement-search.js'),'utf8'),context);
 vm.runInContext(source,context,{filename:'contact-types.js'});
 
 const controls=context.__nayadHomeDebtControls();
 for(const label of ['Бүгд','7 хоногт төлөх','1 сард төлөх','Төлөх хугацаа хамгийн ойр','Хугацаа хэтэрсэн','Хугацаагүй','Их өртэй','Анх авсан огноо ↑','Нэрээр A–Я'])assert.match(controls,new RegExp(label));
 assert.equal((controls.match(/homeDebtMenuIcon/g)||[]).length,9,'every menu row must have a leading icon');
-assert.equal((controls.match(/class="homeQuickFilter /g)||[]).length,5,'five compact quick-filter icons must be visible in the title row');
+assert.equal((controls.match(/class="homeQuickFilter /g)||[]).length,0,'quick icons are replaced by inline search');
 assert.doesNotMatch(controls,/homeQuickFilter[^>]*>[^<]*Бүгд/,'quick filters must display icons only');
 assert.doesNotMatch(controls,/ЭРЭМБЭЛЭХ|ХУГАЦААГААР ШҮҮХ|<hr/,'the anchored menu must contain only the approved list');
 assert.match(controls,/homeDebtMenu hide/,'the list must open as an anchored dropdown, not a bottom sheet');
@@ -145,3 +146,15 @@ assert.deepEqual(renderedOrder,['PARTIAL-NEW','OPEN-OLD','PAID-NEW','PAID-OLD','
 assert.deepEqual(sortedInvoices.map(i=>i.id),orderBefore,'display sorting must not reorder the stored invoice data');
 
 console.log('home-debt-menu: PASS — anchored icon menu, date filters, amount sort and name toggle are correct');
+
+context.setHomeDebtView('all');
+const names=[{name:'Батболд',debt:100},{name:'BAT store',debt:100},{name:'Сарбат',debt:100},{name:'Номин',debt:100},{name:'Бат paid',debt:0}];
+context.filterHomeCompanies('bAt');
+assert.deepEqual(Array.from(context.__nayadHomeDebtList(names),c=>c.name),['Батболд','BAT store','Сарбат']);
+context.filterHomeCompanies('Б');
+assert.equal(context.__nayadHomeDebtList(names).length,3);
+context.filterHomeCompanies('not found');assert.equal(context.__nayadHomeDebtList(names).length,0);
+context.filterHomeCompanies('');assert.equal(context.__nayadHomeDebtList(names).length,4);
+context.filterHomeCompanies('bat');context.__nayadActiveStoreId='another-store';
+assert.equal(context.__nayadHomeDebtList(names).length,4,'new store clears prior search');
+assert.match(context.__nayadHomeDebtControls(),/Байгууллага хайх/);

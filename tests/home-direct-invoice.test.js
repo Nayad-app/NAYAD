@@ -17,7 +17,7 @@ assert.match(contactSource,/closeHomeQuickActions\(true\)/,'Escape must close th
 assert.match(indexSource,/supplier\?"ЯАРАЛТАЙ АВЛАГА":"ЯАРАЛТАЙ ӨГЛӨГ"/,'urgent heading must follow the registration direction');
 assert.match(indexSource,/onclick="showHomeDebtView\('all'\)"/,'debt-contact summary must reveal all debt contacts');
 assert.match(indexSource,/onclick="showHomePeriodFilter\(\)"/,'payment-period summary must open the approved centered filter');
-assert.match(contactSource,/const quickRows=\[\['all','Бүгд'\],\['next7'/,'the approved five quick filters must remain in the title row');
+assert.match(contactSource,/id="homeCompanySearch"/,'approved search replaces the five quick filters');
 for(const label of ['Өнөөдөр','3 хоногт','7 хоногт','14 хоногт','Энэ сард','Огноо сонгох'])assert.match(contactSource,new RegExp(label));
 assert.match(contactSource,/className='homePeriodOverlay hide'/,'the payment-period picker must use its own centered overlay');
 assert.match(contactSource,/align-items:center;justify-content:center/,'the payment-period picker must be centered, not a bottom sheet');
