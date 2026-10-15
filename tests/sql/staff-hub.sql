@@ -1,0 +1,35 @@
+begin;
+do $$
+declare u uuid:=gen_random_uuid(); s uuid:=gen_random_uuid(); t uuid:=gen_random_uuid(); e1 uuid:=gen_random_uuid();e2 uuid:=gen_random_uuid();e3 uuid:=gen_random_uuid(); tok uuid:=gen_random_uuid(); tok2 uuid:=gen_random_uuid(); j jsonb;mid uuid;did uuid;blocked boolean; img text:='data:image/jpeg;base64,/9j/2Q==';
+begin
+ insert into auth.users(id,email) values(u,'staff-test-'||u||'@example.invalid');
+ insert into public.stores(id,name) values(s,'Synthetic staff test'),(t,'Synthetic other store');
+ insert into public.store_members(store_id,user_id,role) values(s,u,'owner');
+ insert into public.staff_store_settings(store_id,attendance_token) values(s,tok),(t,tok2);
+ insert into public.staff_employees(id,store_id,name,phone,created_by) values(e1,s,'A','11111111',u),(e2,s,'B','22222222',u),(e3,t,'C','33333333',u);
+ insert into private.staff_credentials(employee_id,pin_hash,device_hash) values(e1,'unused',encode(extensions.digest('device-a','sha256'),'hex')),(e2,'unused',encode(extensions.digest('device-b','sha256'),'hex')),(e3,'unused',encode(extensions.digest('device-c','sha256'),'hex'));
+ j:=public.staff_hub('list','{}',null,tok,'device-a');
+ if jsonb_array_length(j->'participants')<>3 then raise exception 'participant isolation failed';end if;
+ mid:=gen_random_uuid();perform public.staff_hub('send',jsonb_build_object('id',mid,'body','hello','peer','e:'||e2),null,tok,'device-a');
+ perform public.staff_hub('send',jsonb_build_object('id',mid,'body','hello','peer','e:'||e2),null,tok,'device-a');
+ j:=public.staff_hub('messages',jsonb_build_object('peer','e:'||e1),null,tok,'device-b');
+ if jsonb_array_length(j->'messages')<>1 then raise exception 'message/dedup failed';end if;
+ j:=public.staff_hub('messages','{}',null,tok,'device-b');if jsonb_array_length(j->'messages')<>0 then raise exception 'private leaked to group';end if;
+ blocked:=false;begin perform public.staff_hub('messages',jsonb_build_object('peer','e:'||e1),null,tok2,'device-c');exception when others then blocked:=true;end;if not blocked then raise exception 'cross store message permitted';end if;
+ mid:=(public.staff_hub('upload',jsonb_build_object('kind','chat','image',img),null,tok,'device-a')->>'id')::uuid;
+ perform public.staff_hub('send',jsonb_build_object('id',gen_random_uuid(),'media_id',mid,'peer','e:'||e2),null,tok,'device-a');
+ j:=public.staff_hub('image',jsonb_build_object('id',mid),null,tok,'device-b');if j->>'image'<>img then raise exception 'chat attachment unavailable';end if;
+ did:=(public.staff_hub('upload',jsonb_build_object('kind','id_front','image',img),null,tok,'device-a')->>'id')::uuid;
+ blocked:=false;begin perform public.staff_hub('image',jsonb_build_object('id',did),null,tok,'device-b');exception when insufficient_privilege then blocked:=true;end;if not blocked then raise exception 'identity image leaked';end if;
+ j:=public.staff_hub('image',jsonb_build_object('id',did),null,tok,'device-a');if j->>'image'<>img then raise exception 'own image unavailable';end if;
+ blocked:=false;begin perform public.staff_hub('profile',jsonb_build_object('employee','e:'||e1),null,tok,'device-b');exception when insufficient_privilege then blocked:=true;end;if not blocked then raise exception 'profile leaked';end if;
+ perform set_config('request.jwt.claim.sub',u::text,true);
+ perform set_config('request.jwt.claims',jsonb_build_object('sub',u,'role','authenticated')::text,true);
+ j:=public.staff_hub('image',jsonb_build_object('id',did),s);if j->>'image'<>img then raise exception 'owner image unavailable';end if;
+ blocked:=false;begin perform public.staff_hub('image',jsonb_build_object('id',mid),s);exception when insufficient_privilege then blocked:=true;end;if not blocked then raise exception 'private chat attachment leaked to owner';end if;
+ j:=public.staff_hub('messages',jsonb_build_object('peer','e:'||e1),s);if jsonb_array_length(j->'messages')<>0 then raise exception 'owner saw employee private chat';end if;
+ perform public.staff_hub('deactivate',jsonb_build_object('employee_id',e2),s);
+ blocked:=false;begin perform public.staff_hub('list','{}',null,tok,'device-b');exception when insufficient_privilege then blocked:=true;end;if not blocked then raise exception 'inactive employee has access';end if;
+end$$;
+rollback;
+select 'PASS: store isolation, private chat, deduplication, document access, owner access, deactivation; synthetic records rolled back' as result;
