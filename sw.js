@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v164";
+const CACHE = "nayad-v165";
 
 const ASSETS = [
   "./",
@@ -23,7 +23,7 @@ const ASSETS = [
   "./mobile-fix.js?v=46",
   "./share.js?v=40",
   "./vendor/qrcode.js?v=1",
-  "./staff-payroll.js?v=1",
+  "./staff-payroll.js?v=2",
   "./profile-menu.js?v=7",
   "./notification-settings.js?v=1",
   "./admin-dashboard.js?v=2",
@@ -113,8 +113,8 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
   patched=injectScriptAfter(patched,"./registration-delete.js?v=2","./auth-guard.js?v=57");
   patched=injectScriptAfter(patched,"./share.js?v=40","./vendor/qrcode.js?v=1");
-  patched=injectScriptAfter(patched,"./vendor/qrcode.js?v=1","./staff-payroll.js?v=1");
-  patched=injectScriptAfter(patched,"./staff-payroll.js?v=1","./profile-menu.js?v=7");
+  patched=injectScriptAfter(patched,"./vendor/qrcode.js?v=1","./staff-payroll.js?v=2");
+  patched=injectScriptAfter(patched,"./staff-payroll.js?v=2","./profile-menu.js?v=7");
   patched=injectScriptAfter(patched,"./profile-menu.js?v=7","./admin-dashboard.js?v=2");
   patched=injectScriptAfter(patched,"./profile-menu.js?v=7","./notification-settings.js?v=1");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");

@@ -89,13 +89,13 @@ assert.ok(
   'legacy documents must receive the same safe store/auth/cloud script order'
 );
 assert.equal(patchedTwice.split('./profile-menu.js?v=7').length-1,1,'profile drawer must be injected exactly once');
-assert.equal(patchedTwice.split('./staff-payroll.js?v=1').length-1,1,'staff payroll must be injected exactly once');
+assert.equal(patchedTwice.split('./staff-payroll.js?v=2').length-1,1,'staff payroll must be injected exactly once');
 assert.equal(patchedTwice.split('./admin-dashboard.js?v=2').length-1,1,'admin dashboard must be injected exactly once');
 assert.equal(patchedTwice.split('./subscription.js?v=5').length-1,1,'subscription flow must be injected exactly once');
 assert.ok(patchedTwice.indexOf('./subscription.js?v=5')<patchedTwice.indexOf('./member-permissions.js?v=2'),'permission guard must load after all feature modules');
 assert.equal(patchedTwice.split('./loans.js?v=8').length-1,1,'loan module must be injected exactly once');
-assert.ok(patchedTwice.indexOf('./share.js?v=40')<patchedTwice.indexOf('./staff-payroll.js?v=1'),'staff payroll must load after sharing actions');
-assert.ok(patchedTwice.indexOf('./staff-payroll.js?v=1')<patchedTwice.indexOf('./profile-menu.js?v=7'),'profile drawer must load after staff payroll');
+assert.ok(patchedTwice.indexOf('./share.js?v=40')<patchedTwice.indexOf('./staff-payroll.js?v=2'),'staff payroll must load after sharing actions');
+assert.ok(patchedTwice.indexOf('./staff-payroll.js?v=2')<patchedTwice.indexOf('./profile-menu.js?v=7'),'profile drawer must load after staff payroll');
 
 async function dispatch(request){
   let responsePromise;
