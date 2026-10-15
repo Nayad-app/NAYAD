@@ -18,6 +18,21 @@
 .bankPicker .bankMenu{position:relative;top:auto;margin-top:6px}
 .authChoices{display:grid;gap:10px;margin:4px 0 14px}.authChoices .rememberRow{margin:0}.rememberRow input:disabled,.rememberRow input:disabled+label{cursor:not-allowed;opacity:.55}
 .modal.invoiceFormModal{align-items:center;padding:18px 14px calc(18px + env(safe-area-inset-bottom))}.sheet.invoiceFormSheet{width:min(402px,100%);max-height:calc(100vh - 36px);max-height:calc(100svh - 36px);border-radius:24px;padding:14px 14px 12px;box-shadow:0 18px 48px rgba(0,0,0,.22);overscroll-behavior:contain}.invoiceFormSheet .row{min-height:38px}.invoiceFormSheet .row>h2{font-size:20px}.invoiceFormSheet .row>.secondary{width:38px;height:38px;flex:0 0 38px;padding:0}.invoiceFormSheet .field{margin:6px 0}.invoiceFormSheet .field label{font-size:10px;line-height:1.2;margin-bottom:3px}.invoiceFormSheet .field input,.invoiceFormSheet .field select,.invoiceFormSheet .field textarea{min-height:36px;padding:7px 10px;border-radius:11px;font-size:13px}.invoiceFormSheet .field textarea{min-height:48px;max-height:54px;resize:vertical}.invoiceFormSheet .imageTools{gap:7px;margin-top:5px}.invoiceFormSheet .imageTools button{min-height:38px;padding:8px 7px;font-size:11px}.invoiceFormSheet .sub{font-size:9px;line-height:1.35;margin-top:5px!important}.invoiceFormSheet .imageList{margin-top:6px}.invoiceFormSheet .actions{position:sticky;bottom:-12px;z-index:3;margin:7px -2px -12px;padding:7px 2px 12px;background:#fff}.invoiceFormSheet .actions button{min-height:40px;padding:9px 8px;font-size:12px}
+
+/* Installed phone app: only the page content scrolls, never the navigation. */
+@media (display-mode: standalone) and (max-width: 599px) {
+  #app.app { position:fixed; inset:0; width:100%; max-width:none;
+    height:100%; height:100dvh; min-height:0; margin:0;
+    display:grid; grid-template-rows:68px minmax(0,1fr) auto; overflow:hidden; }
+  #app > header { position:relative; top:auto; min-height:0; }
+  #app > main { min-height:0; overflow-y:auto; overflow-x:hidden;
+    overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch;
+    padding-bottom:22px; }
+  #app > .bottom { position:relative; inset:auto; left:auto; bottom:auto;
+    transform:none; width:100%; max-width:none;
+    height:calc(76px + env(safe-area-inset-bottom, 0px));
+    padding-bottom:calc(7px + env(safe-area-inset-bottom, 0px)); }
+}
 </style>
 <style id="nayad-landing-styles">
 html:has(#landing:not(.hide)){background:#f1eee6}
