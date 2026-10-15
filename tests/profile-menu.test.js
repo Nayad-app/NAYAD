@@ -46,6 +46,7 @@ let storePickerCalls=0;
 let shareCalls=0;
 let settingsCalls=0;
 let logoutCalls=0;
+let staffCalls=0;
 const themeCalls=[];
 
 const context={
@@ -73,6 +74,7 @@ context.window.showNayadStorePicker=()=>{storePickerCalls++;};
 context.window.showStoreShare=()=>{shareCalls++;};
 context.window.showProfileDetails=()=>{settingsCalls++;};
 context.window.confirmLogout=()=>{logoutCalls++;};
+context.window.NayadStaff={open:()=>{staffCalls++;}};
 context.window.__nayadSetTheme=theme=>{
   documentElement.classList.toggle('nightMode',theme==='night');
   themeCalls.push(theme);
@@ -91,6 +93,7 @@ assert.equal(menuButton.attributes['aria-expanded'],'true');
 assert.equal(body.classList.contains('profileMenuOpen'),true);
 assert.match(drawer.innerHTML,/Дэлгүүр солих/);
 assert.match(drawer.innerHTML,/Дэлгүүр хуваалцах/);
+assert.match(drawer.innerHTML,/Ажилтан, цалин/);
 assert.match(drawer.innerHTML,/id="profileMenuTitle">Цэс</);
 assert.doesNotMatch(drawer.innerHTML,/profileMenuBrand/);
 assert.match(drawer.innerHTML,/Холбоо барих/);
@@ -104,6 +107,8 @@ assert.doesNotMatch(drawer.innerHTML,/Админы удирдлага/,'admin to
 assert.doesNotMatch(drawer.innerHTML,/Унтраалттай/);
 assert.ok(drawer.innerHTML.indexOf('Дэлгүүр солих')<drawer.innerHTML.indexOf('Дэлгүүр хуваалцах'));
 assert.ok(drawer.innerHTML.indexOf('Дэлгүүр хуваалцах')<drawer.innerHTML.indexOf('Night mode'));
+assert.ok(drawer.innerHTML.indexOf('Дэлгүүр хуваалцах')<drawer.innerHTML.indexOf('Ажилтан, цалин'));
+assert.ok(drawer.innerHTML.indexOf('Ажилтан, цалин')<drawer.innerHTML.indexOf('Night mode'));
 assert.ok(drawer.innerHTML.indexOf('Night mode')<drawer.innerHTML.indexOf('Plus багц руу ахиулах'));
 assert.ok(drawer.innerHTML.indexOf('Plus багц руу ахиулах')<drawer.innerHTML.indexOf('Тайлан'));
 assert.ok(drawer.innerHTML.indexOf('Тайлан')<drawer.innerHTML.indexOf('Холбоо барих'));
@@ -119,6 +124,9 @@ assert.equal(root.classList.contains('open'),false);
 context.window.showProfileMenu();
 context.window.profileMenuAction('share');
 assert.equal(shareCalls,1);
+context.window.showProfileMenu();
+context.window.profileMenuAction('staff');
+assert.equal(staffCalls,1);
 context.window.showProfileMenu();
 context.window.profileMenuAction('settings');
 assert.equal(settingsCalls,1);
@@ -148,7 +156,7 @@ assert.match(indexSource,/class="homeActiveStore"/,'home must keep a compact act
 assert.doesNotMatch(indexSource,/class="homeShareBtn"|class="logoutIconButton"/,'home/header must not keep the old standalone actions');
 assert.doesNotMatch(storeSource,/storeSwitcherButton/,'large active-store switcher must be removed');
 assert.doesNotMatch(shareSource,/function addShareButton/,'sharing must only be exposed through the profile drawer');
-assert.match(indexSource,/\.\/profile-menu\.js\?v=6/,'profile drawer must include the minimal menu redesign');
+assert.match(indexSource,/\.\/profile-menu\.js\?v=7/,'profile drawer must include employee and payroll access');
 assert.match(indexSource,/\.\/subscription\.js\?v=5/,'subscription flow must load after the app modules');
 
 console.log('profile-menu: PASS — store/profile actions live in the right drawer with logout at the bottom');
