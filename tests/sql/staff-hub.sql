@@ -10,6 +10,8 @@ begin
  insert into private.staff_credentials(employee_id,pin_hash,device_hash) values(e1,'unused',encode(extensions.digest('device-a','sha256'),'hex')),(e2,'unused',encode(extensions.digest('device-b','sha256'),'hex')),(e3,'unused',encode(extensions.digest('device-c','sha256'),'hex'));
  j:=public.staff_hub('list','{}',null,tok,'device-a');
  if jsonb_array_length(j->'participants')<>3 then raise exception 'participant isolation failed';end if;
+ j:=public.staff_hub_contacts(null,tok,'device-a');
+ if j->>('e:'||e1)<>'11111111' or j->>('e:'||e2)<>'22222222' or j ? ('e:'||e3) then raise exception 'staff phone isolation failed';end if;
  mid:=gen_random_uuid();perform public.staff_hub('send',jsonb_build_object('id',mid,'body','hello','peer','e:'||e2),null,tok,'device-a');
  perform public.staff_hub('send',jsonb_build_object('id',mid,'body','hello','peer','e:'||e2),null,tok,'device-a');
  j:=public.staff_hub('messages',jsonb_build_object('peer','e:'||e1),null,tok,'device-b');
