@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),T=require('../staff-time');
+assert.equal(T.span('18:00','04:00'),36000);
+assert.equal(T.span('09:00','18:00'),32400);
+assert.equal(T.span('09:00','09:00'),null);
+assert.equal(T.span('25:00','09:00'),null);
+const overnight=T.shift('2026-12-31','18:00','04:00');assert.equal(overnight.to.toISOString(),'2026-12-31T20:00:00.000Z');assert.equal(overnight.overnight,true);
+assert.deepEqual(T.payDates(2028,2,[29,30,31,0]),[29]);assert.deepEqual(T.payDates(2027,2,[10,25,31]),[10,25,28]);
+assert.equal(T.pay({approval_status:'pending',approved_seconds:36000}),0);
+assert.equal(T.pay({approval_status:'approved',approved_seconds:36000,overtime_seconds:3600,wage_snapshot:{type:'hourly',rate:7000,multiplier:1.5}}),73500);
+assert.equal(T.schedule([{id:'1',employee_id:'a',effective_from:'2026-01-01',created_at:'1'},{id:'2',employee_id:'a',effective_from:'2026-03-01',created_at:'2'}],'a','2026-02-01').id,'1');
+console.log('staff-time: PASS — overnight, invalid/equal inputs, short-month pay dates, approved payroll, effective schedules');
