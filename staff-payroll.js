@@ -78,6 +78,36 @@
   async function signIn(){const token=new URLSearchParams(location.search).get('tsag'),phone=document.getElementById('staffPublicPhone').value,pin=document.getElementById('staffPublicPin').value;const {data,error}=await sb().rpc('staff_employee_sign_in',{p_store_token:token,p_phone:phone,p_pin:pin});if(error||data?.error)return renderPublicLogin(data?.error||error?.message||'Нэвтэрсэнгүй.');localStorage.setItem(publicKey(token),data.device_token);delete data.device_token;state.publicData=data;renderPublic();}
   function renderPublic(){window.NayadHub?.stop();clearInterval(state.timer);const d=state.publicData||{},active=d.clock_in&&!d.clock_out,finished=d.clock_out;root().innerHTML=`<div class="staffShell">${brand()}<div class="staffStore">▣ ${esc(d.store_name||'Дэлгүүр')}</div><div class="staffAvatar" style="margin:15px auto;width:58px;height:58px">${esc((d.employee_name||'А').slice(0,1))}</div><h2><button class="staffProfileLink" onclick="NayadHub.profile()">Сайн байна уу, ${esc(d.employee_name||'')} ✎</button></h2><div class="staffToolbar"><button onclick="NayadHub.profile()">Миний мэдээлэл</button><button class="primaryMini" onclick="NayadHub.list()">Чат</button></div><div>${esc(d.work_date||'')}</div><div id="staffLiveClock" class="staffClock">${active?duration(d.worked_seconds):new Intl.DateTimeFormat('mn-MN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Asia/Ulaanbaatar'}).format(new Date())}</div><div class="staffPlace">⌖ Байршлыг товч дарахад шалгана</div><button class="staffPublicBtn in" ${active||finished?'disabled':''} onclick="NayadStaff.clock('in')">⇥ Ажилдаа ирлээ</button><button class="staffPublicBtn out" ${!active?'disabled':''} onclick="NayadStaff.clock('out')">⇥ Ажлаас гарлаа</button><div class="staffToday"><b>Өнөөдрийн бүртгэл</b><small>${d.clock_in?`Ирсэн ${time(d.clock_in)} · Гарсан ${time(d.clock_out)} · ${duration(d.worked_seconds)}`:'Одоогоор бүртгэлгүй'}</small><div class="staffDivider"></div><b>Энэ сарын баталсан цаг</b><small>${duration(d.month_seconds)}</small></div></div>`;window.NayadHub?.publicAvatar();if(active){let seconds=Number(d.worked_seconds)||0;state.timer=setInterval(()=>{seconds++;const el=document.getElementById('staffLiveClock');if(el)el.textContent=duration(seconds);},1000);}}
   async function clock(action){try{const p=await position(),token=new URLSearchParams(location.search).get('tsag'),device=localStorage.getItem(publicKey(token));const {data,error}=await sb().rpc('staff_employee_clock',{p_store_token:token,p_device_token:device,p_action:action,p_lat:p.coords.latitude,p_lng:p.coords.longitude,p_accuracy:p.coords.accuracy});if(error)throw error;state.publicData=data;renderPublic();}catch(error){window.alert(error.message||'Цаг бүртгэсэнгүй.');}}
+  // The shortcut belongs to the viewport, not the scrolling supplier list.
+  function installChatShortcut(){
+    const app=document.getElementById('app'),nav=app?.querySelector('.bottom');
+    if(!app||!nav||isAttendanceRoute()||document.getElementById('staffChatShortcut'))return;
+    document.head.insertAdjacentHTML('beforeend',`<style>
+      #staffChatShortcut{position:fixed;right:max(18px,env(safe-area-inset-right));bottom:120px;z-index:12;width:54px;height:54px;padding:0;border:0;border-radius:50%;background:#ffc107;color:#171717;display:grid;place-items:center;box-shadow:0 4px 14px #0002;cursor:pointer;touch-action:manipulation}
+      #staffChatShortcut[hidden],body.staffOpen #staffChatShortcut{display:none!important}
+      #staffChatShortcut svg{width:27px;height:27px}
+      #staffChatShortcut:focus-visible{outline:3px solid #171717;outline-offset:4px}
+    </style>`);
+    const button=document.createElement('button');button.id='staffChatShortcut';button.type='button';button.hidden=true;
+    button.setAttribute('aria-label','Ажилчидтай чатлах');button.title='Ажилчидтай чатлах';
+    button.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-8 8 9 9 0 0 1-3.5-.7L4 20l1.2-4.5a8 8 0 1 1 14.8-4Z"/><circle cx="8" cy="11.5" r=".8" fill="currentColor" stroke="none"/><circle cx="12" cy="11.5" r=".8" fill="currentColor" stroke="none"/><circle cx="16" cy="11.5" r=".8" fill="currentColor" stroke="none"/></svg>';
+    button.addEventListener('click',async()=>{
+      if(!storeId())return window.toast?.('Дэлгүүрээ сонгоно уу.');
+      if(button.disabled)return;button.disabled=true;
+      try{install();document.body.classList.add('staffOpen');root();await window.NayadHub.list();}
+      catch(error){close();window.toast?.(error.message||'Чат нээгдсэнгүй. Дахин оролдоно уу.');}
+      finally{button.disabled=false;}
+    });
+    document.body.appendChild(button);
+    function update(){
+      button.hidden=!app.getClientRects().length||getComputedStyle(app).display==='none'||!nav.querySelector('[data-page="home"].active');
+      const rect=nav.getBoundingClientRect();
+      button.style.bottom=rect.top>innerHeight/2?Math.max(18,innerHeight-rect.top+18)+'px':'max(24px, env(safe-area-inset-bottom))';
+    }
+    new MutationObserver(update).observe(app,{attributes:true,childList:true,subtree:true,attributeFilter:['class','hidden','style']});
+    new ResizeObserver(update).observe(nav);window.addEventListener('resize',update);update();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installChatShortcut);else installChatShortcut();
   window.NayadStaff={payCount,paySummary,loadTime,timeCalc,timeBack,history,open,close,tab,search,add,edit,wage,calc,save:saveEmployee,location:setLocation,qr,editTime,saveTime,detail,detailBack,isAttendanceRoute,initPublic,signIn,clock};
   window.addEventListener('load',()=>{if(isAttendanceRoute())initPublic();});
 })();

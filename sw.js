@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v171";
+const CACHE = "nayad-v172";
 
 const ASSETS = [
   "./",
@@ -25,7 +25,7 @@ const ASSETS = [
   "./vendor/qrcode.js?v=1",
   "./staff-hub.js?v=2",
   "./staff-time.js?v=1",
-  "./staff-payroll.js?v=6",
+  "./staff-payroll.js?v=7",
   "./profile-menu.js?v=7",
   "./notification-settings.js?v=1",
   "./admin-dashboard.js?v=2",
@@ -90,7 +90,7 @@ function injectCloudRuntimeBeforeCloudModules(html){
 function patchDocument(html){
   html=html.includes('<base href="/">')?html:html.replace('<head>','<head><base href="/">');
   html=html.includes("/section-router.js")?html:html.replace('<head>','<head><script src="/section-router.js?v=1"></script>');
-  html=html.replace(/\.\/staff-payroll\.js\?v=\d+/g,"./staff-payroll.js?v=6");
+  html=html.replace(/\.\/staff-payroll\.js\?v=\d+/g,"./staff-payroll.js?v=7");
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=39");
   patched=patched.replace(/\.\/money-input\.js\?v=\d+/g,"./money-input.js?v=1");
@@ -118,8 +118,8 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./share.js?v=40","./vendor/qrcode.js?v=1");
   patched=injectScriptAfter(patched,"./vendor/qrcode.js?v=1","./staff-hub.js?v=2");
   patched=injectScriptAfter(patched,"./staff-hub.js?v=2","./staff-time.js?v=1");
-  patched=injectScriptAfter(patched,"./staff-time.js?v=1","./staff-payroll.js?v=6");
-  patched=injectScriptAfter(patched,"./staff-payroll.js?v=6","./profile-menu.js?v=7");
+  patched=injectScriptAfter(patched,"./staff-time.js?v=1","./staff-payroll.js?v=7");
+  patched=injectScriptAfter(patched,"./staff-payroll.js?v=7","./profile-menu.js?v=7");
   patched=injectScriptAfter(patched,"./profile-menu.js?v=7","./admin-dashboard.js?v=2");
   patched=injectScriptAfter(patched,"./profile-menu.js?v=7","./notification-settings.js?v=1");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
