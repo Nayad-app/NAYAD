@@ -10,7 +10,7 @@ const migration=fs.readFileSync(path.join(root,'supabase/migrations/202610150514
 assert.match(menu,/Ажилтан, цалин/,'hamburger menu must expose staff payroll');
 assert.match(menu,/NayadStaff\?\.open/,'menu action must open staff payroll');
 assert.match(index,/vendor\/qrcode\.js\?v=1/,'local QR generator must load');
-assert.match(index,/staff-payroll\.js\?v=3/,'staff module must load');
+assert.match(index,/staff-payroll\.js\?v=4/,'staff module must load');
 assert.match(index,/NayadStaff\?\.isAttendanceRoute/,'normal auth boot must not replace the QR attendance screen');
 
 assert.match(staff,/Ажилдаа ирлээ/);
@@ -21,6 +21,11 @@ assert.match(staff,/staff_employee_sign_in/);
 assert.match(staff,/staff_employee_clock/);
 assert.match(staff,/enableHighAccuracy:true/,'clock actions must request a fresh high-accuracy position');
 assert.match(staff,/NAYAD_STAFF_DEVICE:/,'recognized devices must be remembered locally');
+assert.match(staff,/NayadStaff\.detail/,'salary rows must open an employee attendance breakdown');
+assert.match(staff,/type="month"/,'employee attendance breakdown must support month selection');
+assert.match(staff,/\.eq\('employee_id',employeeId\)/,'attendance details must be scoped to the selected employee');
+assert.match(staff,/Ажилласан өдөр/,'attendance details must summarize worked days');
+assert.match(staff,/Ирсэн[\s\S]*Гарсан[\s\S]*Ажилласан/,'attendance details must show daily clock-in, clock-out and duration');
 
 for(const table of ['staff_employees','staff_store_settings','staff_attendance']){
   assert.match(migration,new RegExp(`alter table public\\.${table} enable row level security`),`${table} must enable RLS`);
