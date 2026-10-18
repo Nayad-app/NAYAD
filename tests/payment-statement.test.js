@@ -26,6 +26,10 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  assert.match(api.html(),/251 гүйлгээ/);
  assert.doesNotMatch(api.html(),/252 үйлдэл|card statementRow/);
  api.kind('payment');assert.doesNotMatch(api.html(),/Төрөл: Төлбөр/);api.kind('all');
+ api.kind('invoice');assert.match(api.html(),/Падааны нийлбэр/);assert.match(api.html(),/1 падаан/);assert.match(api.html(),/<b>450 ₮<\/b>/);assert.doesNotMatch(api.html(),/Нийт төлсөн/);
+ api.kind('payment');assert.match(api.html(),/<b>25,100 ₮<\/b>/);assert.doesNotMatch(api.html(),/Падааны нийлбэр/);
+ api.kind('all');assert.match(api.html(),/Падааны нийлбэр/);assert.match(api.html(),/<b>25,100 ₮<\/b>/);assert.match(api.html(),/<b>450 ₮<\/b>/);
+
  assert.equal(api.filterRows([{kind:'invoice',created_at:'2026-10-05T01:00:00Z',supplier_name:'Баясах',amount:10}],{from:'2026-10-05',to:'2026-10-05',min:'',max:'',kind:'invoice',query:'bayasah'}).length,1);
  assert.ok(scopes.filter(q=>q.table==='payments').every(q=>q.store_id==='store-a'));
  assert.ok(scopes.filter(q=>q.table==='payment_allocations').every(q=>q['payments.store_id']==='store-a'));
