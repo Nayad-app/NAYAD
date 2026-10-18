@@ -11,9 +11,11 @@ const {chromium}=require('playwright'),fs=require('fs'),assert=require('node:ass
  });
  await page.addScriptTag({content:fs.readFileSync('payment-center.js','utf8')});await page.evaluate(()=>payment(1));
  for(const width of [320,390,430,768,1280]){
-  await page.setViewportSize({width,height:844});await page.evaluate(()=>{document.getElementById('pcAmount').value='800000';recalculatePaymentTotal()});
+  await page.setViewportSize({width,height:844});await page.evaluate(()=>{payment(1);document.getElementById('pcAmount').value='800000';document.getElementById('pcReference').value='Жишээ гүйлгээний утга';recalculatePaymentTotal()});
   const out=await page.locator('#sheet input,#sheet .pcCopy,#sheet .pcAllocation').evaluateAll(els=>els.map(el=>{const r=el.getBoundingClientRect();return {id:el.id,left:r.left,right:r.right,width:innerWidth}}).filter(r=>r.left<0||r.right>r.width+1));assert.deepEqual(out,[]);
-  console.log('PASS payment layout '+width);
+  await page.evaluate(()=>reviewPaymentCenter(1));
+  const overflow=await page.locator('.pcTransferDetails,.pcTransferDetails .pcCopy').evaluateAll(els=>els.some(el=>{const r=el.getBoundingClientRect();return r.left<0||r.right>innerWidth+1}));assert.equal(overflow,false);assert.equal(await page.locator('.pcTransferDetails .pcCopy').count(),4);
+  console.log('PASS payment entry and confirmation layout '+width);
  }
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/tmp/nayad-payment-preview.png',fullPage:true});await browser.close();
 })().catch(e=>{console.error(e);process.exitCode=1});

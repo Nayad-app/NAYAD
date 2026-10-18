@@ -19,10 +19,10 @@
     }
     return {allocations,rows,debt:debt/100,limit:limit/100,discount:discount/100,excess:Math.max(cents(value)-limit,0)/100};
   }
+  const copyButton=key=>`<button type="button" class="pcCopy" aria-label="Хуулах" onclick="copyPaymentField('${key}',this)">${copyIcon}</button>`;
   window.copyPaymentField=async function(key,button){
     if(!paymentDraft||paymentDraft.store!==activeStoreId())return;
-    const company=companyById(paymentDraft.companyId);
-    const value=key==='amount'?String(moneyInputValue(document.getElementById('pcAmount')?.value)):key==='reference'?document.getElementById('pcReference')?.value:(key==='iban'?company?.bankIban:company?.bankAccount);
+    const value=key==='amount'?pendingPayment?.total:key==='reference'?pendingPayment?.reference:(key==='iban'?pendingPayment?.bankIban:pendingPayment?.bankAccount);
     const text=String(value||'').trim();if(!text)return;
     let ok=false;
     try{await navigator.clipboard.writeText(text);ok=true;}catch(_){const input=document.createElement('textarea');input.value=text;input.style.cssText='position:fixed;opacity:0';button.parentElement.appendChild(input);input.select();input.setSelectionRange(0,text.length);try{ok=document.execCommand('copy');}catch(_){}input.remove();button.focus();}
@@ -184,12 +184,10 @@
     if(!invoices.length){notify('Төлөгдөөгүй падаан алга.');return;}
     paymentDraft={companyId:company.id,store:activeStoreId()};pendingPayment=null;
     const plan=paymentPlan(company,0,today());
-    const copyButton=key=>`<button type="button" class="pcCopy" aria-label="Хуулах" onclick="copyPaymentField('${key}',this)">${copyIcon}</button>`;
-    openPayment(`<div class="pcFormHeader"><h2>Төлбөр бүртгэх</h2><button type="button" class="pcFormClose" aria-label="Хаах" onclick="closeSheet()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="paySupplierCard"><b>${esc(company.name)}</b><span>${esc(company.bank||'Банк сонгоогүй')}${company.bankAccount?' · '+esc(company.bankAccount):''}</span></div>
+
+    openPayment(`<div class="pcFormHeader"><h2>Төлбөр бүртгэх</h2><button type="button" class="pcFormClose" aria-label="Хаах" onclick="closeSheet()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="paySupplierCard"><b>${esc(company.name)}</b><span>${esc(company.bank||'Банк сонгоогүй')}</span></div>
       <div class="payTotal"><span>Нийт үлдэгдэл</span><b>${amount(plan.debt)}</b></div>
-      ${company.bankIban?`<div class="pcCopyRow"><span>IBAN<br><b>${esc(company.bankIban)}</b></span>${copyButton('iban')}</div>`:''}
-      ${company.bankAccount?`<div class="pcCopyRow"><span>Дансны дугаар<br><b>${esc(company.bankAccount)}</b></span>${copyButton('account')}</div>`:''}
-      <div class="field"><label for="pcAmount">Төлөх дүн</label><div class="pcCopyRow"><input id="pcAmount" data-money-input inputmode="decimal" autocomplete="off" value="${moneyInputText(plan.limit)}" oninput="recalculatePaymentTotal()">${copyButton('amount')}</div></div>
+      <div class="field"><label for="pcAmount">Төлөх дүн</label><div class="pcCopyRow"><input id="pcAmount" data-money-input inputmode="decimal" autocomplete="off" value="${moneyInputText(plan.limit)}" oninput="recalculatePaymentTotal()"></div></div>
       <p class="sub">Падааны огноогоор хуучнаас нь эхэлж хасна.</p>
       <div id="pcWarning" class="agreementWarning" role="status" hidden></div>
       <button type="button" id="pcAdjust" class="secondary full" hidden onclick="adjustPaymentAmount()">Нийт төлөх дүнгээр тааруулах</button>
@@ -197,7 +195,7 @@
       <div class="payTotal"><span>Төлсний дараах үлдэгдэл</span><b id="paymentCenterTotal">${amount(plan.debt)}</b></div>
       <div class="field"><label>Төлбөрийн арга</label><select id="pcMethod"><option>Банк</option><option>Бэлэн мөнгө</option><option>QPay</option><option>Карт</option><option>Бусад</option></select></div>
       <div class="field"><label>Огноо</label><input id="pcDate" type="date" value="${today()}" onchange="recalculatePaymentTotal()"></div>
-      <div class="field"><label>Гүйлгээний утга / баримтын дугаар — заавал биш</label><div class="pcCopyRow"><input id="pcReference" maxlength="120" value="${esc(company.paymentReference||'')}">${copyButton('reference')}</div></div>
+      <div class="field"><label>Гүйлгээний утга / баримтын дугаар — заавал биш</label><div class="pcCopyRow"><input id="pcReference" maxlength="120" value="${esc(company.paymentReference||'')}"></div></div>
       <div class="field"><label>Тайлбар — заавал биш</label><textarea id="pcNote" maxlength="300"></textarea></div>
       <div class="actions pcFormActions"><button id="pcContinue" class="primary" onclick="reviewPaymentCenter('${esc(company.id)}')">Үргэлжлүүлэх</button></div>`);
     setTimeout(()=>window.recalculatePaymentTotal(),0);
@@ -252,8 +250,10 @@
     const total=allocations.reduce((sum,item)=>sum+cents(item.amount),0)/100;if(!total){notify('Төлөх дүн оруулна уу.');return;}
     const selectedInvoices=allocations.map(item=>invoiceById(item.invoice_id)).filter(Boolean);
     const discount=allocations.reduce((sum,item,index)=>{const inv=selectedInvoices[index],info=inv?discountInfo(inv,document.getElementById('pcDate')?.value||today()):{saving:0,cash:0};return sum+(Math.abs(item.amount-info.cash)<0.01?info.saving:0);},0);
-    pendingPayment={store:activeStoreId(),companyId,companyName:company.name,supplierId:company.supabase_supplier_id,allocations,total,discount,date:document.getElementById('pcDate')?.value||today(),method:document.getElementById('pcMethod')?.value||'Бусад',reference:document.getElementById('pcReference')?.value.trim()||null,note:document.getElementById('pcNote')?.value.trim()||null,previousDebt:plan.debt};
-    openPayment(`<h2>Төлбөр баталгаажуулах</h2><div class="confirmPay"><span>Нийлүүлэгч<b>${esc(company.name)}</b></span><span>Өмнөх өр<b>${amount(pendingPayment.previousDebt)}</b></span><span>Банкнаас төлөх<b>${amount(total)}</b></span>${discount?`<span class="discountLine">Хөнгөлөлтөөр хаагдах<b>${amount(discount)}</b></span>`:''}<span class="newBalance">Төлсний дараах өр<b>${amount(Math.max(pendingPayment.previousDebt-total-discount,0))}</b></span></div><p class="sub">Төлбөр баталгаажсаны дараа устгахгүй. Алдаа гарвал шалтгаантай буцаалт хийнэ.</p><div class="actions"><button class="secondary" onclick="payment('${esc(companyId)}')">Буцах</button><button id="commitPaymentBtn" class="primary" onclick="commitPaymentCenter()">Баталгаажуулах</button></div>`);
+    pendingPayment={store:activeStoreId(),companyId,companyName:company.name,supplierId:company.supabase_supplier_id,allocations,total,discount,date:document.getElementById('pcDate')?.value||today(),method:document.getElementById('pcMethod')?.value||'Бусад',reference:document.getElementById('pcReference')?.value.trim()||null,note:document.getElementById('pcNote')?.value.trim()||null,previousDebt:plan.debt,bankAccount:company.bankAccount||'',bankIban:company.bankIban||''};
+    const transferRow=(label,value,key)=>`<div class="pcCopyRow"><span>${label}<br><b>${esc(value||'Оруулаагүй')}</b></span>${value?copyButton(key):''}</div>`;
+    const transferDetails=`<div class="card pcTransferDetails">${pendingPayment.bankIban?transferRow('IBAN',pendingPayment.bankIban,'iban'):''}${transferRow('Дансны дугаар',pendingPayment.bankAccount,'account')}${transferRow('Гүйлгээний утга',pendingPayment.reference,'reference')}${transferRow('Төлөх дүн',amount(total),'amount')}</div>`;
+    openPayment(`<h2>Төлбөр баталгаажуулах</h2><div class="confirmPay"><span>Нийлүүлэгч<b>${esc(company.name)}</b></span><span>Өмнөх өр<b>${amount(pendingPayment.previousDebt)}</b></span><span>Банкнаас төлөх<b>${amount(total)}</b></span>${discount?`<span class="discountLine">Хөнгөлөлтөөр хаагдах<b>${amount(discount)}</b></span>`:''}<span class="newBalance">Төлсний дараах өр<b>${amount(Math.max(pendingPayment.previousDebt-total-discount,0))}</b></span></div>${transferDetails}<p class="sub">Төлбөр баталгаажсаны дараа устгахгүй. Алдаа гарвал шалтгаантай буцаалт хийнэ.</p><div class="actions"><button class="secondary" onclick="payment('${esc(companyId)}')">Буцах</button><button id="commitPaymentBtn" class="primary" onclick="commitPaymentCenter()">Баталгаажуулах</button></div>`);
   };
 
   window.commitPaymentCenter=async function(){
