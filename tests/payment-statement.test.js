@@ -10,11 +10,14 @@ ctx.nayadSupabase.rpc=(name,args)=>({async range(offset){scopes.push({table:name
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../statement-search.js'),'utf8'),ctx);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../payment-statement.js'),'utf8'),ctx);
 (async()=>{
  const api=ctx.NayadStatement;
+ assert.match(api.html(),/id="statementFrom"[^>]*value=""/);
  await api.reload();
+ assert.ok(scopes.filter(q=>q.table==='statement_activity').every(q=>q.p_from==='0001-01-01'&&q.p_to==='9999-12-31'));
  assert.match(api.html(),/251 гүйлгээ/,'must paginate past first page');
  assert.match(api.html(),/25,100/,'sum payments once, not once per allocation');
  assert.match(api.html(),/Test Owner/);assert.match(api.html(),/500 ₮ → 450 ₮/);
  assert.ok(scopes.filter(q=>q.table==='statement_activity').every(q=>q.p_store==='store-a'));
+ elements.statementFrom={value:'2026-01-01'};elements.statementTo={value:''};await api.dates();assert.match(api.html(),/Эхлэх: 2026-01-01/);await api.resetFilter('from');assert.match(api.html(),/id="statementFrom"[^>]*value=""/);
  api.details('audit:1');assert.match(modal,/500 ₮ → 450 ₮/);
  assert.equal(api.filterRows([{kind:'invoice',created_at:'2026-10-05T01:00:00Z',supplier_name:'Баясах',amount:10}],{from:'2026-10-05',to:'2026-10-05',min:'',max:'',kind:'invoice',query:'bayasah'}).length,1);
  assert.ok(scopes.filter(q=>q.table==='payments').every(q=>q.store_id==='store-a'));

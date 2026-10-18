@@ -126,9 +126,9 @@ async function dispatch(request){
   console.log('service-worker-cache: PASS — Supabase API traffic always bypasses CacheStorage');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
-assert.equal(patchedTwice.split('./payment-statement.js?v=4').length-1,1,'statement module injected once');
-assert.ok(patchedTwice.indexOf('./payment-statement.js?v=4')<patchedTwice.indexOf('./payment-center.js?v=26'),'statement loads before center');
-assert.ok(patchedTwice.indexOf('./statement-search.js?v=1')<patchedTwice.indexOf('./payment-statement.js?v=4'),'search loads before statement');
+assert.equal(patchedTwice.split('./payment-statement.js?v=5').length-1,1,'statement module injected once');
+assert.ok(patchedTwice.indexOf('./payment-statement.js?v=5')<patchedTwice.indexOf('./payment-center.js?v=26'),'statement loads before center');
+assert.ok(patchedTwice.indexOf('./statement-search.js?v=1')<patchedTwice.indexOf('./payment-statement.js?v=5'),'search loads before statement');
 
 for(const asset of ['./loan-contract-editor.js?v=4','./loan-contract-schedule.js?v=2'])assert.equal(patchedTwice.split(asset).length-1,1);
 assert.ok(patchedTwice.indexOf('./loans.js?v=11')<patchedTwice.indexOf('./loan-contract-editor.js?v=4'));
