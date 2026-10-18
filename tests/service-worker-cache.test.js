@@ -52,8 +52,8 @@ assert.match(swSource,/\.\/invoice-cloud\.js\?v=78/);
 assert.match(indexSource,/\.\/invoice-cloud\.js\?v=78/,'index and service worker must load the same invoice code');
 assert.match(swSource,/\.\/payment-center\.js\?v=19/);
 assert.match(indexSource,/\.\/payment-center\.js\?v=19/,'index and service worker must load the same payment center');
-assert.match(swSource,/\.\/loans\.js\?v=8/);
-assert.match(indexSource,/\.\/loans\.js\?v=8/,'index and service worker must load the loan module');
+assert.match(swSource,/\.\/loans\.js\?v=9/);
+assert.match(indexSource,/\.\/loans\.js\?v=9/,'index and service worker must load the loan module');
 assert.match(swSource,/\.\/contact-types\.js\?v=22/);
 assert.match(indexSource,/\.\/contact-types\.js\?v=22/,'index and service worker must load the contact type module');
 assert.match(swSource,/\.\/supplier-cloud\.js\?v=62/);
@@ -93,7 +93,7 @@ assert.equal(patchedTwice.split('./staff-payroll.js?v=7').length-1,1,'staff payr
 assert.equal(patchedTwice.split('./admin-dashboard.js?v=2').length-1,1,'admin dashboard must be injected exactly once');
 assert.equal(patchedTwice.split('./subscription.js?v=5').length-1,1,'subscription flow must be injected exactly once');
 assert.ok(patchedTwice.indexOf('./subscription.js?v=5')<patchedTwice.indexOf('./member-permissions.js?v=2'),'permission guard must load after all feature modules');
-assert.equal(patchedTwice.split('./loans.js?v=8').length-1,1,'loan module must be injected exactly once');
+assert.equal(patchedTwice.split('./loans.js?v=9').length-1,1,'loan module must be injected exactly once');
 assert.ok(patchedTwice.indexOf('./share.js?v=40')<patchedTwice.indexOf('./staff-payroll.js?v=7'),'staff payroll must load after sharing actions');
 assert.ok(patchedTwice.indexOf('./staff-payroll.js?v=7')<patchedTwice.indexOf('./profile-menu.js?v=7'),'profile drawer must load after staff payroll');
 
@@ -131,7 +131,7 @@ assert.ok(patchedTwice.indexOf('./payment-statement.js?v=3')<patchedTwice.indexO
 assert.ok(patchedTwice.indexOf('./statement-search.js?v=1')<patchedTwice.indexOf('./payment-statement.js?v=3'),'search loads before statement');
 
 for(const asset of ['./loan-contract-editor.js?v=4','./loan-contract-schedule.js?v=2'])assert.equal(patchedTwice.split(asset).length-1,1);
-assert.ok(patchedTwice.indexOf('./loans.js?v=8')<patchedTwice.indexOf('./loan-contract-editor.js?v=4'));
+assert.ok(patchedTwice.indexOf('./loans.js?v=9')<patchedTwice.indexOf('./loan-contract-editor.js?v=4'));
 
 assert.equal(patchedTwice.split('./loan-payment.js?v=2').length-1,1);
 

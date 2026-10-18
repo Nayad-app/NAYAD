@@ -88,6 +88,7 @@
     const filtered=state.loans.filter(loan=>loan.status==='active'&&pendingRows(loan).some(row=>
       Number(row.total_amount)-Number(row.paid_amount||0)>0&&
       (state.filter==='all'||(state.filter==='month'?String(row.due_date).slice(0,7)===month:row.due_date<current))));
+    filtered.sort((a,b)=>String(nextInstallment(a)?.due_date||'9999-12-31').localeCompare(String(nextInstallment(b)?.due_date||'9999-12-31'))||String(a.id).localeCompare(String(b.id)));
     const cards=filtered.map(loan=>loanCard(loan)).join('');
     const filterLabel=state.filter==='month'?'Энэ сард төлөх':state.filter==='overdue'?'Хугацаа хэтэрсэн':'ТӨЛӨХ ХУВААРЬ';
     const empty=state.filter==='month'?'Энэ сард төлөх зээл алга':state.filter==='overdue'?'Хугацаа хэтэрсэн зээл алга':'Төлөх үлдэгдэлтэй зээл алга';
