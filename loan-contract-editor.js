@@ -20,6 +20,7 @@
     storeId=B.storeId();userId=window.__nayadUser?.id;revision=loan?.schedule_revision||0;requestId=window.crypto.randomUUID();savedId=null;files=[];step=1;
     rows=loan?loan.installments.map(r=>({...r})):[];savedRows=rows.map(r=>({...r}));
     draft=loan?{lenderType:loan.lender_type,lenderName:loan.lender_name,loanName:loan.loan_name,principal:loan.principal,startDate:loan.start_date,firstDate:rows[0]?.due_date||'',paymentDay:loan.payment_day,term:loan.term_months,regular:rows[0]?.total_amount||'',last:rows.at(-1)?.total_amount||''}:{lenderType:'bank',lenderName:'',loanName:'',principal:'',startDate:today(),firstDate:'',paymentDay:'',term:'',regular:'',last:''};
+    draft.icon=window.NayadLoanIcons?.key(loan)||'bank';
     draft.paymentDetails={...(loan?.payment_details||{})};
     simpleMode=!loan||loan.principal==null;draft.endDate=rows.at(-1)?.due_date||'';
     drawForm();
@@ -33,6 +34,10 @@
     root.querySelector('input,button')?.focus();
   }
   const field=(label,id,v,type='text',attrs='')=>`<label class="contractField"><span>${label}</span><input id="${id}" type="${type}" value="${esc(v)}" ${attrs}></label>`;
+  function iconPicker(){
+    const icons=window.NayadLoanIcons;if(!icons)return '';
+    return `<details class="loanIconPicker"><summary><span class="loanIconCircle" id="loanIconCurrent">${icons.svg(draft.icon)}</span><span>Icon сонгох</span><span aria-hidden="true">⌄</span></summary><div class="loanIconOptions" role="group" aria-label="Зээлийн icon">${Object.entries(icons.options).map(([key,[label]])=>`<label><input type="radio" name="loanIcon" value="${key}" ${draft.icon===key?'checked':''}><span class="loanIconCircle">${icons.svg(key)}</span><small>${label}</small></label>`).join('')}</div></details>`;
+  }
   function bankFields(){
     return `<details class="contractBankDetails"><summary>Банк, дансны мэдээлэл <small>Заавал биш</small></summary>
       ${field('Банк','cBank',draft.paymentDetails?.bank||'','text','maxlength="120" list="loanBankOptions"')}<datalist id="loanBankOptions">${['ХААН банк','Голомт банк','Худалдаа хөгжлийн банк','Төрийн банк','ХасБанк','Капитрон банк','Богд банк'].map(n=>`<option value="${n}"></option>`).join('')}</datalist>
@@ -51,7 +56,7 @@
     S.validate(draft,rows);return true;
   }
   function drawSimple(){
-    step=1;frame(loan?'Зээл засах':'Зээл нэмэх',`${field('Зээлийн нэр','cName',draft.loanName,'text','maxlength="120" placeholder="Жишээ: ХААН банкны зээл"')}
+    step=1;frame(loan?'Зээл засах':'Зээл нэмэх',`${iconPicker()}${field('Зээлийн нэр','cName',draft.loanName,'text','maxlength="120" placeholder="Жишээ: ХААН банкны зээл"')}
       ${field('Сар бүр төлөх дүн','cRegular',draft.regular,'text','inputmode="decimal" placeholder="850,000"')}
       ${field(loan?'Хуваарийн эхний төлөх өдөр':'Дараагийн төлөх өдөр','cFirst',draft.firstDate,'date')}${field('Зээл дуусах өдөр','cEnd',draft.endDate,'date')}
       ${bankFields()}<button type="button" class="contractDisclosure" data-action="advanced">Дэлгэрэнгүй бүртгэх <span>›</span></button>
@@ -61,7 +66,7 @@
   function drawForm(){
     if(simpleMode)return drawSimple();
     step=1;
-    frame(loan?'Зээл засах':'Зээл бүртгэх',`
+    frame(loan?'Зээл засах':'Зээл бүртгэх',`${iconPicker()}
       <label class="contractField"><span>Зээл олгогчийн төрөл</span><select id="cType">${[['bank','Банк'],['nbfi','ББСБ'],['person','Хувь хүн']].map(([v,t])=>`<option value="${v}" ${draft.lenderType===v?'selected':''}>${t}</option>`).join('')}</select></label>
       ${field('Банк / ББСБ / хүний нэр','cLender',draft.lenderName,'text','maxlength="120"')}${field('Зээлийн нэр','cName',draft.loanName,'text','maxlength="120"')}
       ${field(loan&&loan.principal==null?'Зээлийн дүн · заавал биш':'Зээлийн дүн','cPrincipal',draft.principal,'text','inputmode="decimal"')}
@@ -74,7 +79,7 @@
   }
   function fileList(){return files.map((f,i)=>`<div class="contractFileRow"><span>${esc(f.name)}</span><button type="button" data-action="removeFile" data-index="${i}" aria-label="Файл хасах">×</button></div>`).join('');}
   function readForm(){
-    const d={lenderType:value('cType'),lenderName:value('cLender').trim(),loanName:value('cName').trim(),principal:loan&&loan.principal==null&&value('cPrincipal').trim()===''?null:S.money(value('cPrincipal')),startDate:value('cStart'),firstDate:value('cFirst'),paymentDay:Number(value('cDay')),term:Number(value('cTerm')),regular:S.money(value('cRegular')),last:value('cLast')===''?'':S.money(value('cLast'))};
+    const d={icon:draft.icon,lenderType:value('cType'),lenderName:value('cLender').trim(),loanName:value('cName').trim(),principal:loan&&loan.principal==null&&value('cPrincipal').trim()===''?null:S.money(value('cPrincipal')),startDate:value('cStart'),firstDate:value('cFirst'),paymentDay:Number(value('cDay')),term:Number(value('cTerm')),regular:S.money(value('cRegular')),last:value('cLast')===''?'':S.money(value('cLast'))};
     if(!d.lenderName||!d.loanName)throw Error('Зээл олгогч болон зээлийн нэрийг оруулна уу.');
     d.paymentDetails=Object.fromEntries([['bank','cBank'],['holder','cHolder'],['iban','cIban'],['account','cAccount'],['reference','cReference']].map(([k,id])=>[k,value(id).trim()]));
     const keys=['startDate','firstDate','paymentDay','term','regular','last'];
@@ -115,6 +120,7 @@
   }
   function onChange(e){
     try{
+      if(e.target.name==='loanIcon'&&window.NayadLoanIcons?.options[e.target.value]){draft.icon=e.target.value;$('loanIconCurrent').innerHTML=window.NayadLoanIcons.svg(draft.icon);e.target.closest('details').open=false;}
       if(e.target.id==='cFirst'&&!value('cDay'))$('cDay').value=Number(e.target.value.slice(-2));
       if(e.target.id==='cFiles'){
         for(const f of Array.from(e.target.files||[])){if(files.length>=20)throw Error('20 хүртэл файл хавсаргана.');if(!['image/jpeg','image/png','image/webp','image/heic','image/heif','application/pdf'].includes(f.type)||!f.size||f.size>10*1024*1024)throw Error('Хоосон, дэмжихгүй эсвэл 10MB-аас том файл байна.');files.push(f);}
@@ -136,7 +142,7 @@
       busy=true;window.__nayadCriticalOperation='loan-contract-save';
       document.querySelectorAll('#loanContractOverlay input,#loanContractOverlay button,#loanContractOverlay select').forEach(n=>n.disabled=true);$('contractPrimary').textContent='Хадгалж байна…';
       if(!savedId){
-        const {data,error:rpcError}=await B.client().rpc('save_contract_loan_v2',{p_payment_details:draft.paymentDetails,p_request_id:requestId,p_store_id:storeId,p_loan_id:loan?.id||null,p_expected_revision:loan?revision:null,p_lender_type:draft.lenderType,p_lender_name:draft.lenderName,p_loan_name:draft.loanName,p_principal:draft.principal,p_start_date:draft.startDate,p_payment_day:draft.paymentDay,p_rows:rows.map(({installment_number,due_date,total_amount,principal_amount,interest_amount,status,paid_at})=>({installment_number,due_date,total_amount,principal_amount,interest_amount,status,paid_at}))});
+        const {data,error:rpcError}=await B.client().rpc('save_contract_loan_v3',{p_icon:draft.icon,p_payment_details:draft.paymentDetails,p_request_id:requestId,p_store_id:storeId,p_loan_id:loan?.id||null,p_expected_revision:loan?revision:null,p_lender_type:draft.lenderType,p_lender_name:draft.lenderName,p_loan_name:draft.loanName,p_principal:draft.principal,p_start_date:draft.startDate,p_payment_day:draft.paymentDay,p_rows:rows.map(({installment_number,due_date,total_amount,principal_amount,interest_amount,status,paid_at})=>({installment_number,due_date,total_amount,principal_amount,interest_amount,status,paid_at}))});
         if(rpcError)throw rpcError;savedId=data;
       }
       if(files.length)await B.upload({id:savedId},storeId,userId,files);

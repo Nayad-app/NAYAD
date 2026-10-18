@@ -3,6 +3,17 @@
   if(window.__nayadLoansV1)return;
   window.__nayadLoansV1=true;
 
+  const loanIcons={
+    bank:['Банк','M3 10h18L12 3 3 10ZM5 11v8m5-8v8m4-8v8m5-8v8M3 21h18'],
+    nbfi:['ББСБ','M4 21V7h7v14M11 21V3h7v18M18 12h3v9M7 10v1m0 3v1m7-8v1m0 3v1m0 3v1M2 21h21'],
+    person:['Хувь хүн','M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM4 21v-3a8 8 0 0 1 16 0v3Z'],
+    rent:['Түрээс','m3 10 9-7 9 7M5 9v12h14V9M9 21v-7h6v7'],
+    power:['Тог','m13 2-9 12h7l-1 8 10-13h-8Z'],
+    other:['Бусад зээл','M3 5h18v14H3ZM3 9h18M6 15h4']
+  };
+  const iconKey=loan=>Object.hasOwn(loanIcons,loan?.icon)?loan.icon:Object.hasOwn(loanIcons,loan?.lender_type)?loan.lender_type:'other';
+  const iconSvg=key=>`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${loanIcons[key]?.[1]||loanIcons.other[1]}"/></svg>`;
+  window.NayadLoanIcons={options:loanIcons,key:iconKey,svg:iconSvg};
   const BUCKET='loan-contracts';
   const MAX_FILES=20;
   const MAX_FILE_BYTES=10*1024*1024;
@@ -48,7 +59,7 @@
     activeSync=(async()=>{
       try{
         const [loanResult,installmentResult,documentResult]=await Promise.all([
-          client.from('loans').select('id,store_id,lender_type,lender_name,loan_name,principal,annual_interest_rate,start_date,term_months,payment_day,repayment_method,status,schedule_revision,manually_closed,has_payment_history,payment_details,created_at').eq('store_id',storeId).order('created_at',{ascending:false}),
+          client.from('loans').select('id,store_id,icon,lender_type,lender_name,loan_name,principal,annual_interest_rate,start_date,term_months,payment_day,repayment_method,status,schedule_revision,manually_closed,has_payment_history,payment_details,created_at').eq('store_id',storeId).order('created_at',{ascending:false}),
           client.from('loan_installments').select('id,loan_id,store_id,installment_number,due_date,principal_amount,interest_amount,total_amount,paid_amount,status,paid_at').eq('store_id',storeId).order('due_date',{ascending:true}),
           client.from('loan_documents').select('id,loan_id,store_id,storage_path,file_name,mime_type,page_number,size_bytes').eq('store_id',storeId).order('page_number',{ascending:true})
         ]);
@@ -101,7 +112,7 @@
 
   function loanCard(loan){
     const next=nextInstallment(loan),overdue=next&&next.due_date<today();
-    return `<div class="loanSwipe" data-loan="${esc(loan.id)}"><div class="loanSwipeActions" inert><button type="button" data-loan-edit="${esc(loan.id)}">Засах</button><button type="button" data-loan-delete="${esc(loan.id)}">Устгах</button></div><article class="loanCard ${overdue?'overdue':''}" role="button" tabindex="0" onclick="showLoanDetails('${esc(loan.id)}')"><button type="button" class="loanMore" onclick="event.stopPropagation();NayadLoanActions.toggle(this.closest('.loanSwipe'))" aria-label="Зээлийн үйлдлүүд" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><div class="loanCardTop"><span class="loanAvatar ${esc(loan.lender_type)}">${esc(initials(loan.lender_name))}</span><span class="loanCardName"><b>${esc(loan.lender_name)}</b><small>${esc(loan.loan_name)}</small></span><span class="loanBalance">${outstandingPrincipal(loan)===null?`<b>${amount(pendingRows(loan).reduce((s,r)=>s+Number(r.total_amount)-Number(r.paid_amount||0),0))}</b><small>Үлдсэн төлөх дүн</small>`:`<b>${amount(outstandingPrincipal(loan))}</b><small>Нийт үлдэгдэл</small>`}</span></div>${next&&!loan.manually_closed?`<div class="loanDue"><span class="loanDueInfo"><small>Дараагийн төлөлт</small><b class="${overdue?'redText':''}">${amount(next.total_amount)}</b><em>${dateLabel(next.due_date)} · ${esc(dueText(next.due_date))}</em></span><button class="primary" type="button" onclick="event.stopPropagation();markLoanInstallmentPaid('${esc(loan.id)}','${esc(next.id)}')">Төлөх</button></div>`:`<div class="loanDue"><b class="greenText">${loan.manually_closed?'Хаасан':'Бүрэн төлөгдсөн'}</b></div>`}</article></div>`;
+    return `<div class="loanSwipe" data-loan="${esc(loan.id)}"><div class="loanSwipeActions" inert><button type="button" data-loan-edit="${esc(loan.id)}">Засах</button><button type="button" data-loan-delete="${esc(loan.id)}">Устгах</button></div><article class="loanCard ${overdue?'overdue':''}" role="button" tabindex="0" onclick="showLoanDetails('${esc(loan.id)}')"><button type="button" class="loanMore" onclick="event.stopPropagation();NayadLoanActions.toggle(this.closest('.loanSwipe'))" aria-label="Зээлийн үйлдлүүд" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button><div class="loanCardTop"><span class="loanAvatar loanNeutralIcon" aria-label="${loanIcons[iconKey(loan)][0]}">${iconSvg(iconKey(loan))}</span><span class="loanCardName"><b>${esc(loan.lender_name)}</b>${loan.loan_name&&loan.loan_name.trim()!==loan.lender_name.trim()?`<small>${esc(loan.loan_name)}</small>`:''}</span><span class="loanBalance">${outstandingPrincipal(loan)===null?`<b>${amount(pendingRows(loan).reduce((s,r)=>s+Number(r.total_amount)-Number(r.paid_amount||0),0))}</b><small>Үлдсэн төлөх дүн</small>`:`<b>${amount(outstandingPrincipal(loan))}</b><small>Нийт үлдэгдэл</small>`}</span></div>${next&&!loan.manually_closed?`<div class="loanDue"><span class="loanDueInfo"><small>Дараагийн төлөлт</small><b class="${overdue?'redText':''}">${amount(next.total_amount)}</b><em>${dateLabel(next.due_date)} · ${esc(dueText(next.due_date))}</em></span></div>`:`<div class="loanDue"><b class="greenText">${loan.manually_closed?'Хаасан':'Бүрэн төлөгдсөн'}</b></div>`}</article></div>`;
   }
 
   function overlay(){return document.getElementById('loanFormOverlay');}
@@ -303,6 +314,61 @@
     .loanSummary.selected,html.nightMode .loanSummary.selected{border-color:var(--yellow);box-shadow:0 0 0 2px var(--yellow)}
     .loanSummary:focus-visible{outline:3px solid var(--yellow);outline-offset:4px}
     @media(max-width:370px){.loanSummary b{font-size:12px}.loanCardTop{grid-template-columns:38px 1fr auto}.loanAvatar{width:38px;height:38px}.loanFormBody{padding-left:14px;padding-right:14px}.loanAttachmentChoices b{font-size:8px}.loanFilePreview{grid-template-columns:repeat(3,1fr)}}
+
+    /* Dense loan overview; forms and payment dialogs keep their existing spacing. */
+    #app main:has(.loanHead){padding-top:10px}
+    #app .loanHead{gap:8px}
+    #app .loanHead .hello{font-size:10px;line-height:1.2;margin:0 0 2px}
+    #app .loanHead .name{font-size:22px;line-height:1.2;margin:0}
+    #app .loanAddMini{width:36px;height:36px;min-height:36px;font-size:20px}
+    #app .loanSummaryGrid{gap:7px;margin:10px 0}
+    #app .loanSummary{container-type:inline-size;min-height:64px;padding:8px 7px;border-radius:13px}
+    #app .loanSummary small{font-size:8px;line-height:1.2;min-height:20px}
+    #app .loanSummary b{font-size:clamp(8px,10cqi,14px);line-height:1.2;margin-top:5px;white-space:nowrap;overflow-wrap:normal;letter-spacing:-.3px}
+    #app .loanSummaryGrid+.paymentSectionTitle{margin:8px 0;min-height:0;font-size:10px}
+    #app .loanList{gap:6px}
+    #app .loanSwipe{margin:0;border-radius:13px}
+    #app .loanSwipe .loanCard{padding:9px 36px 9px 10px;border-radius:13px}
+    #app .loanCardTop{grid-template-columns:30px minmax(0,1fr) auto;gap:7px}
+    #app .loanAvatar{width:30px;height:30px;font-size:13px}
+    #app .loanCardName b{font-size:12px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #app .loanCardName small{font-size:8px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    #app .loanBalance b{font-size:12px;line-height:1.25;white-space:nowrap}
+    #app .loanBalance small{font-size:8px;margin-top:2px}
+    #app .loanMore{top:6px;right:2px;width:32px;height:36px}
+    #app .loanDue{margin-top:6px;padding-top:6px;gap:7px}
+    #app .loanDueInfo{min-width:0}
+    #app .loanDueInfo small{font-size:8px;line-height:1.2}
+    #app .loanDueInfo b{font-size:12px;line-height:1.2;margin:2px 0}
+    #app .loanDueInfo em{font-size:8px;line-height:1.25}
+    #app .loanDue button{min-height:34px;padding:6px 12px;font-size:12px;flex-shrink:0}
+    @media(max-width:599px){
+      #app:has(.loanHead)>header{height:46px;min-height:46px}
+      #app:has(.loanHead) .headerMenuButton{height:34px;width:34px;flex-basis:34px}
+    }
+    @media(min-width:760px){
+      #app .loanSummary{min-height:68px}
+      #app .loanSummary small{font-size:10px}
+      #app .loanSummary b{font-size:16px}
+      #app .loanSwipe .loanCard{padding:10px 48px 10px 14px}
+      #app .loanMore{right:8px;top:7px}
+      #app .loanCardName b,#app .loanBalance b{font-size:14px}
+      #app .loanDueInfo small,#app .loanDueInfo em,#app .loanBalance small,#app .loanCardName small{font-size:10px}
+    }
+
+    #app .loanList{gap:0}
+    #app .loanSwipe{border-radius:0;border-bottom:1px solid var(--line,#e6e6e2);margin:0}
+    #app .loanSwipe:last-child{border-bottom:0}
+    #app .loanSwipe .loanCard{border:0;border-radius:0;box-shadow:none;background:var(--bg,#f7f7f4);padding:10px 36px 10px 0}
+    #app .loanCardTop{grid-template-columns:32px minmax(0,1fr) auto;gap:7px}
+    #app .loanNeutralIcon{width:32px;height:32px;border-radius:50%;background:var(--surface-2,#eeefeb);color:var(--muted,#7d807a)}
+    .loanNeutralIcon svg,.loanIconPicker svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+    #app .loanSwipe .loanDue{margin:2px 0 0 39px;padding:0;border:0;display:block}
+    #app .loanDueInfo{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 8px;align-items:center}
+    #app .loanDueInfo b{grid-column:1;grid-row:1;margin:0}
+    #app .loanDueInfo small{grid-column:1;grid-row:2}
+    #app .loanDueInfo em{grid-column:2;grid-row:1/3;text-align:right;overflow-wrap:anywhere}
+    html.nightMode #app .loanSwipe .loanCard{background:var(--bg,#191917)}
   `;document.head.appendChild(style);
 
   const basePayments=window.payments;

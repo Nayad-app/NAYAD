@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v200";
+const CACHE = "nayad-v201";
 
 const ASSETS = [
   "./",
@@ -35,10 +35,10 @@ const ASSETS = [
   "./payment-center.js?v=26",
   "./statement-search.js?v=1",
   "./payment-statement.js?v=17",
-  "./loans.js?v=11",
+  "./loans.js?v=12",
   "./loan-contract-schedule.js?v=2",
-  "./loan-contract-editor.js?v=4",
-  "./loan-contract-editor.css?v=6",
+  "./loan-contract-editor.js?v=5",
+  "./loan-contract-editor.css?v=7",
   "./loan-payment.js?v=3",
   "./loan-actions.js?v=1",
   "./contact-types.js?v=24",
@@ -108,7 +108,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=26");
   patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=2");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=63");
-  patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=11");
+  patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=12");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=78","./money-input.js?v=1");
   patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=24");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=65","./registration-onboarding.js?v=2");
@@ -125,21 +125,21 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=78","./payment-center.js?v=26");
-  patched=injectScriptAfter(patched,"./payment-center.js?v=26","./loans.js?v=11");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=26","./loans.js?v=12");
   patched=injectScriptBefore(patched,"./supplier-cloud.js?v=63","./contact-types.js?v=24");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   patched=patched.replace(/payment-statement\.js\?v=\d+/g,'payment-statement.js?v=17');
   patched=injectScriptBefore(patched,"./payment-center.js?v=26","./payment-statement.js?v=17");
   patched=injectScriptBefore(patched,"./payment-statement.js?v=17","./statement-search.js?v=1");
-  patched=injectScriptBefore(patched,"./loans.js?v=11","./loan-contract-schedule.js?v=2");
+  patched=injectScriptBefore(patched,"./loans.js?v=12","./loan-contract-schedule.js?v=2");
   patched=patched.replace(/loan-contract-schedule\.js\?v=\d+/g,'loan-contract-schedule.js?v=2');
-  patched=injectScriptAfter(patched,"./loans.js?v=11","./loan-contract-editor.js?v=4");
-  if(!patched.includes('./loan-contract-editor.css'))patched=patched.replace('</head>','<link rel="stylesheet" href="./loan-contract-editor.css?v=6"></head>');
-  patched=patched.replace(/loan-contract-editor\.js\?v=\d+/g,'loan-contract-editor.js?v=4');
-  patched=patched.replace(/loan-contract-editor\.css\?v=\d+/g,'loan-contract-editor.css?v=6');
+  patched=injectScriptAfter(patched,"./loans.js?v=12","./loan-contract-editor.js?v=5");
+  if(!patched.includes('./loan-contract-editor.css'))patched=patched.replace('</head>','<link rel="stylesheet" href="./loan-contract-editor.css?v=7"></head>');
+  patched=patched.replace(/loan-contract-editor\.js\?v=\d+/g,'loan-contract-editor.js?v=5');
+  patched=patched.replace(/loan-contract-editor\.css\?v=\d+/g,'loan-contract-editor.css?v=7');
   patched=patched.replace(/loan-payment\.js\?v=\d+/g,'loan-payment.js?v=3');
-  patched=injectScriptAfter(patched,"./loan-contract-editor.js?v=4","./loan-payment.js?v=3");
+  patched=injectScriptAfter(patched,"./loan-contract-editor.js?v=5","./loan-payment.js?v=3");
   patched=injectScriptAfter(patched,"./loan-payment.js?v=3","./loan-actions.js?v=1");
   patched=patched.replace(/\.\/render\.js(?:\?v=\d+)?(?=")/g,"./render.js?v=2");
   return patched;
