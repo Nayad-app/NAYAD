@@ -3,7 +3,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const elements={};let modal='',requestHold=null,fail=false;const scopes=[];
 const records=Array.from({length:251},(_,i)=>({id:'p'+i,status:'posted',supplier_id:'supplier-a',amount:100,payment_date:'2026-10-05',note:i===0?'Барааны төлбөр':'',reference:'REF',invoice_id:null}));
-const ctx={console,Intl,Date,setTimeout:()=>0,document:{head:{appendChild(){}},createElement:()=>({}),getElementById:id=>elements[id]||{classList:{add(){}}}},page:'payments',render(){},__nayadActiveStoreId:'store-a',__nayadState:{read:()=>({companies:[{supabase_supplier_id:'supplier-a',name:'Example',invoices:[]}]})},sheet(s){modal=s;},closeSheet(){},toast(s){ctx.message=s;}};
+const ctx={console,Intl,Date,setTimeout:()=>0,document:{head:{appendChild(){}},createElement:()=>({}),getElementById:id=>elements[id]||{value:'',dataset:{},setAttribute(){},classList:{add(){}}}},page:'payments',render(){},__nayadActiveStoreId:'store-a',__nayadState:{read:()=>({companies:[{supabase_supplier_id:'supplier-a',name:'Example',invoices:[]}]})},sheet(s){modal=s;},closeSheet(){},toast(s){ctx.message=s;}};
 ctx.window=ctx;
 const invoice={id:'invoice:i1',kind:'invoice',supplier_id:'supplier-a',supplier_name:'Баясах',amount:450,invoice_no:'INV-103',created_at:'2026-10-05T02:00:00Z'};
 ctx.nayadSupabase={from(){throw new Error('List must not prefetch allocations');},async rpc(name,args){
@@ -49,8 +49,15 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  for(const [id,value] of Object.entries({stMin:'500',stMax:'100',stNote:'',stInvoice:''}))elements[id]={value};
  api.apply();assert.match(ctx.message,/зөв/);
  api.clear();assert.equal(elements.stMin.value,'');
- elements.stFrom={value:'2026-10-01'};elements.stTo={value:'2026-10-31'};elements.stMin={value:'400'};elements.stMax={value:'500'};await api.kind('invoice');elements.stQuery={value:'bayasah'};await api.apply();assert.match(api.html(),/Баясах/);assert.doesNotMatch(api.html(),/25,100/);
+ elements.stFrom={value:'2026-10-01'};elements.stTo={value:'2026-10-31'};elements.stMin={value:'400'};elements.stMax={value:'500'};await api.kind('invoice');elements.stQuery={value:'bayasah',dataset:{},setAttribute(){}};await api.apply();assert.match(api.html(),/Баясах/);assert.doesNotMatch(api.html(),/25,100/);
  api.clear();elements.stFrom.value='';elements.stTo.value='';await api.kind('all');await api.apply();assert.match(api.html(),/25,100/);
+
+ ctx.__nayadState.read=()=>({companies:[{supabase_supplier_id:'supplier-a',name:'Баясах'},{supabase_supplier_id:'supplier-b',name:'Бабуб'},{supabase_supplier_id:'supplier-c',name:'Номин'}]});
+ elements.stSupplierOptions={hidden:true,innerHTML:''};elements.stQuery={value:'ba',dataset:{},setAttribute(){}};
+ const beforeSuggest=scopes.length;api.suggestSuppliers();assert.match(elements.stSupplierOptions.innerHTML,/Баясах/);assert.match(elements.stSupplierOptions.innerHTML,/Бабуб/);assert.doesNotMatch(elements.stSupplierOptions.innerHTML,/Номин/);assert.equal(scopes.length,beforeSuggest,'typing makes no network requests');
+ elements.stQuery.value='ба';api.suggestSuppliers();assert.match(elements.stSupplierOptions.innerHTML,/Баясах/);
+ api.pickSupplier('supplier-a');assert.equal(elements.stQuery.value,'Баясах');assert.equal(elements.stSupplierOptions.hidden,true);assert.equal(scopes.length,beforeSuggest,'selection waits for Search');await api.apply();assert.equal(scopes.at(-1).p_filters.supplier,'supplier-a');assert.equal(scopes.at(-1).p_filters.query,'');
+ elements.stQuery.value='baraa';api.suggestSuppliers();assert.equal(elements.stQuery.dataset.supplier,'');api.clearSupplierQuery();assert.equal(elements.stSupplierOptions.hidden,true);await api.apply();assert.equal(scopes.at(-1).p_filters.supplier,'');
  let release;requestHold=new Promise(r=>release=r);const pending=api.reload();ctx.__nayadActiveStoreId='store-b';api.tabs();release();await pending;
  assert.doesNotMatch(api.html(),/25,100/,'late response from former store must be discarded');
  fail=true;await api.reload();assert.match(api.html(),/Хуулга ачаалж чадсангүй/);assert.doesNotMatch(api.html(),/Нийт дүн/,'failure must not present a false zero total');
