@@ -174,7 +174,7 @@
     const companies=state().companies.filter(company=>company.status!=='inactive'&&(company.invoices||[]).some(invoice=>isConfirmed(invoice)&&balanceOf(invoice)>0)).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'mn',{sensitivity:'base'}));
     if(!companies.length){notify('Төлөгдөөгүй падаантай нийлүүлэгч алга.');return;}
     const options=companies.map(company=>`<option value="${esc(company.id)}">${esc(company.name)} — ${amount(company.debt)}</option>`).join('');
-    openPayment(`<h2>Төлбөр бүртгэх</h2><p class="sub">Төлбөр бүртгэх нийлүүлэгчээ сонгоно уу.</p><div class="field"><label>Нийлүүлэгч</label><select id="directPaymentCompany"><option value="">Нийлүүлэгч сонгох</option>${options}</select></div><div class="actions"><button class="secondary" onclick="closeSheet()">Болих</button><button class="primary" onclick="openSelectedPayment()">Үргэлжлүүлэх</button></div>`);
+    openPayment(`<div class="pcFormHeader"><h2>Төлбөр бүртгэх</h2><button type="button" class="pcFormClose" aria-label="Хаах" onclick="closeSheet()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><p class="sub">Төлбөр бүртгэх нийлүүлэгчээ сонгоно уу.</p><div class="field"><label>Нийлүүлэгч</label><select id="directPaymentCompany"><option value="">Нийлүүлэгч сонгох</option>${options}</select></div><div class="actions pcFormActions"><button class="primary" onclick="openSelectedPayment()">Үргэлжлүүлэх</button></div>`);
   }
 
   function paymentForm(companyId,focusInvoiceId){
@@ -185,7 +185,7 @@
     paymentDraft={companyId:company.id,store:activeStoreId()};pendingPayment=null;
     const plan=paymentPlan(company,0,today());
     const copyButton=key=>`<button type="button" class="pcCopy" aria-label="Хуулах" onclick="copyPaymentField('${key}',this)">${copyIcon}</button>`;
-    openPayment(`<h2>Төлбөр бүртгэх</h2><div class="paySupplierCard"><b>${esc(company.name)}</b><span>${esc(company.bank||'Банк сонгоогүй')}${company.bankAccount?' · '+esc(company.bankAccount):''}</span></div>
+    openPayment(`<div class="pcFormHeader"><h2>Төлбөр бүртгэх</h2><button type="button" class="pcFormClose" aria-label="Хаах" onclick="closeSheet()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="paySupplierCard"><b>${esc(company.name)}</b><span>${esc(company.bank||'Банк сонгоогүй')}${company.bankAccount?' · '+esc(company.bankAccount):''}</span></div>
       <div class="payTotal"><span>Нийт үлдэгдэл</span><b>${amount(plan.debt)}</b></div>
       ${company.bankIban?`<div class="pcCopyRow"><span>IBAN<br><b>${esc(company.bankIban)}</b></span>${copyButton('iban')}</div>`:''}
       ${company.bankAccount?`<div class="pcCopyRow"><span>Дансны дугаар<br><b>${esc(company.bankAccount)}</b></span>${copyButton('account')}</div>`:''}
@@ -199,7 +199,7 @@
       <div class="field"><label>Огноо</label><input id="pcDate" type="date" value="${today()}" onchange="recalculatePaymentTotal()"></div>
       <div class="field"><label>Гүйлгээний утга / баримтын дугаар — заавал биш</label><div class="pcCopyRow"><input id="pcReference" maxlength="120">${copyButton('reference')}</div></div>
       <div class="field"><label>Тайлбар — заавал биш</label><textarea id="pcNote" maxlength="300"></textarea></div>
-      <div class="actions"><button class="secondary" onclick="closeSheet()">Болих</button><button id="pcContinue" class="primary" onclick="reviewPaymentCenter('${esc(company.id)}')">Үргэлжлүүлэх</button></div>`);
+      <div class="actions pcFormActions"><button id="pcContinue" class="primary" onclick="reviewPaymentCenter('${esc(company.id)}')">Үргэлжлүүлэх</button></div>`);
     setTimeout(()=>window.recalculatePaymentTotal(),0);
   }
 
@@ -583,6 +583,7 @@
 
   const nightStyle=document.createElement('style');
   nightStyle.textContent=`
+    .pcFormHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.pcFormHeader h2{min-width:0;margin:0}.pcFormClose{display:grid;place-items:center;flex-shrink:0;width:44px;height:44px;padding:10px;background:transparent;border:0;color:var(--muted);border-radius:0}.pcFormClose svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.paymentFormModal .pcFormActions{grid-template-columns:1fr}.pcFormActions>button{width:100%}
     .pcCopyRow{display:flex;align-items:center;gap:10px;min-width:0;margin:8px 0}.pcCopyRow>span,.pcCopyRow>input{flex:1;min-width:0;overflow-wrap:anywhere}.pcCopy{flex-shrink:0;min-width:44px;min-height:44px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface,#fff);color:inherit;font-size:12px;display:grid;place-items:center}.pcCopyRow #pcAmount{font-size:24px;font-weight:800;border:2px solid #ffc107}.pcAllocation{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;padding:14px 0;border-bottom:1px solid var(--line);font-size:13px}.pcAllocation small{grid-column:1/-1;color:var(--muted);font-size:12px}.paymentFormModal .payTotal{flex-wrap:wrap}.paymentFormModal input[type=date]{display:block;appearance:none;-webkit-appearance:none;box-sizing:border-box;min-width:0;width:100%;max-width:100%}.paymentFormModal input[type=date]::-webkit-date-and-time-value{text-align:left;min-width:0}.paymentFormModal [hidden]{display:none!important}#pcContinue:disabled{opacity:.45}#pcBreakdown{border:1px solid var(--line);border-radius:14px;padding:14px;margin:16px 0}#pcBreakdown summary{font-weight:700;cursor:pointer}
     .noticeButton{display:grid;place-items:center;border-radius:14px;box-shadow:var(--shadow-sm);transition:transform .14s ease,background .18s ease}.noticeButton svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.noticeButton i{border:2px solid var(--surface);box-shadow:0 2px 5px rgba(0,0,0,.16)}
     html.nightMode .noticeButton{background:#272725;color:var(--yellow);border-color:#464640;box-shadow:0 5px 16px rgba(0,0,0,.28)}html.nightMode .noticeButton i{border-color:#272725}
