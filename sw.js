@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v175";
+const CACHE = "nayad-v176";
 
 const ASSETS = [
   "./",
