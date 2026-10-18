@@ -10,19 +10,19 @@ ctx.nayadSupabase.rpc=(name,args)=>({async range(offset){scopes.push({table:name
 vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../statement-search.js'),'utf8'),ctx);vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../payment-statement.js'),'utf8'),ctx);
 (async()=>{
  const api=ctx.NayadStatement;
- assert.match(api.html(),/id="statementFrom"[^>]*value=""/);
+ api.search();assert.match(modal,/id="stFrom"[^>]*value=""/);assert.doesNotMatch(api.html(),/id="statementFrom"/);modal='';
  await api.reload();
  assert.ok(scopes.filter(q=>q.table==='statement_activity').every(q=>q.p_from==='0001-01-01'&&q.p_to==='9999-12-31'));
  assert.match(api.html(),/251 гүйлгээ/,'must paginate past first page');
  assert.match(api.html(),/25,100/,'sum payments once, not once per allocation');
  assert.doesNotMatch(api.html(),/Test Owner/);assert.doesNotMatch(api.html(),/500 ₮ → 450 ₮/);
  assert.ok(scopes.filter(q=>q.table==='statement_activity').every(q=>q.p_store==='store-a'));
- elements.statementFrom={value:'2026-01-01'};elements.statementTo={value:''};await api.dates();assert.match(api.html(),/Эхлэх: 2026-01-01/);await api.resetFilter('from');assert.match(api.html(),/id="statementFrom"[^>]*value=""/);
+ elements.statementFrom={value:'2026-01-01'};elements.statementTo={value:''};await api.dates();assert.match(api.html(),/Эхлэх: 2026-01-01/);await api.resetFilter('from');api.search();assert.match(modal,/id="stFrom"[^>]*value=""/);assert.doesNotMatch(api.html(),/id="statementFrom"/);modal='';
  api.details('audit:1');assert.equal(modal,'','hidden changes cannot open details');
  api.details('invoice:i1');assert.match(modal,/Test Owner/);assert.match(modal,/10:00:00/);
  assert.match(api.html(),/>10\/05<\/time>/);assert.doesNotMatch(api.html(),/Бүртгэсэн ажилтан/);
  assert.doesNotMatch(api.html(),/Өөрчлөлт|Өнөөдөр|7 хоног|30 хоног|Шинэчлэх/);
- assert.equal((api.html().match(/NayadStatement.kind\('/g)||[]).length,3);
+ api.search();assert.equal((modal.match(/name="statementKind"/g)||[]).length,3);assert.doesNotMatch(api.html(),/Үйлдлийн төрөл/);
  assert.match(api.html(),/251 гүйлгээ/);
  assert.doesNotMatch(api.html(),/252 үйлдэл|card statementRow/);
  api.kind('payment');assert.doesNotMatch(api.html(),/Төрөл: Төлбөр/);api.kind('all');
@@ -38,6 +38,8 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  for(const [id,value] of Object.entries({stMin:'500',stMax:'100',stNote:'',stInvoice:''}))elements[id]={value};
  api.apply();assert.match(ctx.message,/зөв/);
  api.clear();assert.equal(elements.stMin.value,'');
+ elements.stFrom={value:'2026-10-01'};elements.stTo={value:'2026-10-31'};elements.stMin={value:'400'};elements.stMax={value:'500'};ctx.document.querySelector=()=>({value:'invoice'});await api.apply();assert.match(api.html(),/Баясах/);assert.doesNotMatch(api.html(),/25,100/);
+ api.clear();elements.stFrom.value='';elements.stTo.value='';ctx.document.querySelector=()=>({value:'all'});await api.apply();assert.match(api.html(),/25,100/);
  let release;requestHold=new Promise(r=>release=r);const pending=api.reload();ctx.__nayadActiveStoreId='store-b';api.tabs();release();await pending;
  assert.doesNotMatch(api.html(),/25,100/,'late response from former store must be discarded');
  fail=true;await api.reload();assert.match(api.html(),/Хуулга ачаалж чадсангүй/);assert.doesNotMatch(api.html(),/Нийт төлсөн/,'failure must not present a false zero total');
