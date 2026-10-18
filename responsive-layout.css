@@ -213,8 +213,33 @@
   }
 
   #app .loanCard {
-    padding: 11px 12px;
+    padding: 20px 64px 20px 20px;
     border-radius: 15px;
+  }
+
+  #app .loanMore {
+    top: 16px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--surface-2, #f2f2ef);
+  }
+
+  #app .loanCardTop {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 14px;
+  }
+
+  #app .loanBalance b {
+    font-size: 17px;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  #app .loanBalance small {
+    margin-top: 5px;
+    font-size: 11px;
   }
 
   #profileMenuRoot .profileMenuDrawer {

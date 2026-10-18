@@ -1,11 +1,11 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v177";
+const CACHE = "nayad-v178";
 
 const ASSETS = [
   "./",
   "./section-router.js?v=1",
   "./manifest.webmanifest",
-  "./responsive-layout.css?v=3",
+  "./responsive-layout.css?v=4",
   "./icon-180.png",
   "./icon-192.png",
   "./icon-512.png",
