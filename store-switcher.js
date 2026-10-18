@@ -220,6 +220,8 @@
       return `<button class="storePickerItem ${selected?'active':''}" type="button" onclick="${action}"><span class="storePickerAvatar">${esc(initial(store.name))}</span><span class="storePickerMeta"><b>${esc(store.name)}</b><span class="storePickerRole">${status}</span>${complete?pickerPlan(store):''}</span><span class="storePickerCheck">✓</span></button>`;
     }).join('');
     window.sheet(`<div class="storePickerHeader"><h2>Бүртгэл сонгох</h2><button class="storePickerClose" type="button" onclick="closeSheet()" aria-label="Хаах"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="storePickerHint">Та өөрийн болон хуваалцсан бүртгэлүүдийн хооронд шилжиж болно.</div><div class="storePickerList">${rows||'<div class="card">Бүртгэл олдсонгүй.</div>'}<button class="storePickerAdd" type="button" onclick="showNayadStoreCreate()"><span>+</span>Шинэ бүртгэл нэмэх</button></div>`);
+    document.getElementById('modal')?.classList?.add('storePickerModal');
+    window.__nayadRouter?.openStorePicker();
   }
 
   function showCreateStore(){

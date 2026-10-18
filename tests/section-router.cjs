@@ -20,5 +20,14 @@ const {JSDOM}=require('jsdom'),fs=require('fs'),assert=require('node:assert/stri
   assert.ok(fs.readFileSync(slug+'/index.html','utf8').includes('"/'+slug+'"'),'Pages deep link exists');
  }
  const auth=setup('https://nayad.store/?code=auth-code#access_token=test');assert.equal(auth.window.location.search,'?code=auth-code');assert.equal(auth.window.location.hash,'#access_token=test');auth.window.close();
+ const picker=setup('https://nayad.store/?__nayad_route=/delguur_solih'),pw=picker.window;
+ pw.showNayadStorePicker=()=>{pw.document.getElementById('modal').classList.remove('hide');pw.document.getElementById('modal').classList.add('storePickerModal');pw.__nayadRouter.openStorePicker();};
+ pw.closeSheet=()=>{pw.__nayadRouter.closeStorePicker();pw.document.getElementById('modal').classList.remove('storePickerModal');pw.document.getElementById('modal').classList.add('hide');};
+ pw.__nayadRouter.restoreStorePicker();assert.equal(pw.location.pathname,'/delguur_solih');assert(pw.document.getElementById('modal').classList.contains('storePickerModal'));
+ pw.closeSheet();assert.equal(pw.location.pathname,'/nuur');
+ pw.showNayadStorePicker();pw.render();assert.equal(pw.location.pathname,'/delguur_solih');
+ pw.history.back();await tick();assert.equal(pw.location.pathname,'/nuur');assert(pw.document.getElementById('modal').classList.contains('hide'));
+ pw.history.forward();await tick();assert.equal(pw.location.pathname,'/delguur_solih');assert(pw.document.getElementById('modal').classList.contains('storePickerModal'));picker.window.close();
+ assert.ok(fs.readFileSync('delguur_solih/index.html','utf8').includes('/delguur_solih'));
  w.close();console.log('PASS: deep links, refresh, history, query preservation and open-dialog navigation guard');
 })().catch(e=>{console.error(e);process.exitCode=1;});
