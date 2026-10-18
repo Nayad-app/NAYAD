@@ -172,7 +172,11 @@ for(const bankFields of [
   values.eContactType='organization';values.eName=contact.name+' edited';
   values.eBank=bankFields.bank;values.eBankIban=bankFields.bankIban;
   values.eBankAccount=bankFields.bankAccount;values.eBankAccountHolder=bankFields.bankAccountHolder;
+  values.ePaymentReference='Код 123';
   context.saveEdit();
+  assert.equal(contact.paymentReference,'Код 123');
+  context.editCompany(contact.id);
+
   assert.match(contact.name,/ edited$/,'editing must save with blank or partial bank information');
   for(const key of Object.keys(bankFields))assert.equal(contact[key],bankFields[key],'existing banking values are preserved');
 }

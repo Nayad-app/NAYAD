@@ -197,7 +197,7 @@
       <div class="payTotal"><span>Төлсний дараах үлдэгдэл</span><b id="paymentCenterTotal">${amount(plan.debt)}</b></div>
       <div class="field"><label>Төлбөрийн арга</label><select id="pcMethod"><option>Банк</option><option>Бэлэн мөнгө</option><option>QPay</option><option>Карт</option><option>Бусад</option></select></div>
       <div class="field"><label>Огноо</label><input id="pcDate" type="date" value="${today()}" onchange="recalculatePaymentTotal()"></div>
-      <div class="field"><label>Гүйлгээний утга / баримтын дугаар — заавал биш</label><div class="pcCopyRow"><input id="pcReference" maxlength="120">${copyButton('reference')}</div></div>
+      <div class="field"><label>Гүйлгээний утга / баримтын дугаар — заавал биш</label><div class="pcCopyRow"><input id="pcReference" maxlength="120" value="${esc(company.paymentReference||'')}">${copyButton('reference')}</div></div>
       <div class="field"><label>Тайлбар — заавал биш</label><textarea id="pcNote" maxlength="300"></textarea></div>
       <div class="actions pcFormActions"><button id="pcContinue" class="primary" onclick="reviewPaymentCenter('${esc(company.id)}')">Үргэлжлүүлэх</button></div>`);
     setTimeout(()=>window.recalculatePaymentTotal(),0);

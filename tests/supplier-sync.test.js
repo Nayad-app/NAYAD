@@ -17,7 +17,7 @@ let onLoad=null;
 let renderedDebt=null;
 
 function supplierQuery(){
-  const response={data:[{id:'supplier-1',name:'vitafit',reg_no:null,address:null,director:null,director_phone:null,sales_rep:null,sales_phone:null,org_phone:null,bank_name:'ХААН банк',bank_account:'5000000000',is_active:true}],error:null};
+  const response={data:[{id:'supplier-1',name:'vitafit',reg_no:null,address:null,director:null,director_phone:null,sales_rep:null,sales_phone:null,org_phone:null,bank_name:'ХААН банк',bank_account:'5000000000',payment_reference:'Дэлгүүр 123',is_active:true}],error:null};
   const q={select(){return q;},eq(){return q;},order(){return q;},then(resolve,reject){return Promise.resolve(response).then(resolve,reject);}};
   return q;
 }
@@ -61,6 +61,7 @@ vm.runInContext(fs.readFileSync(path.join(root,'supplier-cloud.js'),'utf8'),cont
   assert.equal(saved.companies[0].debt,14200,'supplier metadata must preserve the newest stored balance');
   assert.equal(saved.companies[0].invoices[0].paid,85800,'supplier metadata must preserve paid invoice values');
   assert.equal(saved.companies[0].bank,'ХААН банк','supplier metadata still needs to update');
+  assert.equal(saved.companies[0].paymentReference,'Дэлгүүр 123','saved payment reference syncs across devices');
   assert.equal(saved.companies.length,1,'a stale device-only supplier must be removed');
   assert.equal(liveDebt,14200,'supplier sync must replace stale visible state');
   assert.equal(renderedDebt,14200,'supplier sync must render the preserved balance');
