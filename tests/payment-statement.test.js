@@ -22,7 +22,7 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  api.details('invoice:i1');assert.match(modal,/Test Owner/);assert.match(modal,/10:00:00/);
  assert.match(api.html(),/>10\/05<\/time>/);assert.doesNotMatch(api.html(),/Бүртгэсэн ажилтан/);
  assert.doesNotMatch(api.html(),/Өөрчлөлт|Өнөөдөр|7 хоног|30 хоног|Шинэчлэх/);
- api.search();assert.equal((modal.match(/name="statementKind"/g)||[]).length,3);assert.doesNotMatch(api.html(),/Үйлдлийн төрөл/);
+ api.search();assert.match(modal,/id="stQuery"/);assert.equal((api.html().match(/NayadStatement.kind\('/g)||[]).length,3);
  assert.match(api.html(),/251 гүйлгээ/);
  assert.doesNotMatch(api.html(),/252 үйлдэл|card statementRow/);
  api.kind('payment');assert.doesNotMatch(api.html(),/Төрөл: Төлбөр/);api.kind('all');
@@ -38,8 +38,8 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  for(const [id,value] of Object.entries({stMin:'500',stMax:'100',stNote:'',stInvoice:''}))elements[id]={value};
  api.apply();assert.match(ctx.message,/зөв/);
  api.clear();assert.equal(elements.stMin.value,'');
- elements.stFrom={value:'2026-10-01'};elements.stTo={value:'2026-10-31'};elements.stMin={value:'400'};elements.stMax={value:'500'};ctx.document.querySelector=()=>({value:'invoice'});await api.apply();assert.match(api.html(),/Баясах/);assert.doesNotMatch(api.html(),/25,100/);
- api.clear();elements.stFrom.value='';elements.stTo.value='';ctx.document.querySelector=()=>({value:'all'});await api.apply();assert.match(api.html(),/25,100/);
+ elements.stFrom={value:'2026-10-01'};elements.stTo={value:'2026-10-31'};elements.stMin={value:'400'};elements.stMax={value:'500'};api.kind('invoice');elements.stQuery={value:'bayasah'};await api.apply();assert.match(api.html(),/Баясах/);assert.doesNotMatch(api.html(),/25,100/);
+ api.clear();elements.stFrom.value='';elements.stTo.value='';api.kind('all');await api.apply();assert.match(api.html(),/25,100/);
  let release;requestHold=new Promise(r=>release=r);const pending=api.reload();ctx.__nayadActiveStoreId='store-b';api.tabs();release();await pending;
  assert.doesNotMatch(api.html(),/25,100/,'late response from former store must be discarded');
  fail=true;await api.reload();assert.match(api.html(),/Хуулга ачаалж чадсангүй/);assert.doesNotMatch(api.html(),/Нийт төлсөн/,'failure must not present a false zero total');
