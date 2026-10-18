@@ -61,7 +61,7 @@
       <div class="statementPresets" role="group" aria-label="Үйлдлийн төрөл">${[['all','Бүгд'],['payment','Төлбөр'],['invoice','Падаан'],['change','Өөрчлөлт']].map(([k,l])=>`<button class="${filters.kind===k?'primary':'secondary'}" aria-pressed="${filters.kind===k}" onclick="NayadStatement.kind('${k}')">${l}</button>`).join('')}</div>
       <div class="statementPresets"><button onclick="NayadStatement.preset(1)">Өнөөдөр</button><button onclick="NayadStatement.preset(7)">7 хоног</button><button onclick="NayadStatement.preset(30)">30 хоног</button><button onclick="NayadStatement.reload()">Шинэчлэх</button></div>
       ${filters.supplier?'<button class="secondary full" onclick="NayadStatement.invoices()">Нийлүүлэгчийн бүх падаан →</button>':''}
-      <p class="sub">Төлбөрийг төлсөн огноогоор, падаан ба өөрчлөлтийг бүртгэсэн огноогоор шүүнэ. Үйлдлийн түүхийг дэлгүүрийн эзэн харна.</p><div id="statementResults">${results()}</div></section>`;
+      <p class="sub">Төлбөрийг төлсөн огноогоор, падаан ба өөрчлөлтийг бүртгэсэн огноогоор шүүнэ. Үйлдлийн түүх таны харах эрхийн дагуу харагдана.</p><div id="statementResults">${results()}</div></section>`;
   }
   function results(){const result=filterRows(rows,filters),total=result.filter(p=>p.kind==='payment').reduce((s,p)=>s+Math.round(Number(p.amount)*100),0)/100;
     if(busy)return '<div class="card" role="status">Хуулга ачаалж байна…</div>';
