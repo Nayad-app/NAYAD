@@ -15,10 +15,13 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  assert.ok(scopes.filter(q=>q.table==='statement_activity').every(q=>q.p_from==='0001-01-01'&&q.p_to==='9999-12-31'));
  assert.match(api.html(),/251 гүйлгээ/,'must paginate past first page');
  assert.match(api.html(),/25,100/,'sum payments once, not once per allocation');
- assert.match(api.html(),/Test Owner/);assert.match(api.html(),/500 ₮ → 450 ₮/);
+ assert.match(api.html(),/Test Owner/);assert.doesNotMatch(api.html(),/500 ₮ → 450 ₮/);
  assert.ok(scopes.filter(q=>q.table==='statement_activity').every(q=>q.p_store==='store-a'));
  elements.statementFrom={value:'2026-01-01'};elements.statementTo={value:''};await api.dates();assert.match(api.html(),/Эхлэх: 2026-01-01/);await api.resetFilter('from');assert.match(api.html(),/id="statementFrom"[^>]*value=""/);
- api.details('audit:1');assert.match(modal,/500 ₮ → 450 ₮/);
+ api.details('audit:1');assert.equal(modal,'','hidden changes cannot open details');
+ assert.doesNotMatch(api.html(),/Өөрчлөлт|Өнөөдөр|7 хоног|30 хоног|Шинэчлэх/);
+ assert.equal((api.html().match(/NayadStatement.kind\('/g)||[]).length,3);
+ assert.match(api.html(),/251 гүйлгээ · 252 үйлдэл/);
  assert.equal(api.filterRows([{kind:'invoice',created_at:'2026-10-05T01:00:00Z',supplier_name:'Баясах',amount:10}],{from:'2026-10-05',to:'2026-10-05',min:'',max:'',kind:'invoice',query:'bayasah'}).length,1);
  assert.ok(scopes.filter(q=>q.table==='payments').every(q=>q.store_id==='store-a'));
  assert.ok(scopes.filter(q=>q.table==='payment_allocations').every(q=>q['payments.store_id']==='store-a'));
