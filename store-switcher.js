@@ -270,7 +270,8 @@
       try{if(changed&&typeof page!=='undefined')page='home';if(typeof selected!=='undefined')selected=null;}catch(_){}
     }
     if(typeof window.closeSheet==='function'&&options.close!==false)window.closeSheet();
-    if(typeof window.render==='function')window.render();else renderBar();
+    if(changed||permissionsChanged||options.close===true){if(typeof window.render==='function')window.render();else renderBar();}
+    else{renderBar();window.__nayadApplyMemberPermissions?.();}
     if((changed||permissionsChanged)&&options.sync!==false){
       if(typeof window.__nayadSyncInvoices==='function')await window.__nayadSyncInvoices();
       if(typeof window.__nayadSyncSuppliers==='function')await window.__nayadSyncSuppliers();

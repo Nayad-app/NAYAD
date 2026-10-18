@@ -75,7 +75,9 @@ vm.runInContext(fs.readFileSync(path.join(root,'store-switcher.js'),'utf8'),cont
   assert.equal(renderedCompany,'OWN DATA','remembered owned store data must load');
   let modalCloses=0;
   context.window.closeSheet=()=>{modalCloses++;};
+  renderedCompany='OPEN SUPPLIER';
   await context.window.__nayadRefreshStores({sync:false});
+  assert.equal(renderedCompany,'OPEN SUPPLIER','background permissions refresh must not render the base page');
   assert.equal(modalCloses,0,'background store refresh must preserve the current dialog');
   context.window.showNayadStorePicker();
   assert.match(pickerHtml,/tsendun store/);

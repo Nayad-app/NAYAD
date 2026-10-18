@@ -38,8 +38,8 @@ const indexDeleteAsset=indexSource.match(/\.\/registration-delete\.js\?v=(\d+)/)
 assert.ok(deleteAsset,'the active-registration deletion code must be cached for the installed app');
 assert.ok(indexDeleteAsset,'the active-registration deletion code must load in the live document');
 assert.equal(indexDeleteAsset[1],deleteAsset[1],'index and service worker must load the same registration deletion code');
-assert.match(swSource,/\.\/store-switcher\.js\?v=66/);
-assert.match(indexSource,/\.\/store-switcher\.js\?v=66/,'index and service worker must load the same store switcher');
+assert.match(swSource,/\.\/store-switcher\.js\?v=67/);
+assert.match(indexSource,/\.\/store-switcher\.js\?v=67/,'index and service worker must load the same store switcher');
 assert.match(swSource,/\.\/store-recovery\.js\?v=57/);
 assert.match(indexSource,/\.\/store-recovery\.js\?v=57/,'store recovery must be loaded directly, not only injected by the service worker');
 assert.match(swSource,/\.\/auth-guard\.js\?v=57/);
@@ -54,8 +54,8 @@ assert.match(swSource,/\.\/payment-center\.js\?v=27/);
 assert.match(indexSource,/\.\/payment-center\.js\?v=27/,'index and service worker must load the same payment center');
 assert.match(swSource,/\.\/loans\.js\?v=12/);
 assert.match(indexSource,/\.\/loans\.js\?v=12/,'index and service worker must load the loan module');
-assert.match(swSource,/\.\/contact-types\.js\?v=28/);
-assert.match(indexSource,/\.\/contact-types\.js\?v=28/,'index and service worker must load the contact type module');
+assert.match(swSource,/\.\/contact-types\.js\?v=29/);
+assert.match(indexSource,/\.\/contact-types\.js\?v=29/,'index and service worker must load the contact type module');
 assert.match(swSource,/\.\/supplier-cloud\.js\?v=64/);
 assert.match(indexSource,/\.\/supplier-cloud\.js\?v=64/,'index and service worker must load the same supplier code');
 assert.match(swSource,/\.\/share\.js\?v=40/);
@@ -79,8 +79,8 @@ for(const asset of ['./registration-onboarding.js?v=2',deleteAsset[0],'./store-r
   assert.equal(patchedTwice.split(asset).length-1,1,`${asset} must be injected exactly once`);
 }
 assert.ok(
-  patchedTwice.indexOf('./registration-onboarding.js?v=2')<patchedTwice.indexOf('./store-switcher.js?v=66')&&
-  patchedTwice.indexOf('./store-switcher.js?v=66')<patchedTwice.indexOf('./store-recovery.js?v=57')&&
+  patchedTwice.indexOf('./registration-onboarding.js?v=2')<patchedTwice.indexOf('./store-switcher.js?v=67')&&
+  patchedTwice.indexOf('./store-switcher.js?v=67')<patchedTwice.indexOf('./store-recovery.js?v=57')&&
   patchedTwice.indexOf('./store-recovery.js?v=57')<patchedTwice.indexOf(deleteAsset[0])&&
   patchedTwice.indexOf(deleteAsset[0])<patchedTwice.indexOf('./auth-guard.js?v=57')&&
   patchedTwice.indexOf('./auth-guard.js?v=57')<patchedTwice.indexOf('./money-input.js?v=1')&&

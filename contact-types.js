@@ -437,11 +437,12 @@
     if(!details||!openContactContext||openContactContext.scope!==contactContext())return false;
     const contact=data.companies.find(c=>String(c.id)===String(openContactContext.id));
     if(!contact)return false;
-    const expanded=details.open,scrolls=[];
+    const expanded=details.open,quickOpen=document.getElementById('contactQuickMenu')?.hidden===false,scrolls=[];
     for(let node=content;node;node=node.parentElement)scrolls.push([node,node.scrollTop,node.scrollLeft]);
     const x=window.scrollX,y=window.scrollY;
     window.company(contact.id);
     const refreshed=content.querySelector('.contactDetails');if(refreshed)refreshed.open=expanded;
+    if(quickOpen){const menu=document.getElementById('contactQuickMenu');if(menu)menu.hidden=false;document.querySelector('.contactQuickToggle')?.setAttribute('aria-expanded','true');}
     for(const [node,top,left] of scrolls){node.scrollTop=top;node.scrollLeft=left;}
     if(window.scrollX!==x||window.scrollY!==y)window.scrollTo(x,y);
     return true;
