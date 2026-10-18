@@ -131,21 +131,7 @@
   }
 
   function paymentCenter(){
-    if(window.NayadStatement?.isActive())return `<div class="paymentHead"><div><div class="hello">Өглөгийн удирдлага</div><div class="name">Төлбөрийн төв</div></div></div>${window.NayadStatement.tabs()}${window.NayadStatement.html()}`;
-    financeSync();
-    const rows=orderedInvoices(),current=today();
-    const dueToday=rows.filter(item=>daysBetween(current,item.due)===0);
-    const week=rows.filter(item=>{const days=daysBetween(current,item.due);return days>=0&&days<=7;});
-    const overdue=rows.filter(item=>daysBetween(current,item.due)<0);
-    return `<div class="paymentHead"><div><div class="hello">Өглөгийн удирдлага</div><div class="name">Төлбөрийн төв</div></div></div>
-      ${window.NayadStatement?.tabs()||''}
-      <div class="paySummaryGrid">
-        ${summaryCard('Өнөөдөр төлөх',dueToday.reduce((sum,item)=>sum+item.balance,0),dueToday.length,'today','▣')}
-        ${summaryCard('Энэ 7 хоногт төлөх',week.reduce((sum,item)=>sum+item.balance,0),week.length,'week','▦')}
-        ${summaryCard('Хугацаа хэтэрсэн',overdue.reduce((sum,item)=>sum+item.balance,0),overdue.length,'overdue','◷')}
-      </div>
-      <div class="paymentSectionTitle"><span>ТӨЛӨХ ДАРААЛЛЫН ЖАГСААЛТ</span><small>Хугацаагаар эрэмбэлсэн</small></div>
-      <div class="dueList paymentDueList">${rows.length?rows.map(invoiceRow).join(''):`<div class="emptyPay"><b>Төлөх падаан алга</b><span>Баталгаажсан падаанууд энд хугацааны дарааллаар харагдана.</span></div>`}</div>`;
+    return `<div class="paymentHead"><div><div class="hello">Өглөгийн удирдлага</div><div class="name">Гүйлгээний хуулга</div></div></div>${window.NayadStatement?.html()||'<div class="sub">Хуулга ачаалж байна…</div>'}`;
   }
 
   function reportsV11(){

@@ -306,7 +306,7 @@
   `;document.head.appendChild(style);
 
   const basePayments=window.payments;
-  if(typeof basePayments==='function')window.payments=function(){return basePayments()+(window.NayadStatement?.isActive()?'':paymentLoanSection());};
+  if(typeof basePayments==='function')window.payments=function(){return basePayments();};
 
   window.NayadLoanEditorBridge={client:sb,storeId:activeStoreId,canManage,find:id=>state.loans.find(l=>String(l.id)===String(id)),closeLegacy:closeLoanCreate,sync:syncLoans,upload:async(loan,store,user,files)=>{state.files=files;try{return await uploadContracts(loan,store,user);}finally{state.files=[];}}};
   window.setLoanFilter=setLoanFilter;

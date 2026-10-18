@@ -11,7 +11,7 @@
   const match=(value,q)=>window.NayadSearch.matches(value,q);
   const stamp=v=>v?new Intl.DateTimeFormat('mn-MN',{timeZone:'Asia/Ulaanbaatar',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date(v)):'Бүртгэгдээгүй';
   const action=p=>p.kind==='invoice'?'Падаан нэмсэн':p.kind==='change'?({payment_reversed:'Төлбөр буцаасан',delete:'Падаан устгасан',deleted:'Падаан устгасан',draft_deleted:'Ноорог устгасан',cancelled:'Падаан цуцалсан'}[p.action]||'Падаан өөрчилсөн'):'Төлбөр бүртгэсэн';
-  let filters=defaults(),tab='due',scope='',rows=[],busy=false,error='',generation=0,loaded=false,shown=50;
+  let filters=defaults(),tab='statement',scope='',rows=[],busy=false,error='',generation=0,loaded=false,shown=50;
   function guard(){if(scope!==store()){scope=store();filters=defaults();rows=[];loaded=false;busy=false;error='';generation++;shown=50;}}
   function repaint(){if(typeof page!=='undefined'&&page==='payments'&&typeof render==='function')render();}
   function supplierName(id){return companies().find(c=>String(c.supabase_supplier_id)===String(id))?.name||'Нийлүүлэгч';}
@@ -49,8 +49,8 @@
     }catch(e){if(token===generation&&requested===store())error='Хуулга ачаалж чадсангүй. '+(e.message||'Дахин оролдоно уу.');}
     finally{if(token===generation&&requested===store()){busy=false;repaint();}}
   }
-  function tabs(){guard();return `<div class="statementTabs" role="tablist" aria-label="Төлбөрийн хэсэг"><button role="tab" aria-selected="${tab==='due'}" class="${tab==='due'?'active':''}" onclick="NayadStatement.select('due')">Төлөх</button><button role="tab" aria-selected="${tab==='statement'}" class="${tab==='statement'?'active':''}" onclick="NayadStatement.select('statement')">Гүйлгээний хуулга</button></div>`;}
-  function select(value){guard();tab=value;if(tab==='statement')load();else repaint();}
+  function tabs(){guard();return ''; }
+  function select(value){guard();tab='statement';load();}
   function html(){
     guard();if(!loaded&&!busy)setTimeout(()=>{if(tab==='statement'&&!loaded)load();},0);
     const result=filterRows(rows,filters),total=result.filter(p=>p.kind==='payment').reduce((s,p)=>s+Math.round(Number(p.amount)*100),0)/100;

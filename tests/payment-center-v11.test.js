@@ -53,15 +53,8 @@ vm.runInContext(fs.readFileSync(path.join(root,'money-input.js'),'utf8'),context
 vm.runInContext(fs.readFileSync(path.join(root,'payment-center.js'),'utf8'),context,{filename:'payment-center.js'});
 
 const html=vm.runInContext('payments()',context);
-assert.match(html,/Төлбөрийн төв/);
-assert.doesNotMatch(html,/НООРОГ ПАДААН/);
-assert.match(html,/Төлөх өдөр 2026\.08\.20/);
-assert.match(html,/Төлөх өдөр 2099\.08\.24/);
-assert.match(html,/Хугацаа оруулаагүй/);
-assert.ok(html.indexOf('Overdue Co')<html.indexOf('Upcoming Co'),'overdue invoices must be first');
-assert.ok(html.indexOf('Upcoming Co')<html.indexOf('Unknown Co'),'dated upcoming invoices must precede missing due dates');
-assert.doesNotMatch(html,/999,999 ₮[\s\S]*Өнөөдөр төлөх/,'draft amount must not enter payable summaries');
-assert.match(html,/4% хэмнэнэ/,'invoice-specific discount must be visible on the payment order');
+assert.match(html,/Гүйлгээний хуулга/);
+assert.doesNotMatch(html,/ТӨЛӨХ ДАРААЛЛЫН ЖАГСААЛТ|paySummaryGrid|statementTabs/);
 assert.doesNotMatch(html,/noticeButton/,'notification control has moved to the menu');
 
 const source=fs.readFileSync(path.join(root,'payment-center.js'),'utf8');
