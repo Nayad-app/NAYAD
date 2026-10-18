@@ -12,3 +12,4 @@
 .loanSwipe{position:relative;overflow:hidden;border-radius:18px;margin:10px 0;touch-action:pan-y}.loanSwipe .loanCard{position:relative;margin:0;transition:transform .18s;z-index:1;padding-right:36px}.loanSwipe.revealed .loanCard{transform:translateX(-144px)}.loanSwipeActions{position:absolute;inset:0 0 0 auto;width:144px;display:flex}.loanSwipeActions button{width:72px;border-radius:0;background:#2785ce;color:white;padding:8px;font-size:13px}.loanSwipeActions button:last-child{background:#d64242}.loanMore{position:absolute;right:3px;top:8px;width:32px;height:36px;background:transparent;padding:0;font-size:23px;color:var(--text)}
 .loanMore{display:grid;place-items:center;border:0;border-radius:0;box-shadow:none;color:var(--muted,#80827c)}
 .loanMore svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.loanMore[aria-expanded="true"] svg{transform:rotate(180deg)}
