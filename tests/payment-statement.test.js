@@ -21,7 +21,9 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  api.details('audit:1');assert.equal(modal,'','hidden changes cannot open details');
  assert.doesNotMatch(api.html(),/Өөрчлөлт|Өнөөдөр|7 хоног|30 хоног|Шинэчлэх/);
  assert.equal((api.html().match(/NayadStatement.kind\('/g)||[]).length,3);
- assert.match(api.html(),/251 гүйлгээ · 252 үйлдэл/);
+ assert.match(api.html(),/251 гүйлгээ/);
+ assert.doesNotMatch(api.html(),/252 үйлдэл|card statementRow/);
+ api.kind('payment');assert.doesNotMatch(api.html(),/Төрөл: Төлбөр/);api.kind('all');
  assert.equal(api.filterRows([{kind:'invoice',created_at:'2026-10-05T01:00:00Z',supplier_name:'Баясах',amount:10}],{from:'2026-10-05',to:'2026-10-05',min:'',max:'',kind:'invoice',query:'bayasah'}).length,1);
  assert.ok(scopes.filter(q=>q.table==='payments').every(q=>q.store_id==='store-a'));
  assert.ok(scopes.filter(q=>q.table==='payment_allocations').every(q=>q['payments.store_id']==='store-a'));
