@@ -26,9 +26,9 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  assert.match(api.html(),/251 гүйлгээ/);
  assert.doesNotMatch(api.html(),/252 үйлдэл|card statementRow/);
  api.kind('payment');assert.doesNotMatch(api.html(),/Төрөл: Төлбөр/);api.kind('all');
- api.kind('invoice');assert.match(api.html(),/Падааны нийлбэр/);assert.match(api.html(),/1 падаан/);assert.match(api.html(),/<b>450 ₮<\/b>/);assert.doesNotMatch(api.html(),/Нийт төлсөн/);
- api.kind('payment');assert.match(api.html(),/<b>25,100 ₮<\/b>/);assert.doesNotMatch(api.html(),/Падааны нийлбэр/);
- api.kind('all');assert.match(api.html(),/Падааны нийлбэр/);assert.match(api.html(),/<b>25,100 ₮<\/b>/);assert.match(api.html(),/<b>450 ₮<\/b>/);
+ api.kind('invoice');assert.match(api.html(),/Нийт падааны дүн/);assert.match(api.html(),/1 падаан/);assert.match(api.html(),/<b>450 ₮<\/b>/);assert.doesNotMatch(api.html(),/Нийт дүн/);
+ api.kind('payment');assert.match(api.html(),/<b>25,100 ₮<\/b>/);assert.doesNotMatch(api.html(),/Нийт падааны дүн/);
+ api.kind('all');assert.match(api.html(),/Нийт падааны дүн/);assert.match(api.html(),/<b>25,100 ₮<\/b>/);assert.match(api.html(),/<b>450 ₮<\/b>/);
 
  assert.equal(api.filterRows([{kind:'invoice',created_at:'2026-10-05T01:00:00Z',supplier_name:'Баясах',amount:10}],{from:'2026-10-05',to:'2026-10-05',min:'',max:'',kind:'invoice',query:'bayasah'}).length,1);
  assert.ok(scopes.filter(q=>q.table==='payments').every(q=>q.store_id==='store-a'));
@@ -46,6 +46,6 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  api.clear();elements.stFrom.value='';elements.stTo.value='';api.kind('all');await api.apply();assert.match(api.html(),/25,100/);
  let release;requestHold=new Promise(r=>release=r);const pending=api.reload();ctx.__nayadActiveStoreId='store-b';api.tabs();release();await pending;
  assert.doesNotMatch(api.html(),/25,100/,'late response from former store must be discarded');
- fail=true;await api.reload();assert.match(api.html(),/Хуулга ачаалж чадсангүй/);assert.doesNotMatch(api.html(),/Нийт төлсөн/,'failure must not present a false zero total');
+ fail=true;await api.reload();assert.match(api.html(),/Хуулга ачаалж чадсангүй/);assert.doesNotMatch(api.html(),/Нийт дүн/,'failure must not present a false zero total');
  console.log('payment-statement: PASS — pagination, allocations, filters, errors and store isolation');
 })().catch(e=>{console.error(e);process.exitCode=1;});
