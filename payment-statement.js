@@ -11,8 +11,8 @@
   const match=(value,q)=>window.NayadSearch.matches(value,q);
   const stamp=v=>v?new Intl.DateTimeFormat('mn-MN',{timeZone:'Asia/Ulaanbaatar',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date(v)):'Бүртгэгдээгүй';
   const action=p=>p.kind==='invoice'?'Падаан нэмсэн':p.kind==='change'?({payment_reversed:'Төлбөр буцаасан',delete:'Падаан устгасан',deleted:'Падаан устгасан',draft_deleted:'Ноорог устгасан',cancelled:'Падаан цуцалсан'}[p.action]||'Падаан өөрчилсөн'):'Төлбөр бүртгэсэн';
-  let filters=defaults(),tab='statement',scope='',rows=[],busy=false,error='',generation=0,loaded=false,shown=50;
-  function guard(){if(scope!==store()){scope=store();filters=defaults();rows=[];loaded=false;busy=false;error='';generation++;shown=50;}}
+  let filters=defaults(),tab='statement',scope='',rows=[],busy=false,error='',generation=0,loaded=false,shown=50,totals=null,hasMore=false,asof=null,moreBusy=false,detailGeneration=0;
+  function guard(){if(scope!==store()){scope=store();filters=defaults();rows=[];totals=null;hasMore=false;asof=null;moreBusy=false;detailGeneration++;loaded=false;busy=false;error='';generation++;shown=50;}}
   function repaint(){if(typeof page!=='undefined'&&page==='payments'&&typeof render==='function')render();}
   function supplierName(id){return companies().find(c=>String(c.supabase_supplier_id)===String(id))?.name||'Нийлүүлэгч';}
   function filterRows(source,f){
@@ -25,35 +25,38 @@
       (!f.invoice||(p.allocations||[]).some(a=>lower(a.invoices?.invoice_no).includes(lower(f.invoice)))));
   }
   function todayOf(v){return v?new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ulaanbaatar'}).format(new Date(v)):'';}
-  async function pages(make){const all=[];for(let offset=0;;){const {data,error}=await make().range(offset,offset+249);if(error)throw error;if(!data?.length)break;all.push(...data);offset+=data.length;}return all;}
-  async function load(){
-    guard();const requested=scope,token=++generation,f={...filters};rows=[];busy=true;error='';loaded=true;shown=50;repaint();
+  async function load(append=false){
+    guard();if(append&&(busy||moreBusy||!hasMore))return;
+    const requested=scope,token=append?generation:++generation,f={...filters};
+    if(append)moreBusy=true;else{rows=[];totals=null;asof=null;hasMore=false;busy=true;loaded=true;shown=50;detailGeneration++;}
+    error='';repaint();
     try{
       const client=window.nayadSupabase||window.sb;if(!requested||!client)throw new Error('Дэлгүүрийн мэдээлэл ачаалагдаагүй байна.');
-      const payments=await pages(()=>client.from('payments').select('id,supplier_id,invoice_id,payment_date,amount,method,note,reference,status,created_at').eq('store_id',requested).eq('status','posted').gte('payment_date',f.from||'0001-01-01').lte('payment_date',f.to||'9999-12-31').order('payment_date',{ascending:false}).order('id',{ascending:false}));
-      const allocations=[];
-      for(let i=0;i<payments.length;i+=100){
-        if(token!==generation||requested!==store())return;
-        const ids=payments.slice(i,i+100).map(p=>p.id);
-        allocations.push(...await pages(()=>client.from('payment_allocations').select('id,payment_id,invoice_id,cash_amount,discount_amount,invoices(invoice_no),payments!inner(store_id)').in('payment_id',ids).eq('payments.store_id',requested).order('id',{ascending:true})));
-      }
+      const {data,error:failure}=await client.rpc('statement_page',{p_store:requested,p_filters:f,p_offset:append?rows.length:0,p_asof:append?asof:null});
+      if(failure)throw failure;
       if(token!==generation||requested!==store())return;
-      const activity=await pages(()=>client.rpc('statement_activity',{p_store:requested,p_from:f.from||'0001-01-01',p_to:f.to||'9999-12-31'}));
-      if(token!==generation||requested!==store())return;
-      rows=payments.map(p=>{
-        const links=allocations.filter(a=>a.payment_id===p.id);
-        if(!links.length&&p.invoice_id){const inv=companies().flatMap(c=>c.invoices||[]).find(i=>String(i.id)===String(p.invoice_id));links.push({invoice_id:p.invoice_id,cash_amount:p.amount,discount_amount:0,invoices:{invoice_no:inv?.no||''}});}
-        const actor=activity.find(a=>a.kind==='payment_actor'&&a.id===p.id);
-        return {...p,kind:'payment',actor_name:actor?.actor_name,allocations:links};
-      }).concat(activity.filter(a=>a.kind==='invoice')).sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))||String(b.id).localeCompare(String(a.id)));
-    }catch(e){if(token===generation&&requested===store())error='Хуулга ачаалж чадсангүй. '+(e.message||'Дахин оролдоно уу.');}
-    finally{if(token===generation&&requested===store()){busy=false;repaint();}}
+      if(!data||!Array.isArray(data.rows)||!data.totals)throw new Error('Хуулгын хариу бүрэн ирсэнгүй.');
+      rows=append?rows.concat(data.rows):data.rows;totals=data.totals;hasMore=!!data.has_more;asof=data.asof;shown=rows.length;
+    }catch(e){if(token===generation&&requested===store()){if(append)window.toast?.('Дараагийн хуулгыг ачаалж чадсангүй. Дахин оролдоно уу.');else error='Хуулга ачаалж чадсангүй. '+(e.message||'Дахин оролдоно уу.');}}
+    finally{if(token===generation&&requested===store()){busy=false;moreBusy=false;repaint();}}
+  }
+  async function openDetails(id){
+    guard();if(!rows.some(p=>p.id===id))return;
+    const requested=scope,token=++detailGeneration;
+    modal('<div class="row"><h2>Гүйлгээний дэлгэрэнгүй</h2><button class="secondary" onclick="closeSheet()" aria-label="Хаах">×</button></div><p role="status">Мэдээлэл ачаалж байна…</p>');
+    const dialog=document.querySelector?.('.statementDialog');
+    try{
+      const {data,error:failure}=await (window.nayadSupabase||window.sb).rpc('statement_detail',{p_store:requested,p_id:id});
+      if(token!==detailGeneration||requested!==store()||(dialog&&(!dialog.isConnected||document.getElementById('modal')?.classList.contains('hide'))))return;
+      if(failure)throw failure;if(!data)throw new Error('Бүртгэл олдсонгүй.');
+      const index=rows.findIndex(p=>p.id===id);if(index<0)return;rows[index]={...rows[index],...data};activityDetails(id);
+    }catch(e){if(token===detailGeneration&&requested===store())modal('<div class="row"><h2>Гүйлгээний дэлгэрэнгүй</h2><button class="secondary" onclick="closeSheet()" aria-label="Хаах">×</button></div><p role="alert">'+esc(e.message||'Мэдээлэл ачаалж чадсангүй.')+'</p>');}
   }
   function tabs(){guard();return ''; }
-  function select(value){guard();tab='statement';load();}
+  function select(value){guard();tab='statement';return load();}
   function html(){
     guard();if(!loaded&&!busy)setTimeout(()=>{if(tab==='statement'&&!loaded)load();},0);
-    const result=filterRows(rows,filters),total=result.filter(p=>p.kind==='payment').reduce((s,p)=>s+Math.round(Number(p.amount)*100),0)/100;
+    const result=rows;
     const active=filters.min!==''||filters.max!==''||filters.from||filters.to||filters.query||filters.supplier;
     return `<section class="statement">
       <div class="statementFilterChips">${[['from','Эхлэх'],['to','Дуусах'],['min','Доод дүн'],['max','Дээд дүн'],['supplier','Нийлүүлэгч'],['query','Хайлт']].filter(([k])=>filters[k]&&!(k==='kind'&&filters[k]==='all')).map(([k,label])=>`<button type="button" class="secondary" aria-label="${label} шүүлтүүрийг арилгах" onclick="NayadStatement.resetFilter('${k}')">${label}: ${esc(k==='supplier'?supplierName(filters[k]):k==='kind'?({payment:'Төлбөр',invoice:'Падаан'}[filters[k]]):filters[k])} <span aria-hidden="true">×</span></button>`).join('')}</div>
@@ -66,28 +69,27 @@
   const shortDate=p=>{const d=recordDate(p);return /^\d{4}-\d{2}-\d{2}$/.test(d)?d.slice(5).replace('-','/'):'—';};
   function typeIcon(p){return `<span class="statementType ${p.kind==='invoice'?'statementTypeInvoice':'statementTypePayment'}" role="img" aria-label="${action(p)}"><svg viewBox="0 0 24 24" aria-hidden="true">${p.kind==='invoice'?'<path d="M6 2h8l5 5v15H6zM14 2v6h5M9 12h7M9 16h7"/>':'<path d="M3 7V5l13-3 2 5M3 7h17v14H3zM20 12h-6v5h6"/><path d="M16 14.5h1"/>'}</svg></span>`;}
   function actorDetails(p){return `<p>Бүртгэсэн ажилтан: ${esc(p.actor_name||'Бүртгэгдээгүй')}</p><p>Бүртгэсэн огноо, цаг: ${esc(stamp(p.created_at))}</p>`;}
-  function results(){const result=filterRows(rows,filters),total=result.filter(p=>p.kind==='payment').reduce((s,p)=>s+Math.round(Number(p.amount)*100),0)/100;
+  function results(){const result=rows;
     if(busy)return '<div class="card" role="status">Хуулга ачаалж байна…</div>';
     if(error)return `<div class="card" role="alert">${esc(error)}<button class="secondary full" onclick="NayadStatement.reload()">Дахин оролдох</button></div>`;
     const summaries=(filters.kind==='invoice'?['invoice']:filters.kind==='payment'?['payment']:['payment','invoice']).map(kind=>{
-      const items=result.filter(p=>p.kind===kind),sum=items.reduce((n,p)=>n+Math.round((Number(p.amount)||0)*100),0)/100;
-      return `<div class="statementTotal statementTotal-${kind} ${filters.kind==='all'?'statementTotalCompact':''}"><span class="statementCount">${items.length} ${kind==='invoice'?'падаан':'гүйлгээ'}</span><span class="sub">${kind==='invoice'?'Нийт падааны дүн':'Нийт дүн'}</span><b>${money(sum)}</b></div>`;
+      const summary=totals?.[kind]||{count:0,amount:0},sum=summary.amount;
+      return `<div class="statementTotal statementTotal-${kind} ${filters.kind==='all'?'statementTotalCompact':''}"><span class="statementCount">${summary.count} ${kind==='invoice'?'падаан':'гүйлгээ'}</span><span class="sub">${kind==='invoice'?'Нийт падааны дүн':'Нийт дүн'}</span><b>${money(sum)}</b></div>`;
     }).join('');
-    return `${summaries}<div class="statementRows">${result.slice(0,shown).map(p=>`<button class="statementRow" data-id="${esc(p.id)}" onclick="NayadStatement.details(this.dataset.id)">${typeIcon(p)}<time class="statementDate" datetime="${esc(recordDate(p))}" title="${esc(recordDate(p))}">${esc(shortDate(p))}</time><b class="statementSupplier" title="${esc(p.supplier_name||supplierName(p.supplier_id))}">${esc(p.supplier_name||supplierName(p.supplier_id))}</b><strong class="statementAmount">${p.amount==null?'—':money(p.amount)}</strong></button>`).join('')||'<div class="card sub">Тохирох бүртгэл олдсонгүй.</div>'}</div>${result.length>shown?'<button class="secondary full" onclick="NayadStatement.more()">Цааш харуулах</button>':''}`;
+    return `${summaries}<div class="statementRows">${result.slice(0,shown).map(p=>`<button class="statementRow" data-id="${esc(p.id)}" onclick="NayadStatement.details(this.dataset.id)">${typeIcon(p)}<time class="statementDate" datetime="${esc(recordDate(p))}" title="${esc(recordDate(p))}">${esc(shortDate(p))}</time><b class="statementSupplier" title="${esc(p.supplier_name||supplierName(p.supplier_id))}">${esc(p.supplier_name||supplierName(p.supplier_id))}</b><strong class="statementAmount">${p.amount==null?'—':money(p.amount)}</strong></button>`).join('')||'<div class="card sub">Тохирох бүртгэл олдсонгүй.</div>'}</div>${hasMore?'<button class="secondary full" onclick="NayadStatement.more()" '+(moreBusy?'disabled':'')+'>'+(moreBusy?'Ачаалж байна…':'Цааш харуулах')+'</button>':''}`;
   }
   function updateResults(){const el=document.getElementById('statementResults');if(el)el.innerHTML=results();}
   function dropdown(open){const el=document.getElementById('statementOptions'),input=document.getElementById('statementQuery');if(!el||!input)return;el.hidden=!open;input.setAttribute('aria-expanded',String(open));if(open)el.innerHTML='<button role="option" onclick="NayadStatement.supplier(\'\')">Бүх нийлүүлэгч</button>'+companies().filter(c=>c.supabase_supplier_id&&match(c.name,filters.query)).sort((a,b)=>a.name.localeCompare(b.name,'mn')).map(c=>`<button role="option" data-id="${esc(c.supabase_supplier_id)}" onclick="NayadStatement.supplier(this.dataset.id)">${esc(c.name)}</button>`).join('');}
-  function query(q){filters.query=q;filters.supplier='';shown=50;dropdown(true);updateResults();}
+  function query(q){filters.query=q;filters.supplier='';shown=50;dropdown(true);return load();}
   function key(e){if(e.key==='Escape'){dropdown(false);return;}if(e.key==='ArrowDown'){e.preventDefault();dropdown(true);document.getElementById('statementOptions')?.querySelector('button')?.focus();}if(e.key==='Enter'){e.preventDefault();dropdown(false);updateResults();}}
   function options(query){const q=query.trim().toLocaleLowerCase();return '<option value="">Бүх нийлүүлэгч</option>'+companies().filter(c=>c.supabase_supplier_id&&(c.name||'').toLocaleLowerCase().includes(q)).sort((a,b)=>(a.name||'').localeCompare(b.name||'','mn')).map(c=>`<option value="${esc(c.supabase_supplier_id)}" ${String(c.supabase_supplier_id)===filters.supplier?'selected':''}>${esc(c.name)}</option>`).join('');}
   function suppliers(q){const el=document.getElementById('statementSupplier');if(el)el.innerHTML=options(q);}
-  function supplier(id){guard();filters.supplier=id;filters.query='';shown=50;repaint();}
-  function dates(){const from=document.getElementById('statementFrom').value,to=document.getElementById('statementTo').value;if(from&&to&&from>to){window.toast?.('Эхлэх огноо дуусах огнооноос хойш байж болохгүй.');return;}filters.from=from;filters.to=to;load();}
+  function supplier(id){guard();filters.supplier=id;filters.query='';shown=50;return load();}
+  function dates(){const from=document.getElementById('statementFrom').value,to=document.getElementById('statementTo').value;if(from&&to&&from>to){window.toast?.('Эхлэх огноо дуусах огнооноос хойш байж болохгүй.');return;}filters.from=from;filters.to=to;return load();}
   function resetFilter(key){
     if(!['from','to','min','max','supplier','query','kind'].includes(key))return;
     filters[key]=key==='kind'?'all':'';shown=50;
-    if(key==='from'||key==='to')return load();
-    repaint();
+    return load();
   }
   function preset(days){filters.from=shift(today(),1-days);filters.to=today();load();}
   function modal(content){window.sheet(`<div class="statementDialog" role="dialog" aria-modal="true" aria-label="Гүйлгээний мэдээлэл">${content}</div>`);document.getElementById('modal')?.classList.add('invoiceFormModal');document.getElementById('sheet')?.classList.add('invoiceFormSheet');}
@@ -107,9 +109,8 @@
     if(from&&to&&from>to){window.toast?.('Эхлэх огноо дуусах огнооноос хойш байж болохгүй.');return;}
     if([min,max].some(v=>v!==''&&(!/^\d+(\.\d{1,2})?$/.test(v)||!Number.isFinite(Number(v))))||(min!==''&&max!==''&&Number(min)>Number(max))){window.toast?.('Доод, дээд дүнг зөв оруулна уу.');return;}
     if(!['all','payment','invoice'].includes(kind))return;
-    const reloadDates=from!==filters.from||to!==filters.to;
     Object.assign(filters,{from,to,min,max,kind,query,supplier:'',note:'',invoice:''});shown=50;window.closeSheet();
-    if(reloadDates)await load();else repaint();
+    await load();
   }
   function details(id){guard();const p=rows.find(p=>p.id===id);if(!p)return;modal(`<div class="row"><h2>Гүйлгээний дэлгэрэнгүй</h2><button class="secondary" onclick="closeSheet()" aria-label="Хаах">×</button></div><div class="card"><b>${esc(supplierName(p.supplier_id))}</b><p>${esc(p.payment_date)} · ${esc(p.method||'Бусад')}</p><h2>${money(p.amount)}</h2><p>${esc(p.note||'')}</p><p class="sub">${esc(p.reference||'')}</p>${actorDetails(p)}</div><h3>Холбогдох падаанууд</h3>${p.allocations.map(a=>`<div class="card"><b>${esc(a.invoices?.invoice_no||'Дугааргүй падаан')}</b><p>Төлсөн: ${money(a.cash_amount)}</p>${Number(a.discount_amount)?`<p>Хөнгөлөлт: ${money(a.discount_amount)}</p>`:''}<button class="secondary" data-id="${esc(a.invoice_id)}" onclick="showInvoiceDetails(this.dataset.id)">Падаан харах →</button></div>`).join('')||'<p class="sub">Падаанд хуваарилсан мэдээлэл алга.</p>'}`);}
   function invoices(kind='all'){guard();const c=companies().find(c=>String(c.supabase_supplier_id)===filters.supplier);if(!c)return;const balance=i=>Math.max(Number(i.amount)-Number(i.paid||0),0);const list=(c.invoices||[]).filter(i=>(i.status||'confirmed')==='confirmed'&&(kind==='all'||(kind==='open'?balance(i)>0:balance(i)===0))).slice().sort((a,b)=>Number(balance(a)===0)-Number(balance(b)===0)||String(b.date||'').localeCompare(String(a.date||'')));modal(`<div class="row"><h2>${esc(c.name)}</h2><button class="secondary" onclick="closeSheet()" aria-label="Хаах">×</button></div><div class="statementPresets">${[['all','Бүгд'],['open','Үлдэгдэлтэй'],['paid','Төлөгдсөн']].map(([key,label])=>`<button class="${kind===key?'primary':'secondary'}" onclick="NayadStatement.invoices('${key}')">${label}</button>`).join('')}</div>${list.map(i=>`<button class="card statementRow" data-id="${esc(i.id)}" onclick="showInvoiceDetails(this.dataset.id)"><div><b>${esc(i.no||'Дугааргүй')}</b><small>${esc(i.date)}</small></div><strong>${balance(i)>0?money(balance(i)):'Төлөгдсөн'}</strong></button>`).join('')||'<p class="sub">Падаан алга.</p>'}`);}
@@ -119,7 +120,7 @@
     const changes=Object.keys(fields).filter(k=>p.before&&p.after&&JSON.stringify(p.before[k])!==JSON.stringify(p.after[k]));
     modal(`<div class="row"><h2>${action(p)}</h2><button class="secondary" onclick="closeSheet()">×</button></div><div class="card"><b>${esc(p.supplier_name||supplierName(p.supplier_id))}</b><h2>${p.amount==null?'Дүн бүртгэгдээгүй':money(p.amount)}</h2><p>Падаан: ${esc(p.invoice_no||'Дугааргүй')}</p><p>Падааны огноо: ${esc(recordDate(p)||'Бүртгэгдээгүй')}</p>${actorDetails(p)}</div>${changes.map(k=>`<div class="card"><b>${fields[k]}</b><p>${esc(value(k,p.before[k]))} → ${esc(value(k,p.after[k]))}</p></div>`).join('')}${p.kind==='change'&&!p.before?'<p class="sub">Өмнөх утга хадгалагдаагүй.</p>':''}`);
   }
-  window.NayadStatement={tabs,html,select,isActive:()=>tab==='statement',search,clear,apply,suppliers,supplier,dates,preset,resetFilter,details:activityDetails,invoices,reload:load,query,key,toggle(){const el=document.getElementById('statementOptions');dropdown(el?.hidden);},resetQuery(){filters.query='';filters.supplier='';repaint();},kind(k){if(!['all','payment','invoice'].includes(k))return;filters.kind=k;shown=50;repaint();},more(){shown+=50;repaint();},filterRows};
+  window.NayadStatement={tabs,html,select,isActive:()=>tab==='statement',search,clear,apply,suppliers,supplier,dates,preset,resetFilter,details:openDetails,invoices,reload:()=>load(),query,key,toggle(){const el=document.getElementById('statementOptions');dropdown(el?.hidden);},resetQuery(){filters.query='';filters.supplier='';return load();},kind(k){if(!['all','payment','invoice'].includes(k))return;filters.kind=k;return load();},more(){return load(true);},filterRows};
   document.addEventListener?.('click',e=>{if(!e.target.closest?.('.statementCombo'))dropdown(false);});
   const extra=document.createElement('style');extra.textContent='.statementComboRow{display:flex;gap:8px;margin:10px 0}.statementCombo{position:relative;flex:1;min-width:0}.statementInput{display:flex;align-items:center;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff);padding-left:10px}.statement .statementInput input{border:0;min-width:0;padding-left:6px}.statementInput button{padding:10px;background:transparent;color:var(--text,#222)}#statementOptions{position:absolute;top:100%;left:0;right:0;z-index:20;max-height:240px;overflow:auto;background:var(--surface,#fff);border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 20px #0002}#statementOptions button{display:block;width:100%;text-align:left;background:transparent;color:var(--text,#222);padding:13px;border-bottom:1px solid var(--line)}#statementOptions button:focus,#statementOptions button:hover{background:var(--surface-2,#f4f4ef)}.statementRow small.activity-payment{color:#29934b}.statementRow small.activity-invoice{color:#a36f00}.statementRow small.activity-change{color:#416baf}.statementRow strong{display:block;margin-top:5px}.statement>p.sub{font-size:11px}';document.head.appendChild(extra);
   const style=document.createElement('style');style.textContent=`.statementFilterChips{display:flex;flex-wrap:wrap;gap:6px}.statementFilterChips button{font-size:11px;min-height:36px;overflow-wrap:anywhere;max-width:100%}.statementTabs{display:flex;gap:4px;background:var(--surface-2,#f2f2ef);border-radius:13px;padding:4px;margin:16px 0}.statementTabs button{flex:1;background:transparent;color:var(--text,#222);padding:12px 5px}.statementTabs button.active{background:var(--yellow);color:#111}.statement{max-width:900px;margin:auto}.statement input,.statement select,.statementSearch{box-sizing:border-box;width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff);color:var(--text,#222);font-size:13px}.statement select{margin-top:7px}.statementSearch{text-align:left;margin-bottom:8px}.statementLabel{display:block;font-size:11px;color:var(--muted);margin:5px 0}.statementDates{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:10px 0}.statementDates label{min-width:0;color:var(--muted);font-size:11px}.statementDates input{min-width:0;max-width:100%;margin-top:4px}.statement .statementDates>label{display:block;width:100%;max-width:100%}.statement .statementDates input[type="date"]{display:block;appearance:none;-webkit-appearance:none;width:100%;min-width:0;max-width:100%;min-inline-size:0;box-sizing:border-box;overflow:hidden}.statement .statementDates input[type="date"]::-webkit-date-and-time-value{min-width:0;text-align:center}.statement .statementDates input[type="date"]::-webkit-datetime-edit{padding:0;min-width:0}.statementPresets{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}.statementPresets button{flex:1;padding:10px 5px;font-size:11px}.statementTotal{display:flex;justify-content:space-between;align-items:center;margin:12px 0}.statementTotal b{display:block;font-size:24px;margin-top:5px}.statementTotal>span{font-size:11px;color:var(--muted)}.statementRows{display:grid;gap:9px}.statementRow{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;background:var(--surface,#fff);color:var(--text,#222);margin-bottom:8px}.statementRow>div{min-width:0}.statementRow b,.statementRow small,.statementRow div>span{display:block;overflow-wrap:anywhere}.statementRow small,.statementRow div>span{font-size:11px;color:var(--muted);margin-top:5px}.statementRow strong{font-size:13px;flex-shrink:0}.statementDialog .statementDates{margin:8px 0}.statementDialog .card{margin:10px 0}.statementDialog h2{font-size:18px}.statementDialog .field{margin:10px 0}.statementDialog .field input{min-height:42px}.statementDialog .actions{position:static;margin:12px 0 0;padding:0;background:transparent}.statementDialog .row>button{flex:0 0 34px;padding:8px}.statementDialog .row h2{overflow-wrap:anywhere}@media(min-width:760px){.statementRows{grid-template-columns:1fr 1fr}}`;document.head.appendChild(style);

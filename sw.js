@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v199";
+const CACHE = "nayad-v200";
 
 const ASSETS = [
   "./",
@@ -34,7 +34,7 @@ const ASSETS = [
   "./supplier-cloud.js?v=63",
   "./payment-center.js?v=26",
   "./statement-search.js?v=1",
-  "./payment-statement.js?v=16",
+  "./payment-statement.js?v=17",
   "./loans.js?v=11",
   "./loan-contract-schedule.js?v=2",
   "./loan-contract-editor.js?v=4",
@@ -129,9 +129,9 @@ function patchDocument(html){
   patched=injectScriptBefore(patched,"./supplier-cloud.js?v=63","./contact-types.js?v=24");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
-  patched=patched.replace(/payment-statement\.js\?v=\d+/g,'payment-statement.js?v=16');
-  patched=injectScriptBefore(patched,"./payment-center.js?v=26","./payment-statement.js?v=16");
-  patched=injectScriptBefore(patched,"./payment-statement.js?v=16","./statement-search.js?v=1");
+  patched=patched.replace(/payment-statement\.js\?v=\d+/g,'payment-statement.js?v=17');
+  patched=injectScriptBefore(patched,"./payment-center.js?v=26","./payment-statement.js?v=17");
+  patched=injectScriptBefore(patched,"./payment-statement.js?v=17","./statement-search.js?v=1");
   patched=injectScriptBefore(patched,"./loans.js?v=11","./loan-contract-schedule.js?v=2");
   patched=patched.replace(/loan-contract-schedule\.js\?v=\d+/g,'loan-contract-schedule.js?v=2');
   patched=injectScriptAfter(patched,"./loans.js?v=11","./loan-contract-editor.js?v=4");

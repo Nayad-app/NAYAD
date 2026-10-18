@@ -72,6 +72,36 @@ for(const [permissions,kinds,count] of [
 }
 await db.exec('reset role;');
 
+
+// Paged reader: all-time totals without downloading all rows or actor metadata.
+await db.exec(`alter table payments add column note text,add column reference text,add column method text,add column invoice_id uuid;
+create table payment_allocations(payment_id uuid,invoice_id uuid,cash_amount numeric,discount_amount numeric);
+select set_config('request.jwt.claim.sub','${owner}',false);`);
+await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261018125158_statement_paged_read.sql',import.meta.url),'utf8'));
+await db.exec(`insert into payments(id,store_id,supplier_id,payment_date,created_at,created_by,status,amount,note) select ('10000000-0000-0000-0000-'||lpad(n::text,12,'0'))::uuid,'${store}','${supplier}','2026-10-01','2026-10-01T10:00:00Z'::timestamptz+n*interval '1 second','${owner}','posted',100,'Барааны төлбөр' from generate_series(1,121) n;`);
+const page=async(filters={},offset=0,asof=null,s=store)=>(await db.query('select public.statement_page($1,$2,$3,$4) as data',[s,JSON.stringify(filters),offset,asof])).rows[0].data;
+const detail=async(id,s=store)=>(await db.query('select public.statement_detail($1,$2) as data',[s,id])).rows[0].data;
+let first=await page();assert.equal(first.rows.length,50);assert.equal(first.totals.payment.count,121);assert.equal(first.totals.payment.amount,12100);assert.equal(first.totals.invoice.amount,500,'original insertion total retained');assert(first.has_more);assert(first.rows.every(r=>!('actor_name' in r)&&!('created_by' in r)&&!('allocations' in r)));
+let all=[...first.rows];for(let offset=50;offset<150;offset+=50)all.push(...(await page({},offset,first.asof)).rows);assert.equal(all.length,122);assert.equal(new Set(all.map(r=>r.id)).size,122);
+assert.equal((await page({kind:'payment',query:'baraani',min:'100',max:'100',from:'2026-10-01',to:'2026-10-01'})).totals.payment.count,121);
+assert.equal((await page({query:'missing'})).rows.length,0);assert.equal((await page({min:'101'})).totals.payment.count,0);
+const pid=all.find(r=>r.kind==='payment').id;assert.equal((await detail(pid)).actor_name,'Test Owner');assert.deepEqual((await detail(pid)).allocations,[]);
+const inv=all.find(r=>r.kind==='invoice');assert.equal((await detail(inv.id)).actor_name,'Test Owner');
+assert.equal((await page({},0,null,other)).rows.length,0);assert.equal(await detail(pid,other),null);
+for(const [permissions,payments,invoices] of [[{payments:'view'},121,0],[{invoices:'view'},0,1],[{customers:'edit'},0,0]]){
+ await db.exec(`update store_members set permissions='${JSON.stringify(permissions)}' where user_id='${member}'; select set_config('request.jwt.claim.sub','${member}',false);set role authenticated;`);
+ const result=await page();assert.equal(result.totals.payment.count,payments);assert.equal(result.totals.invoice.count,invoices);
+ assert.equal((await detail(pid))!==null,payments>0);assert.equal((await detail(inv.id))!==null,invoices>0);await db.exec('reset role;');
+}
+await db.exec(`select set_config('request.jwt.claim.sub','',false);set role authenticated;`);assert.equal((await page()).rows.length,0);assert.equal(await detail(pid),null);await db.exec('reset role;');
+await db.exec(`select set_config('request.jwt.claim.sub','${owner}',false);
+insert into invoices(id,store_id,supplier_id,amount,invoice_no,status,created_by) values('${invoice}','${store}','${supplier}',100,'LOOKUP-ONLY','confirmed','${owner}');
+insert into payment_allocations values('${pid}','${invoice}',75,25);`);
+const allocationDetail=await detail(pid);assert.equal(allocationDetail.allocations[0].invoices.invoice_no,'LOOKUP-ONLY');assert.equal(allocationDetail.allocations[0].discount_amount,25);
+const searched=await page({kind:'payment',query:'lookup-only'});assert.equal(searched.rows.length,1);assert.equal(searched.rows[0].id,pid);assert.equal(searched.totals.payment.amount,100);
+await db.exec(`insert into payments(id,store_id,supplier_id,payment_date,created_at,created_by,status,amount) values('20000000-0000-0000-0000-000000000001','${store}','${supplier}',current_date,now()+interval '1 minute','${owner}','posted',999);`);
+assert.equal((await page({},0,first.asof)).totals.payment.amount,12100,'later inserts do not shift the current pagination snapshot');
+console.log('paged statement SQL: PASS — pages, totals, transliteration, details and permission isolation');
 await db.exec(`delete from stores where id='${store}';`);
 assert.equal((await db.query('select * from finance_audit_events')).rows.length,0,'store deletion cascades audit');
 await db.close();console.log('statement activity SQL: PASS — snapshots, deletion, owner/member isolation, module permissions, actor names, invoker wrapper');
