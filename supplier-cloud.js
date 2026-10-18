@@ -177,7 +177,7 @@
       try{
         const target=(typeof selected!=='undefined'&&selected)?selected:null;
         if(!target){originalSaveEdit();return;}
-        const draft={...target,contactType:val('eContactType'),name:val('eName')||target.name,phone:val('ePhone'),reg:'',address:val('eAddress'),director:val('eDirector'),directorPhone:val('eDirectorPhone'),sales:val('eSales'),salesPhone:val('eSalesPhone'),orgPhone:'',note:val('eNote'),bank:val('eBank'),bankIban:val('eBankIban').replace(/[\s-]+/g,'').toUpperCase().replace(/^MN/,''),bankAccount:val('eBankAccount').replace(/[\s-]+/g,'').toUpperCase(),bankAccountHolder:val('eBankAccountHolder'),paymentReference:val('ePaymentReference').slice(0,120),status:val('eStatus')||'active'};
+        const draft={...target,contactType:val('eContactType'),name:val('eName')||target.name,phone:val('ePhone'),reg:'',address:target.address||'',director:val('eDirector'),directorPhone:val('eDirectorPhone'),sales:val('eSales'),salesPhone:val('eSalesPhone'),orgPhone:'',note:val('eNote'),bank:val('eBank'),bankIban:val('eBankIban').replace(/[\s-]+/g,'').toUpperCase().replace(/^MN/,''),bankAccount:val('eBankAccount').replace(/[\s-]+/g,'').toUpperCase(),bankAccountHolder:val('eBankAccountHolder'),paymentReference:val('ePaymentReference').slice(0,120),status:val('eStatus')||'active'};
         if(duplicateLocalSupplier(draft.name,target.id)){toastMsg('Ийм нэртэй компани бүртгэлтэй байна.');return;}
         await queueSupplierMutation(async()=>{
           const store=await myStore(),cloud=await ensureCloudSupplier(draft),logo=await applyLogoChange(store,cloud,draft,target);
