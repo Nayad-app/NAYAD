@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v202";
+const CACHE = "nayad-v203";
 
 const ASSETS = [
   "./",
@@ -26,7 +26,7 @@ const ASSETS = [
   "./staff-hub.js?v=2",
   "./staff-time.js?v=1",
   "./staff-payroll.js?v=7",
-  "./profile-menu.js?v=7",
+  "./profile-menu.js?v=8",
   "./notification-settings.js?v=1",
   "./admin-dashboard.js?v=2",
   "./subscription.js?v=5",
@@ -101,7 +101,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=59");
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=57");
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=40");
-  patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=7");
+  patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=8");
   patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=2");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=5");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=78");
@@ -119,9 +119,9 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./vendor/qrcode.js?v=1","./staff-hub.js?v=2");
   patched=injectScriptAfter(patched,"./staff-hub.js?v=2","./staff-time.js?v=1");
   patched=injectScriptAfter(patched,"./staff-time.js?v=1","./staff-payroll.js?v=7");
-  patched=injectScriptAfter(patched,"./staff-payroll.js?v=7","./profile-menu.js?v=7");
-  patched=injectScriptAfter(patched,"./profile-menu.js?v=7","./admin-dashboard.js?v=2");
-  patched=injectScriptAfter(patched,"./profile-menu.js?v=7","./notification-settings.js?v=1");
+  patched=injectScriptAfter(patched,"./staff-payroll.js?v=7","./profile-menu.js?v=8");
+  patched=injectScriptAfter(patched,"./profile-menu.js?v=8","./admin-dashboard.js?v=2");
+  patched=injectScriptAfter(patched,"./profile-menu.js?v=8","./notification-settings.js?v=1");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=78","./payment-center.js?v=26");

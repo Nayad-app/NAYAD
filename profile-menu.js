@@ -47,6 +47,42 @@
 
   function esc(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
   function initial(s){return String(s||'N').trim().slice(0,1).toUpperCase();}
+  const PHOTO_BUCKET='profile-photos';
+  let photoCache={key:'',url:'',until:0},photoPending='',photoBusy=false;
+  const cameraIcon='<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M3 7h4l2-3h6l2 3h4v14H3Z"/><circle cx="12" cy="13" r="4"/></svg>';
+  function photoUrl(user){
+    const path=user?.user_metadata?.avatar_path;if(!path||!user?.id||!path.startsWith(user.id+'/'))return '';
+    const key=user.id+':'+path;if(photoCache.key===key&&photoCache.until>Date.now())return photoCache.url;
+    if(photoPending!==key){photoPending=key;const client=window.nayadSupabase;
+      if(client)client.storage.from(PHOTO_BUCKET).createSignedUrl(path,3600).then(({data,error})=>{
+        if(photoPending===key)photoPending='';if(window.__nayadUser?.id!==user.id||window.__nayadUser?.user_metadata?.avatar_path!==path)return;
+        photoCache={key,url:error?'':data?.signedUrl||'',until:Date.now()+(error?30000:3300000)};
+        window.updateProfileUI?.();refreshPhotoPreview();
+      }).catch(()=>{if(photoPending===key)photoPending='';photoCache={key,url:'',until:Date.now()+30000};});
+    }return '';
+  }
+  function photoMarkup(){const p=profile();return p.avatar?`<img src="${esc(p.avatar)}" alt="Профайл зураг" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`:cameraIcon;}
+  function photoFields(){return `<div class="profilePhotoSettings" style="display:flex;align-items:center;gap:14px;margin:16px 0"><span id="profilePhotoPreview" style="width:72px;height:72px;flex:0 0 72px;border-radius:50%;background:var(--surface-2,#eee);display:grid;place-items:center;overflow:hidden">${photoMarkup()}</span><div><button type="button" class="secondary" id="profilePhotoChoose" onclick="NayadProfilePhoto.choose()">Зураг сонгох / солих</button><div class="sub">Зураг сонгоход автоматаар хадгална.</div></div></div>`;}
+  function refreshPhotoPreview(){const el=document.getElementById('profilePhotoPreview');if(el)el.innerHTML=photoMarkup();}
+  async function preparePhoto(file){
+    if(!file.type.startsWith('image/')||file.type==='image/svg+xml')throw Error('Зургийн файл сонгоно уу.');
+    if(file.size>10*1024*1024)throw Error('10 МБ-аас бага зураг сонгоно уу.');
+    const url=URL.createObjectURL(file);try{const img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('Зургийг нээж чадсангүй. JPG эсвэл PNG зураг сонгоно уу.'));img.src=url;});const c=document.createElement('canvas');c.width=c.height=320;const ctx=c.getContext('2d'),size=Math.min(img.naturalWidth,img.naturalHeight);ctx.fillStyle='#fff';ctx.fillRect(0,0,320,320);ctx.drawImage(img,(img.naturalWidth-size)/2,(img.naturalHeight-size)/2,size,size,0,0,320,320);return await new Promise((resolve,reject)=>c.toBlob(blob=>blob?resolve(blob):reject(Error('Зураг бэлтгэж чадсангүй.')),'image/jpeg',.85));}finally{URL.revokeObjectURL(url);}
+  }
+  async function savePhoto(file){
+    if(photoBusy||!file)return;const user=window.__nayadUser,client=window.nayadSupabase;if(!user?.id||!client)return;
+    photoBusy=true;const btn=document.getElementById('profilePhotoChoose');if(btn){btn.disabled=true;btn.textContent='Хадгалж байна…';}
+    try{const blob=await preparePhoto(file);if(window.__nayadUser?.id!==user.id)throw Error('Нэвтрэлт өөрчлөгдсөн байна.');
+      const path=user.id+'/'+crypto.randomUUID()+'.jpg';const {error:uploadError}=await client.storage.from(PHOTO_BUCKET).upload(path,blob,{contentType:'image/jpeg',upsert:false});if(uploadError)throw uploadError;
+      const {data:current,error:identityError}=await client.auth.getUser();if(identityError||current?.user?.id!==user.id||window.__nayadUser?.id!==user.id)throw Error('Нэвтрэлт өөрчлөгдсөн байна.');
+      const {data,error}=await client.auth.updateUser({data:{avatar_path:path}});if(error)throw error;
+      if(window.__nayadUser?.id!==user.id)return;window.__nayadUser=data.user;photoCache={key:'',url:'',until:0};window.updateProfileUI?.();refreshPhotoPreview();window.toast?.('Профайл зураг хадгалагдлаа.');
+      const old=user.user_metadata?.avatar_path;if(old&&old!==path&&old.startsWith(user.id+'/'))client.storage.from(PHOTO_BUCKET).remove([old]).catch(()=>{});
+    }catch(e){window.toast?.(e.message||'Зураг хадгалж чадсангүй.');}finally{photoBusy=false;if(btn){btn.disabled=false;btn.textContent='Зураг сонгох / солих';}}
+  }
+  function choosePhoto(){if(photoBusy)return;const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=()=>savePhoto(input.files?.[0]);input.click();}
+  window.NayadProfilePhoto={url:photoUrl,fields:photoFields,choose:choosePhoto,save:savePhoto};
+
   function profile(){return typeof window.getCurrentUserProfile==='function'?window.getCurrentUserProfile():{name:'Профайл',avatar:''};}
   function activeStore(){return window.__nayadActiveStore||null;}
   function roleLabel(role){return role==='owner'?'Эзэмшигч':role==='member'?'Гишүүн':'';}
@@ -76,7 +112,7 @@
     const phone=String(user.user_metadata?.login_phone||'').replace(/^\+976/,'');
     const email=user.email||'';
     const contact=phone?`Утас: ${esc(phone)}`:(email?esc(email):esc(p.provider||'Нэвтрэлт'));
-    const avatar=p.avatar?`<img class="profileMenuAvatar" src="${esc(p.avatar)}" alt="">`:`<div class="profileMenuAvatar">${esc(initial(p.name))}</div>`;
+    const avatar=p.avatar?`<img class="profileMenuAvatar" src="${esc(p.avatar)}" alt="">`:`<div class="profileMenuAvatar">${cameraIcon}</div>`;
     const canManageStaff=['owner','manager'].includes(activeStore()?.role||'');
     return `<div class="profileMenuLayout"><div class="profileMenuHeader"><b id="profileMenuTitle">Цэс</b><button class="profileMenuClose" type="button" onclick="closeProfileMenu()" aria-label="Цэс хаах"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><button class="profileMenuUser" type="button" onclick="profileMenuAction('settings')" aria-label="Профайлын тохиргоо">${avatar}<div class="profileMenuUserMeta"><b>${esc(p.name||'Нэр тодорхойгүй')}</b><span>${contact}</span></div></button><div class="profileMenuActions">${action(ICONS.switch,'Дэлгүүр солих','','store')}${action(ICONS.share,'Дэлгүүр хуваалцах','','share')}${canManageStaff?action(ICONS.staff,'Ажилтан, цалин','','staff'):''}</div><div class="profileMenuActions">${themeControl()}${action(ICONS.bell,'Notification','','notifications')}</div>${upgradeControl()}<div class="profileMenuActions">${action(ICONS.report,'Тайлан','','reports')}</div><div class="profileMenuActions">${supportControl()}</div><div class="profileMenuSpacer"></div><button class="profileMenuLogout" type="button" onclick="profileMenuAction('logout')">${ICONS.logout}<span>Гарах</span></button></div>`;
   }

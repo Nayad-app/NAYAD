@@ -60,8 +60,8 @@ assert.match(swSource,/\.\/supplier-cloud\.js\?v=63/);
 assert.match(indexSource,/\.\/supplier-cloud\.js\?v=63/,'index and service worker must load the same supplier code');
 assert.match(swSource,/\.\/share\.js\?v=40/);
 assert.match(indexSource,/\.\/share\.js\?v=40/,'index and service worker must load the same sharing code');
-assert.match(swSource,/\.\/profile-menu\.js\?v=7/);
-assert.match(indexSource,/\.\/profile-menu\.js\?v=7/,'index and service worker must load the profile drawer');
+assert.match(swSource,/\.\/profile-menu\.js\?v=8/);
+assert.match(indexSource,/\.\/profile-menu\.js\?v=8/,'index and service worker must load the profile drawer');
 assert.match(swSource,/\.\/admin-dashboard\.js\?v=2/);
 assert.match(indexSource,/\.\/admin-dashboard\.js\?v=2/,'index and service worker must load the timestamped payment dashboard');
 assert.match(swSource,/\.\/subscription\.js\?v=5/);
@@ -88,14 +88,14 @@ assert.ok(
   patchedTwice.indexOf('./cloud-runtime.js?v=59')<patchedTwice.indexOf('./invoice-cloud.js?v=78'),
   'legacy documents must receive the same safe store/auth/cloud script order'
 );
-assert.equal(patchedTwice.split('./profile-menu.js?v=7').length-1,1,'profile drawer must be injected exactly once');
+assert.equal(patchedTwice.split('./profile-menu.js?v=8').length-1,1,'profile drawer must be injected exactly once');
 assert.equal(patchedTwice.split('./staff-payroll.js?v=7').length-1,1,'staff payroll must be injected exactly once');
 assert.equal(patchedTwice.split('./admin-dashboard.js?v=2').length-1,1,'admin dashboard must be injected exactly once');
 assert.equal(patchedTwice.split('./subscription.js?v=5').length-1,1,'subscription flow must be injected exactly once');
 assert.ok(patchedTwice.indexOf('./subscription.js?v=5')<patchedTwice.indexOf('./member-permissions.js?v=2'),'permission guard must load after all feature modules');
 assert.equal(patchedTwice.split('./loans.js?v=12').length-1,1,'loan module must be injected exactly once');
 assert.ok(patchedTwice.indexOf('./share.js?v=40')<patchedTwice.indexOf('./staff-payroll.js?v=7'),'staff payroll must load after sharing actions');
-assert.ok(patchedTwice.indexOf('./staff-payroll.js?v=7')<patchedTwice.indexOf('./profile-menu.js?v=7'),'profile drawer must load after staff payroll');
+assert.ok(patchedTwice.indexOf('./staff-payroll.js?v=7')<patchedTwice.indexOf('./profile-menu.js?v=8'),'profile drawer must load after staff payroll');
 
 async function dispatch(request){
   let responsePromise;
