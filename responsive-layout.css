@@ -426,3 +426,7 @@
     padding-left: 36px;
   }
 }
+.contactDetails>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;min-height:44px}
+.contactDetails>summary::-webkit-details-marker{display:none}
+.contactDetails>summary svg{width:20px;height:20px;flex-shrink:0;fill:none;stroke:var(--muted);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.contactDetails[open]>summary svg{transform:rotate(180deg)}
