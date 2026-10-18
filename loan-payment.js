@@ -15,12 +15,12 @@
     const copyRoot=root,button=root.querySelector(`[data-copy="${key}"]`);
     function feedback(ok){
       if(root!==copyRoot)return;
-      message(ok?'Хууллаа':'Хуулж чадсангүй. Мэдээллээ удаан дарж сонгоод хуулна уу.');
+      message(ok?'Амжилттай хуулагдлаа':'Хуулж чадсангүй. Мэдээллээ удаан дарж сонгоод хуулна уу.');
       if(!button)return;
       button.parentElement.style.gridTemplateColumns='minmax(85px,.8fr) minmax(0,1.2fr) auto';
       clearTimeout(button.copyFeedbackTimer);
-      button.textContent=ok?'Хууллаа':'Дахин хуулах';
-      button.style.cssText='width:auto;min-width:44px;white-space:nowrap;font-size:12px';
+      button.textContent=ok?'Амжилттай хуулагдлаа':'Дахин хуулах';
+      button.style.cssText='width:auto;min-width:44px;max-width:120px;white-space:normal;font-size:12px';
       button.copyFeedbackTimer=setTimeout(()=>{button.innerHTML=copyIcon;button.style.cssText='';},2200);
     }
     try{if(!navigator.clipboard?.writeText)throw Error('fallback');await navigator.clipboard.writeText(text);feedback(true);}

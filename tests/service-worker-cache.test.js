@@ -50,8 +50,8 @@ assert.match(swSource,/\.\/money-input\.js\?v=1/);
 assert.match(indexSource,/\.\/money-input\.js\?v=1/,'index and service worker must load the money formatter');
 assert.match(swSource,/\.\/invoice-cloud\.js\?v=78/);
 assert.match(indexSource,/\.\/invoice-cloud\.js\?v=78/,'index and service worker must load the same invoice code');
-assert.match(swSource,/\.\/payment-center\.js\?v=21/);
-assert.match(indexSource,/\.\/payment-center\.js\?v=21/,'index and service worker must load the same payment center');
+assert.match(swSource,/\.\/payment-center\.js\?v=22/);
+assert.match(indexSource,/\.\/payment-center\.js\?v=22/,'index and service worker must load the same payment center');
 assert.match(swSource,/\.\/loans\.js\?v=10/);
 assert.match(indexSource,/\.\/loans\.js\?v=10/,'index and service worker must load the loan module');
 assert.match(swSource,/\.\/contact-types\.js\?v=23/);
@@ -127,13 +127,13 @@ async function dispatch(request){
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 assert.equal(patchedTwice.split('./payment-statement.js?v=3').length-1,1,'statement module injected once');
-assert.ok(patchedTwice.indexOf('./payment-statement.js?v=3')<patchedTwice.indexOf('./payment-center.js?v=21'),'statement loads before center');
+assert.ok(patchedTwice.indexOf('./payment-statement.js?v=3')<patchedTwice.indexOf('./payment-center.js?v=22'),'statement loads before center');
 assert.ok(patchedTwice.indexOf('./statement-search.js?v=1')<patchedTwice.indexOf('./payment-statement.js?v=3'),'search loads before statement');
 
 for(const asset of ['./loan-contract-editor.js?v=4','./loan-contract-schedule.js?v=2'])assert.equal(patchedTwice.split(asset).length-1,1);
 assert.ok(patchedTwice.indexOf('./loans.js?v=10')<patchedTwice.indexOf('./loan-contract-editor.js?v=4'));
 
-assert.equal(patchedTwice.split('./loan-payment.js?v=2').length-1,1);
+assert.equal(patchedTwice.split('./loan-payment.js?v=3').length-1,1);
 
 const existingStaff=context.patchDocument('<body><script src="./staff-hub.js?v=2"></script><script src="./staff-payroll.js?v=4"></script></body>');
 assert.ok(!existingStaff.includes('staff-payroll.js?v=4'));
