@@ -15,10 +15,12 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  assert.ok(scopes.filter(q=>q.table==='statement_activity').every(q=>q.p_from==='0001-01-01'&&q.p_to==='9999-12-31'));
  assert.match(api.html(),/251 гүйлгээ/,'must paginate past first page');
  assert.match(api.html(),/25,100/,'sum payments once, not once per allocation');
- assert.match(api.html(),/Test Owner/);assert.doesNotMatch(api.html(),/500 ₮ → 450 ₮/);
+ assert.doesNotMatch(api.html(),/Test Owner/);assert.doesNotMatch(api.html(),/500 ₮ → 450 ₮/);
  assert.ok(scopes.filter(q=>q.table==='statement_activity').every(q=>q.p_store==='store-a'));
  elements.statementFrom={value:'2026-01-01'};elements.statementTo={value:''};await api.dates();assert.match(api.html(),/Эхлэх: 2026-01-01/);await api.resetFilter('from');assert.match(api.html(),/id="statementFrom"[^>]*value=""/);
  api.details('audit:1');assert.equal(modal,'','hidden changes cannot open details');
+ api.details('invoice:i1');assert.match(modal,/Test Owner/);assert.match(modal,/10:00:00/);
+ assert.match(api.html(),/>10\/05<\/time>/);assert.doesNotMatch(api.html(),/Бүртгэсэн ажилтан/);
  assert.doesNotMatch(api.html(),/Өөрчлөлт|Өнөөдөр|7 хоног|30 хоног|Шинэчлэх/);
  assert.equal((api.html().match(/NayadStatement.kind\('/g)||[]).length,3);
  assert.match(api.html(),/251 гүйлгээ/);
@@ -32,7 +34,7 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  assert.equal(api.filterRows([sample,{...sample,status:'reversed'},{...sample,supplier_id:'other'},{...sample,payment_date:'2026-10-04'}],f).length,1);
  assert.equal(api.filterRows([sample],{...f,min:'101'}).length,0);
  assert.equal(api.filterRows([sample],{...f,note:'missing'}).length,0);
- api.details('p0');assert.match(modal,/INV-1/);assert.match(modal,/INV-2/);
+ api.details('p0');assert.match(modal,/Бүртгэсэн ажилтан/);assert.match(modal,/INV-1/);assert.match(modal,/INV-2/);
  for(const [id,value] of Object.entries({stMin:'500',stMax:'100',stNote:'',stInvoice:''}))elements[id]={value};
  api.apply();assert.match(ctx.message,/зөв/);
  api.clear();assert.equal(elements.stMin.value,'');
