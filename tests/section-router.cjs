@@ -29,5 +29,14 @@ const {JSDOM}=require('jsdom'),fs=require('fs'),assert=require('node:assert/stri
  pw.history.back();await tick();assert.equal(pw.location.pathname,'/nuur');assert(pw.document.getElementById('modal').classList.contains('hide'));
  pw.history.forward();await tick();assert.equal(pw.location.pathname,'/delguur_solih');assert(pw.document.getElementById('modal').classList.contains('storePickerModal'));picker.window.close();
  assert.ok(fs.readFileSync('delguur_solih/index.html','utf8').includes('/delguur_solih'));
+ for(const [kind,slug] of Object.entries({picker:'hariltsagch_nemeh',person:'huvi_hun_burtgeh',organization:'baiguullaga_burtgeh'})){
+  const c=setup('https://nayad.store/?__nayad_route=/'+slug),cw=c.window;let opened='';
+  cw.showContactTypePicker=()=>{opened='picker';cw.document.getElementById('modal').classList.add('contactRegistrationModal');};
+  cw.showContactForm=k=>{opened=k;cw.document.getElementById('modal').classList.add('contactRegistrationModal');};
+  cw.__nayadRouter.restoreContact();assert.equal(opened,kind);assert.equal(cw.location.pathname,'/'+slug);assert.equal(cw.eval('page'),'companies');
+  opened='';cw.__nayadRouter.restoreContact();assert.equal(opened,'','background render must preserve form');
+  cw.__nayadRouter.closeContact();assert.equal(cw.location.pathname,'/hariltsagch');
+  assert.ok(fs.readFileSync(slug+'/index.html','utf8').includes('/'+slug));await tick();cw.close();
+ }
  w.close();console.log('PASS: deep links, refresh, history, query preservation and open-dialog navigation guard');
 })().catch(e=>{console.error(e);process.exitCode=1;});

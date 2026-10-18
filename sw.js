@@ -1,11 +1,11 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v206";
+const CACHE = "nayad-v207";
 
 const ASSETS = [
   "./",
-  "./section-router.js?v=2",
+  "./section-router.js?v=3",
   "./manifest.webmanifest",
-  "./responsive-layout.css?v=8",
+  "./responsive-layout.css?v=9",
   "./icon-180.png",
   "./icon-192.png",
   "./icon-512.png",
@@ -41,7 +41,7 @@ const ASSETS = [
   "./loan-contract-editor.css?v=7",
   "./loan-payment.js?v=3",
   "./loan-actions.js?v=1",
-  "./contact-types.js?v=25",
+  "./contact-types.js?v=26",
   "./company-label.js",
   "./member-permissions.js?v=2"
 ];
@@ -89,7 +89,7 @@ function injectCloudRuntimeBeforeCloudModules(html){
 
 function patchDocument(html){
   html=html.includes('<base href="/">')?html:html.replace('<head>','<head><base href="/">');
-  html=html.includes("/section-router.js")?html:html.replace('<head>','<head><script src="/section-router.js?v=2"></script>');
+  html=html.includes("/section-router.js")?html:html.replace('<head>','<head><script src="/section-router.js?v=3"></script>');
   html=html.replace(/\.\/staff-payroll\.js\?v=\d+/g,"./staff-payroll.js?v=7");
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=39");
@@ -110,7 +110,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=63");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=12");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=78","./money-input.js?v=1");
-  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=25");
+  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=26");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=66","./registration-onboarding.js?v=2");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=66","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
@@ -126,7 +126,7 @@ function patchDocument(html){
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=78","./payment-center.js?v=26");
   patched=injectScriptAfter(patched,"./payment-center.js?v=26","./loans.js?v=12");
-  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=63","./contact-types.js?v=25");
+  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=63","./contact-types.js?v=26");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   patched=patched.replace(/payment-statement\.js\?v=\d+/g,'payment-statement.js?v=18');
@@ -203,7 +203,7 @@ self.addEventListener("fetch",event=>{
 
   if(request.mode==="navigate"||request.destination==="document"){
     event.respondWith(
-      fetch(["/nuur","/hariltsagch","/tulbur","/zeel","/delguur_solih"].includes(url.pathname.replace(/\/$/,""))?new URL("/"+url.search,self.location.origin).href:request,{cache:"no-store"})
+      fetch(["/nuur","/hariltsagch","/tulbur","/zeel","/delguur_solih","/hariltsagch_nemeh","/huvi_hun_burtgeh","/baiguullaga_burtgeh"].includes(url.pathname.replace(/\/$/,""))?new URL("/"+url.search,self.location.origin).href:request,{cache:"no-store"})
         .then(response=>patchedResponse(response).catch(error=>{
           console.warn("NAYAD document patch:",error);
           return response;

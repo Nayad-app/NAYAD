@@ -443,5 +443,5 @@
 @media(min-width:1100px){#app .contactList{column-gap:18px}}
 
 /* Store switching is a centered dialog on mobile and desktop. */
-#modal.storePickerModal{align-items:center;justify-content:center;padding:20px 16px}
-#modal.storePickerModal #sheet{width:min(430px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;border-radius:24px;padding:20px;box-sizing:border-box}
+#modal.storePickerModal,#modal.contactRegistrationModal{align-items:center;justify-content:center;padding:20px 16px}
+#modal.storePickerModal #sheet,#modal.contactRegistrationModal #sheet{width:min(430px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;border-radius:24px;padding:20px;box-sizing:border-box}

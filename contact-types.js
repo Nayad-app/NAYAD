@@ -110,10 +110,15 @@
     if(contactTypeSelectionTimer&&typeof window.clearTimeout==='function')window.clearTimeout(contactTypeSelectionTimer);
     contactTypeSelectionTimer=window.setTimeout(()=>{const modal=document.getElementById('modal');if(modal?.classList?.contains?.('hide'))return;showContactForm(kind);},160);
   }
+  function contactRegistrationMode(kind){
+    document.getElementById('modal')?.classList?.add('contactRegistrationModal');
+    window.__nayadRouter?.openContact(kind);
+  }
   function showContactTypePicker(){
     if(!requireCompletedRegistration())return;
     injectStyle();
     window.sheet(`<h2>Харилцагч бүртгэх</h2><div class="contactTypeHint">Харилцагчийн төрөл</div><div class="contactTypePicker"><button type="button" class="contactTypeOption person" data-contact-type="person" aria-pressed="false" onclick="selectContactType('person')"><span class="contactTypeIcon">${icon(PERSON)}</span><b>Хувь хүн</b></button><button type="button" class="contactTypeOption organization" data-contact-type="organization" aria-pressed="false" onclick="selectContactType('organization')"><span class="contactTypeIcon">${icon(ORGANIZATION)}</span><b>Байгууллага</b></button></div>`);
+    contactRegistrationMode('picker');
   }
   function showContactForm(type,contact={}){
     if(!contact?.id&&!requireCompletedRegistration())return;
@@ -140,6 +145,7 @@
     const actions=`<div class="actions"><button class="secondary" onclick="closeSheet()">Болих</button><button class="primary" onclick="${contact.id?'saveEdit':'saveCompany'}()">Хадгалах</button></div>`;
     const remove=contact.id&&contact.status==='inactive'?`<button class="secondary full" style="margin-top:10px;color:#c72c2c;background:#ffe2e2" onclick="deleteCompany(${contact.id})">Устгах</button>`:'';
     window.sheet(`<h2>${title}</h2>${hidden}${editIdentity}${fields}<div class="title" style="margin-top:20px">БАНКНЫ МЭДЭЭЛЭЛ</div>${bankFields(prefix,contact)}${status}${actions}${remove}`);
+    if(!contact.id)contactRegistrationMode(kind);
   }
   function companyIconLabel(contact){const type=validType(contact?.contactType);return `<span class="contactDetailType">${icon(type)}${typeLabel(type)}</span>`;}
   const HOME_DEBT_VIEW_KEY='NAYAD_HOME_DEBT_VIEW',HOME_DEBT_RANGE_KEY='NAYAD_HOME_DEBT_RANGE';
