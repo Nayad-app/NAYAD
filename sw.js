@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v207";
+const CACHE = "nayad-v208";
 
 const ASSETS = [
   "./",
@@ -41,7 +41,7 @@ const ASSETS = [
   "./loan-contract-editor.css?v=7",
   "./loan-payment.js?v=3",
   "./loan-actions.js?v=1",
-  "./contact-types.js?v=26",
+  "./contact-types.js?v=27",
   "./company-label.js",
   "./member-permissions.js?v=2"
 ];
@@ -110,7 +110,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=63");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=12");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=78","./money-input.js?v=1");
-  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=26");
+  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=27");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=66","./registration-onboarding.js?v=2");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=66","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
@@ -126,7 +126,7 @@ function patchDocument(html){
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=78","./payment-center.js?v=26");
   patched=injectScriptAfter(patched,"./payment-center.js?v=26","./loans.js?v=12");
-  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=63","./contact-types.js?v=26");
+  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=63","./contact-types.js?v=27");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   patched=patched.replace(/payment-statement\.js\?v=\d+/g,'payment-statement.js?v=18');

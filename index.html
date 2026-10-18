@@ -283,7 +283,7 @@ window.__nayadApplyData=function(next,renderNow=true){
   const selectedId=typeof selected!=="undefined"&&selected?selected.id:null;
   data=next&&typeof next==="object"?next:{companies:[],payments:[]};
   selected=selectedId?(data.companies||[]).find(company=>String(company.id)===String(selectedId))||null:null;
-  if(renderNow&&typeof render==="function")render();
+  if(renderNow&&typeof render==="function"&&!window.__nayadRefreshContactView?.())render();
   return data;
 };
 </script>
@@ -316,7 +316,7 @@ window.__nayadApplyData=function(next,renderNow=true){
 <script src="./loan-payment.js?v=3"></script>
 <script src="./loan-actions.js?v=1"></script>
 <link rel="stylesheet" href="./loan-contract-editor.css?v=7">
-<script src="./contact-types.js?v=26"></script>
+<script src="./contact-types.js?v=27"></script>
 <script src="./supplier-cloud.js?v=63"></script>
 <script src="./company-label.js"></script>
 <script src="./subscription.js?v=5"></script>
