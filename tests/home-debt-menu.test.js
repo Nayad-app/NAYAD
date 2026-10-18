@@ -124,7 +124,7 @@ assert.match(colorCard('YELLOW',addDays(-30),addDays(30)),/style="color:#EAB308"
 assert.match(colorCard('RED',addDays(-30),addDays(0)),/style="color:#DC2626"/,'the due date must be red');
 const overdueColorCard=colorCard('BROWN',addDays(-31),addDays(-1));
 assert.match(overdueColorCard,/style="color:#8B2B22"/,'the day after the due date must be dark red-brown');
-assert.match(overdueColorCard,new RegExp(`Хугацаа хэтэрсэн<time datetime="${addDays(-1)}">${addDays(-1).replaceAll('-','\\.')}`),'overdue cards must label their due date clearly');
+assert.match(overdueColorCard,new RegExp(`Хугацаа хэтэрсэн <time datetime="${addDays(-1)}">${addDays(-1).replaceAll('-','\\.')}`),'overdue cards must label their due date clearly');
 const mixedRiskCard=context.card({id:99,name:'Mixed',contactType:'organization',debt:200,invoices:[invoice('SAFE',addDays(30),'confirmed',addDays(0)),invoice('LATE',addDays(-1),'confirmed',addDays(-31))]},true);
 assert.match(mixedRiskCard,/style="color:#8B2B22"/,'a contact total must use the riskiest unpaid invoice color');
 assert.equal(renders,14);
