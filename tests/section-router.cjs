@@ -38,5 +38,11 @@ const {JSDOM}=require('jsdom'),fs=require('fs'),assert=require('node:assert/stri
   cw.__nayadRouter.closeContact();assert.equal(cw.location.pathname,'/hariltsagch');
   assert.ok(fs.readFileSync(slug+'/index.html','utf8').includes('/'+slug));await tick();cw.close();
  }
+ const inv=setup('https://nayad.store/?__nayad_route=/padaan/test-invoice'),iw=inv.window;
+ iw.showInvoiceDetails=async id=>{iw.opened=id;iw.document.getElementById('modal').classList.remove('hide');iw.document.getElementById('modal').classList.add('invoiceDetailModal');iw.__nayadRouter.openInvoice(id);};
+ iw.closeSheet=()=>{iw.__nayadRouter.closeInvoice();iw.document.getElementById('modal').classList.remove('invoiceDetailModal');iw.document.getElementById('modal').classList.add('hide');};
+ await tick();await iw.__nayadRouter.restoreInvoice();assert.equal(iw.opened,'test-invoice');assert.equal(iw.location.pathname,'/padaan/test-invoice');
+ iw.closeSheet();assert.equal(iw.location.pathname,'/nuur');await iw.showInvoiceDetails('another');iw.history.back();await tick();assert.equal(iw.location.pathname,'/nuur');assert(iw.document.getElementById('modal').classList.contains('hide'));iw.history.forward();await tick();assert.equal(iw.opened,'another');
+ iw.document.getElementById('modal').classList.remove('invoiceDetailModal');iw.document.getElementById('modal').innerHTML='<input value="draft">';iw.opened='';iw.render();await tick();assert.equal(iw.opened,'','refresh preserves invoice edit draft');iw.close();
  w.close();console.log('PASS: deep links, refresh, history, query preservation and open-dialog navigation guard');
 })().catch(e=>{console.error(e);process.exitCode=1;});

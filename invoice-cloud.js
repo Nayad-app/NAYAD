@@ -172,7 +172,7 @@
   window.viewInvoiceImages=async function(invoiceId){
     const local=readLocal();let invoice=null;
     for(const company of local.companies||[]){const found=(company.invoices||[]).find(item=>String(item.id)===String(invoiceId));if(found){invoice=found;break;}}
-    if(!invoice)return notify('Падаан олдсонгүй.');
+    if(!invoice)invoice={id:String(invoiceId),no:'',image_urls:[]};
     let rows=[];
     try{
       const result=await client().from('invoice_images').select('image_url,image_path,page_number').eq('invoice_id',String(invoice.id)).order('page_number',{ascending:true});
@@ -180,6 +180,7 @@
     }catch(error){console.warn('Invoice image read:',error);}
     let urls=await window.__nayadSignedInvoiceUrls(rows,600);
     if(!urls.length)urls=(invoice.image_urls||[]).filter(Boolean);
+    if(!urls.length&&invoice.image_url)urls=await window.__nayadSignedInvoiceUrls([{image_url:invoice.image_url}],600);
     if(!urls.length)return notify('Энэ падаанд зураг оруулаагүй байна.');
     let current=0;
     function draw(){
@@ -189,7 +190,7 @@
     }
     window.__invoicePrev=()=>{if(current>0){current--;draw();}};
     window.__invoiceNext=()=>{if(current<urls.length-1){current++;draw();}};
-    openSheet('');draw();
+    openSheet('');document.getElementById('modal')?.classList.add('invoiceDetailModal');draw();
   };
 
   async function store(){

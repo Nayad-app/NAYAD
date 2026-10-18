@@ -48,10 +48,10 @@ assert.match(swSource,/\.\/cloud-runtime\.js\?v=59/);
 assert.match(indexSource,/\.\/cloud-runtime\.js\?v=59/,'index and service worker must load the same cloud runtime');
 assert.match(swSource,/\.\/money-input\.js\?v=1/);
 assert.match(indexSource,/\.\/money-input\.js\?v=1/,'index and service worker must load the money formatter');
-assert.match(swSource,/\.\/invoice-cloud\.js\?v=78/);
-assert.match(indexSource,/\.\/invoice-cloud\.js\?v=78/,'index and service worker must load the same invoice code');
-assert.match(swSource,/\.\/payment-center\.js\?v=26/);
-assert.match(indexSource,/\.\/payment-center\.js\?v=26/,'index and service worker must load the same payment center');
+assert.match(swSource,/\.\/invoice-cloud\.js\?v=79/);
+assert.match(indexSource,/\.\/invoice-cloud\.js\?v=79/,'index and service worker must load the same invoice code');
+assert.match(swSource,/\.\/payment-center\.js\?v=27/);
+assert.match(indexSource,/\.\/payment-center\.js\?v=27/,'index and service worker must load the same payment center');
 assert.match(swSource,/\.\/loans\.js\?v=12/);
 assert.match(indexSource,/\.\/loans\.js\?v=12/,'index and service worker must load the loan module');
 assert.match(swSource,/\.\/contact-types\.js\?v=28/);
@@ -85,7 +85,7 @@ assert.ok(
   patchedTwice.indexOf(deleteAsset[0])<patchedTwice.indexOf('./auth-guard.js?v=57')&&
   patchedTwice.indexOf('./auth-guard.js?v=57')<patchedTwice.indexOf('./money-input.js?v=1')&&
   patchedTwice.indexOf('./money-input.js?v=1')<patchedTwice.indexOf('./cloud-runtime.js?v=59')&&
-  patchedTwice.indexOf('./cloud-runtime.js?v=59')<patchedTwice.indexOf('./invoice-cloud.js?v=78'),
+  patchedTwice.indexOf('./cloud-runtime.js?v=59')<patchedTwice.indexOf('./invoice-cloud.js?v=79'),
   'legacy documents must receive the same safe store/auth/cloud script order'
 );
 assert.equal(patchedTwice.split('./profile-menu.js?v=8').length-1,1,'profile drawer must be injected exactly once');
@@ -126,9 +126,9 @@ async function dispatch(request){
   console.log('service-worker-cache: PASS — Supabase API traffic always bypasses CacheStorage');
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
-assert.equal(patchedTwice.split('./payment-statement.js?v=18').length-1,1,'statement module injected once');
-assert.ok(patchedTwice.indexOf('./payment-statement.js?v=18')<patchedTwice.indexOf('./payment-center.js?v=26'),'statement loads before center');
-assert.ok(patchedTwice.indexOf('./statement-search.js?v=1')<patchedTwice.indexOf('./payment-statement.js?v=18'),'search loads before statement');
+assert.equal(patchedTwice.split('./payment-statement.js?v=19').length-1,1,'statement module injected once');
+assert.ok(patchedTwice.indexOf('./payment-statement.js?v=19')<patchedTwice.indexOf('./payment-center.js?v=27'),'statement loads before center');
+assert.ok(patchedTwice.indexOf('./statement-search.js?v=1')<patchedTwice.indexOf('./payment-statement.js?v=19'),'search loads before statement');
 
 for(const asset of ['./loan-contract-editor.js?v=5','./loan-contract-schedule.js?v=2'])assert.equal(patchedTwice.split(asset).length-1,1);
 assert.ok(patchedTwice.indexOf('./loans.js?v=12')<patchedTwice.indexOf('./loan-contract-editor.js?v=5'));

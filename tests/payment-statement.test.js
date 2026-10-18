@@ -26,7 +26,7 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  assert.ok(scopes.filter(q=>q.table==='statement_page').every(q=>q.p_store==='store-a'));
  elements.statementFrom={value:'2026-01-01'};elements.statementTo={value:''};await api.dates();assert.match(api.html(),/Эхлэх: 2026-01-01/);await api.resetFilter('from');api.search();assert.match(modal,/id="stFrom"[^>]*value=""/);assert.doesNotMatch(api.html(),/id="statementFrom"/);modal='';
  await api.details('audit:1');assert.equal(modal,'','hidden changes cannot open details');
- await api.details('invoice:i1');assert.match(modal,/Test Owner/);assert.match(modal,/10:00:00/);
+ await api.details('invoice:i1');assert.match(modal,/viewInvoiceImages\(this.dataset.id\)/);assert.match(modal,/data-id="i1"/);assert.match(modal,/Test Owner/);assert.match(modal,/10:00:00/);
  assert.match(api.html(),/>10\/05<\/time>/);assert.doesNotMatch(api.html(),/Бүртгэсэн ажилтан/);
  assert.doesNotMatch(api.html(),/Өөрчлөлт|Өнөөдөр|7 хоног|30 хоног|Шинэчлэх/);
  api.search();assert.match(modal,/id="stQuery"/);assert.equal((api.html().match(/NayadStatement.kind\('/g)||[]).length,3);

@@ -1,11 +1,11 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v209";
+const CACHE = "nayad-v210";
 
 const ASSETS = [
   "./",
-  "./section-router.js?v=3",
+  "./section-router.js?v=4",
   "./manifest.webmanifest",
-  "./responsive-layout.css?v=10",
+  "./responsive-layout.css?v=11",
   "./icon-180.png",
   "./icon-192.png",
   "./icon-512.png",
@@ -30,11 +30,11 @@ const ASSETS = [
   "./notification-settings.js?v=1",
   "./admin-dashboard.js?v=2",
   "./subscription.js?v=5",
-  "./invoice-cloud.js?v=78",
+  "./invoice-cloud.js?v=79",
   "./supplier-cloud.js?v=64",
-  "./payment-center.js?v=26",
+  "./payment-center.js?v=27",
   "./statement-search.js?v=1",
-  "./payment-statement.js?v=18",
+  "./payment-statement.js?v=19",
   "./loans.js?v=12",
   "./loan-contract-schedule.js?v=2",
   "./loan-contract-editor.js?v=5",
@@ -80,7 +80,7 @@ function injectScriptBefore(html,anchorSrc,src){
 
 function injectCloudRuntimeBeforeCloudModules(html){
   if(html.includes("./cloud-runtime.js"))return html;
-  const invoiceTag='<script src="./invoice-cloud.js?v=78"></script>';
+  const invoiceTag='<script src="./invoice-cloud.js?v=79"></script>';
   if(html.includes(invoiceTag)){
     return html.replace(invoiceTag,`<script src="./cloud-runtime.js?v=59"></script>${invoiceTag}`);
   }
@@ -89,7 +89,7 @@ function injectCloudRuntimeBeforeCloudModules(html){
 
 function patchDocument(html){
   html=html.includes('<base href="/">')?html:html.replace('<head>','<head><base href="/">');
-  html=html.includes("/section-router.js")?html:html.replace('<head>','<head><script src="/section-router.js?v=3"></script>');
+  html=html.includes("/section-router.js")?html:html.replace('<head>','<head><script src="/section-router.js?v=4"></script>');
   html=html.replace(/\.\/staff-payroll\.js\?v=\d+/g,"./staff-payroll.js?v=7");
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=39");
@@ -104,12 +104,12 @@ function patchDocument(html){
   patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=8");
   patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=2");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=5");
-  patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=78");
-  patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=26");
+  patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=79");
+  patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=27");
   patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=2");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=64");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=12");
-  patched=injectScriptBefore(patched,"./invoice-cloud.js?v=78","./money-input.js?v=1");
+  patched=injectScriptBefore(patched,"./invoice-cloud.js?v=79","./money-input.js?v=1");
   patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=28");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=66","./registration-onboarding.js?v=2");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=66","./store-recovery.js?v=57");
@@ -124,14 +124,14 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./profile-menu.js?v=8","./notification-settings.js?v=1");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
-  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=78","./payment-center.js?v=26");
-  patched=injectScriptAfter(patched,"./payment-center.js?v=26","./loans.js?v=12");
+  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=79","./payment-center.js?v=27");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=27","./loans.js?v=12");
   patched=injectScriptBefore(patched,"./supplier-cloud.js?v=64","./contact-types.js?v=28");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
-  patched=patched.replace(/payment-statement\.js\?v=\d+/g,'payment-statement.js?v=18');
-  patched=injectScriptBefore(patched,"./payment-center.js?v=26","./payment-statement.js?v=18");
-  patched=injectScriptBefore(patched,"./payment-statement.js?v=18","./statement-search.js?v=1");
+  patched=patched.replace(/payment-statement\.js\?v=\d+/g,'payment-statement.js?v=19');
+  patched=injectScriptBefore(patched,"./payment-center.js?v=27","./payment-statement.js?v=19");
+  patched=injectScriptBefore(patched,"./payment-statement.js?v=19","./statement-search.js?v=1");
   patched=injectScriptBefore(patched,"./loans.js?v=12","./loan-contract-schedule.js?v=2");
   patched=patched.replace(/loan-contract-schedule\.js\?v=\d+/g,'loan-contract-schedule.js?v=2');
   patched=injectScriptAfter(patched,"./loans.js?v=12","./loan-contract-editor.js?v=5");
@@ -203,7 +203,7 @@ self.addEventListener("fetch",event=>{
 
   if(request.mode==="navigate"||request.destination==="document"){
     event.respondWith(
-      fetch(["/nuur","/hariltsagch","/tulbur","/zeel","/delguur_solih","/hariltsagch_nemeh","/huvi_hun_burtgeh","/baiguullaga_burtgeh"].includes(url.pathname.replace(/\/$/,""))?new URL("/"+url.search,self.location.origin).href:request,{cache:"no-store"})
+      fetch((/^\/padaan\/[a-zA-Z0-9_-]+\/?$/.test(url.pathname)||["/nuur","/hariltsagch","/tulbur","/zeel","/delguur_solih","/hariltsagch_nemeh","/huvi_hun_burtgeh","/baiguullaga_burtgeh"].includes(url.pathname.replace(/\/$/,"")))?new URL("/"+url.search,self.location.origin).href:request,{cache:"no-store"})
         .then(response=>patchedResponse(response).catch(error=>{
           console.warn("NAYAD document patch:",error);
           return response;

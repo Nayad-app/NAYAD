@@ -287,11 +287,13 @@
     const paid=Number(invoice.paid)||0;
     let postedPayments=[];
     if(paid){try{postedPayments=await postedPaymentsForInvoice(invoiceId);}catch(error){console.warn('Invoice payment history:',error);}}
-    open(`<h2>Падааны дэлгэрэнгүй</h2>
+    open(`<div class="row"><h2>Падааны дэлгэрэнгүй</h2><button class="secondary" aria-label="Хаах" onclick="closeSheet()">×</button></div>
       <div class="invoiceDetailCard"><b>${esc(company.name)}</b><span>${esc(invoice.no||'Дугааргүй')}</span><div class="detailGrid"><small>Падааны огноо<b>${dateLabel(invoice.date)}</b></small><small>Төлөх хугацаа<b>${dateLabel(dueOf(invoice))}</b></small><small>Нийт дүн<b>${amount(invoice.amount)}</b></small><small>Үлдэгдэл<b class="${balance?'redText':'greenText'}">${amount(balance)}</b></small></div>${paid?`<div class="paidSummary"><span>Төлсөн дүн</span><b>${amount(paid)}</b></div>`:''}${discount?`<div class="agreementInfo">Хугацаандаа төлбөл ${discount}% хөнгөлөлт эдэлнэ${invoice.discount_deadline?' · '+dateLabel(invoice.discount_deadline)+' хүртэл':''}.</div>`:''}${invoice.note?`<div class="invoiceNote"><small>Нэмэлт тэмдэглэл</small><p>${esc(invoice.note)}</p></div>`:''}${Number(invoice.image_count)||invoice.image_url?`<button class="secondary full invoiceImageButton" onclick="window.viewInvoiceImages('${esc(invoice.id)}')">▧ Падааны зураг үзэх</button>`:''}</div>
       ${status==='confirmed'?`<p class="sub">Падааны мэдээллийг хүссэн үедээ засна. Өмнө бүртгэсэн төлбөр өөрчлөгдөхгүй.</p><div class="invoiceDetailActions"><button class="primary" onclick="window.editConfirmedInvoice('${esc(invoice.id)}')">✎ Падаан засах</button><button class="invoiceDeleteButton" onclick="window.showInvoiceDeleteConfirm('${esc(invoice.id)}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg><span>Устгах</span></button></div>`:`<div class="agreementWarning"><b>Засах боломжгүй</b><span>Цуцалсан падааныг засах боломжгүй.</span></div><button class="invoiceDeleteButton full invoiceDeleteStandalone" onclick="window.showInvoiceDeleteConfirm('${esc(invoice.id)}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg><span>Падаан устгах</span></button>`}
       ${paid?paymentReversalRows(postedPayments,invoiceId):''}
-      <button class="secondary full" style="margin-top:9px" onclick="closeSheet()">Хаах</button>`);
+      `);
+    document.getElementById('modal')?.classList.add('invoiceDetailModal');
+    window.__nayadRouter?.openInvoice?.(invoiceId);
   };
 
   window.showInvoiceDeleteConfirm=function(invoiceId){
