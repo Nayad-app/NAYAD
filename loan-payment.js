@@ -12,8 +12,23 @@
   async function copy(key){
     if(!valid())return message('Дэлгүүр эсвэл хэрэглэгч өөрчлөгдсөн байна. Дахин нээнэ үү.');
     const text=context.values[key];if(!text)return;
-    try{if(!navigator.clipboard?.writeText)throw Error('fallback');await navigator.clipboard.writeText(text);message('Хууллаа.');}
-    catch(e){const input=document.createElement('textarea');input.value=text;input.style.cssText='position:fixed;opacity:0;top:0';root.appendChild(input);input.focus();input.select();input.setSelectionRange(0,text.length);let ok=false;try{ok=document.execCommand('copy');}catch(_){}input.remove();message(ok?'Хууллаа.':'Хуулж чадсангүй. Мэдээллээ удаан дарж сонгоод хуулна уу.');}
+    const copyRoot=root,button=root.querySelector(`[data-copy="${key}"]`);
+    function feedback(ok){
+      if(root!==copyRoot)return;
+      message(ok?'Хууллаа':'Хуулж чадсангүй. Мэдээллээ удаан дарж сонгоод хуулна уу.');
+      if(!button)return;
+      button.parentElement.style.gridTemplateColumns='minmax(85px,.8fr) minmax(0,1.2fr) auto';
+      clearTimeout(button.copyFeedbackTimer);
+      button.textContent=ok?'Хууллаа':'Дахин хуулах';
+      button.style.cssText='width:auto;min-width:44px;white-space:nowrap;font-size:12px';
+      button.copyFeedbackTimer=setTimeout(()=>{button.innerHTML=copyIcon;button.style.cssText='';},2200);
+    }
+    try{if(!navigator.clipboard?.writeText)throw Error('fallback');await navigator.clipboard.writeText(text);feedback(true);}
+    catch(e){
+      if(root!==copyRoot)return;
+      const input=document.createElement('textarea');input.value=text;input.style.cssText='position:fixed;opacity:0;top:0';copyRoot.appendChild(input);input.focus();input.select();input.setSelectionRange(0,text.length);
+      let ok=false;try{ok=document.execCommand('copy');}catch(_){}input.remove();button?.focus();feedback(ok);
+    }
   }
   async function record(){
     if(busy)return;if(!valid())return message('Дэлгүүр эсвэл хэрэглэгч өөрчлөгдсөн байна. Дахин нээнэ үү.');

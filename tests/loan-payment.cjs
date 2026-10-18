@@ -7,7 +7,9 @@ const {JSDOM}=require('jsdom'),fs=require('fs'),assert=require('node:assert/stri
  w.NayadLoanEditorBridge={find:()=>loan,canManage:()=>true,storeId:()=>store,client:()=>({rpc:async(name,args)=>{writes.push({name,args});return fail?{error:{message:'Network error'}}:{};}}),sync:async()=>{}};
  w.eval(fs.readFileSync('loan-payment.js','utf8'));const click=s=>w.document.querySelector(s).click(),tick=()=>new Promise(r=>setImmediate(r));
  w.NayadLoanPayment.open('l','i');assert.equal(writes.length,0);assert.equal(w.document.querySelectorAll('script').length,0);
- for(const key of ['iban','account','amount','reference']){click(`[data-copy="${key}"]`);await tick();}
+ for(const key of ['iban','account','amount','reference']){click(`[data-copy="${key}"]`);await tick();assert.equal(w.document.querySelector(`[data-copy="${key}"]`).textContent,'Хууллаа');assert.equal(w.document.querySelector('[role=status]').textContent,'Хууллаа');}
+ w.navigator.clipboard.writeText=async()=>{throw Error('denied')};w.document.execCommand=()=>false;click('[data-copy="iban"]');await tick();assert.equal(w.document.querySelector('[data-copy="iban"]').textContent,'Дахин хуулах');
+ w.document.execCommand=()=>true;click('[data-copy="iban"]');await tick();assert.equal(w.document.querySelector('[data-copy="iban"]').textContent,'Хууллаа');
  assert.deepEqual(copied,['MN12345','001234','2132900.50','Contract 123']);assert.equal(writes.length,0,'copy never records payment');
  approved=false;click('[data-record]');await tick();assert.equal(writes.length,0);
  approved=true;store='other';click('[data-record]');await tick();assert.equal(writes.length,0);store='s';fail=true;click('[data-record]');await tick();assert.match(w.document.querySelector('[role=status]').textContent,/Network/);assert.ok(w.document.querySelector('#loanPaymentOverlay'));

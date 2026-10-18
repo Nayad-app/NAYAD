@@ -66,8 +66,8 @@ assert.doesNotMatch(html,/noticeButton/,'notification control has moved to the m
 
 const source=fs.readFileSync(path.join(root,'payment-center.js'),'utf8');
 assert.doesNotMatch(source,/Бүгдийг сонгох|Бүх падааныг сонгох/,'payment allocation should keep individual invoice selection without a select-all action');
-assert.match(source,/onchange="togglePaymentAllocation\(this\)"/,'checking another invoice must trigger allocation defaulting');
-assert.match(source,/data-default-amount="\$\{discount\.cash\}"/,'each invoice needs a full-payment default amount');
+assert.match(source,/id="pcAmount"/,'one total amount controls automatic allocation');
+assert.match(source,/function paymentPlan/,'oldest-first allocation must be calculated');
 assert.match(source,/window\.togglePaymentAllocation=function\(check\)/,'a checked zero-value invoice must receive its default payment amount');
 assert.match(source,/window\.showInvoiceDetails=async function\(invoiceId\)/,'an invoice row must open a detail view');
 assert.match(source,/window\.editConfirmedInvoice=function\(invoiceId\)/,'a confirmed invoice needs an edit form');
@@ -88,7 +88,7 @@ assert.doesNotMatch(paymentSheet,/Draft Co/,'suppliers with only draft invoices 
 context.document.getElementById=id=>id==='directPaymentCompany'?{value:'2'}:null;
 context.window.openSelectedPayment();
 assert.match(paymentSheet,/Upcoming Co/,'the selected supplier must open the existing allocation form');
-assert.match(paymentSheet,/inv-upcoming/,'the selected supplier payment must retain invoice allocation');
+assert.match(paymentSheet,/id="allocationList"/,'the selected supplier payment must retain invoice allocation');
 state.companies.push({id:5,name:'Invoice Discount Co',color:'green',invoices:[{
   id:'inv-invoice-discount',no:'DISC-3',date:'2026-08-01',due_date:'2099-08-31',amount:1500000,paid:455000,
   status:'confirmed',discount_percent:3,discount_deadline:'2099-08-31',discount_taken:0
@@ -121,6 +121,7 @@ assert.ok(modalClasses.has('paymentFormModal'),'supplier selection stays open');
 context.window.payment(5);
 assert.ok(modalClasses.has('paymentFormModal'),'amount entry stays open');
 context.document.querySelectorAll=()=>[groupedCheck];
+context.document.getElementById=id=>id==='modal'?modal:id==='pcAmount'?groupedInput:null;
 context.window.reviewPaymentCenter(5);
 assert.match(paymentSheet,/Төлбөр баталгаажуулах/);
 assert.ok(modalClasses.has('paymentFormModal'),'confirmation stays open');
