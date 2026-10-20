@@ -89,13 +89,13 @@ assert.ok(
   'legacy documents must receive the same safe store/auth/cloud script order'
 );
 assert.equal(patchedTwice.split('./profile-menu.js?v=9').length-1,1,'profile drawer must be injected exactly once');
-assert.equal(patchedTwice.split('./staff-payroll.js?v=7').length-1,1,'staff payroll must be injected exactly once');
+assert.equal(patchedTwice.split('./staff-payroll.js?v=8').length-1,1,'staff payroll must be injected exactly once');
 assert.equal(patchedTwice.split('./admin-dashboard.js?v=2').length-1,1,'admin dashboard must be injected exactly once');
 assert.equal(patchedTwice.split('./subscription.js?v=5').length-1,1,'subscription flow must be injected exactly once');
 assert.ok(patchedTwice.indexOf('./subscription.js?v=5')<patchedTwice.indexOf('./member-permissions.js?v=2'),'permission guard must load after all feature modules');
 assert.equal(patchedTwice.split('./loans.js?v=13').length-1,1,'loan module must be injected exactly once');
-assert.ok(patchedTwice.indexOf('./share.js?v=40')<patchedTwice.indexOf('./staff-payroll.js?v=7'),'staff payroll must load after sharing actions');
-assert.ok(patchedTwice.indexOf('./staff-payroll.js?v=7')<patchedTwice.indexOf('./profile-menu.js?v=9'),'profile drawer must load after staff payroll');
+assert.ok(patchedTwice.indexOf('./share.js?v=40')<patchedTwice.indexOf('./staff-payroll.js?v=8'),'staff payroll must load after sharing actions');
+assert.ok(patchedTwice.indexOf('./staff-payroll.js?v=8')<patchedTwice.indexOf('./profile-menu.js?v=9'),'profile drawer must load after staff payroll');
 
 async function dispatch(request){
   let responsePromise;
@@ -137,4 +137,4 @@ assert.equal(patchedTwice.split('./loan-payment.js?v=3').length-1,1);
 
 const existingStaff=context.patchDocument('<body><script src="./staff-hub.js?v=2"></script><script src="./staff-payroll.js?v=4"></script></body>');
 assert.ok(!existingStaff.includes('staff-payroll.js?v=4'));
-assert.ok(existingStaff.indexOf('staff-time.js?v=1')<existingStaff.indexOf('staff-payroll.js?v=7'));
+assert.ok(existingStaff.indexOf('staff-time.js?v=1')<existingStaff.indexOf('staff-payroll.js?v=8'));
