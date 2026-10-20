@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v218";
+const CACHE = "nayad-v219";
 
 const ASSETS = [
   "./",
@@ -32,7 +32,7 @@ const ASSETS = [
   "./subscription.js?v=5",
   "./invoice-cloud.js?v=79",
   "./supplier-cloud.js?v=64",
-  "./reports.js?v=2",
+  "./reports.js?v=3",
   "./payment-center.js?v=29",
   "./statement-search.js?v=1",
   "./payment-statement.js?v=20",
@@ -143,7 +143,7 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./loan-contract-editor.js?v=5","./loan-payment.js?v=3");
   patched=injectScriptAfter(patched,"./loan-payment.js?v=3","./loan-actions.js?v=1");
   patched=patched.replace(/\.\/render\.js(?:\?v=\d+)?(?=")/g,"./render.js?v=2");
-  patched=injectScriptBefore(patched,"./payment-center.js?v=29","./reports.js?v=2");
+  patched=injectScriptBefore(patched,"./payment-center.js?v=29","./reports.js?v=3");
   return patched;
 }
 
