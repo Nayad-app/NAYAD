@@ -28,6 +28,25 @@
   html.nightMode .profileMenuDrawer{background:#111312;box-shadow:-20px 0 48px rgba(0,0,0,.55)}html.nightMode .profileMenuUser{background:#1B1D1C;border-color:#343735}html.nightMode .profileMenuAvatar{background:#2A2D2B;border-color:#454946;color:#EEE}html.nightMode .profileMenuAction,html.nightMode .profileMenuTheme,html.nightMode .profileMenuSupport{background:transparent;color:#F4F4EF;border-bottom-color:#2D302E}html.nightMode .profileMenuAction:hover,html.nightMode .profileMenuTheme:hover,html.nightMode .profileMenuSupport:hover{background:transparent}html.nightMode .profileMenuChevron{stroke:#C6C8C3}html.nightMode .profileMenuLogout{background:transparent;color:#FF6B6B;border-color:#B23A3A}html.nightMode .profileMenuClose{color:#F4F4EF;background:#1D201E;border:1px solid #343735}html.nightMode .profileMenuUpgrade{background:linear-gradient(135deg,#A87900,#D8A400 64%,#E4B31A);border-color:#E4B31A;box-shadow:0 8px 20px rgba(0,0,0,.3)}
   @media(max-width:370px){.profileMenuDrawer{width:91vw}.profileMenuLayout{padding-left:14px;padding-right:14px}.profileMenuAction{min-height:50px}}
   @media(prefers-reduced-motion:reduce){.profileMenuBackdrop,.profileMenuDrawer{transition:none}}
+  /* Compact account menu approved in the mobile preview. */
+  .profileMenuLayout{padding:calc(12px + env(safe-area-inset-top)) 18px calc(18px + env(safe-area-inset-bottom))}
+  .profileMenuHeader{margin-bottom:8px}
+  .profileMenuClose{width:36px;height:36px;flex-basis:36px}
+  .profileMenuUser{min-height:64px;padding:10px 0;gap:12px;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0}
+  .profileMenuAvatar{width:36px;height:36px;flex-basis:36px}
+  .profileMenuUserMeta span{font-weight:400}
+  .profileMenuAction,.profileMenuTheme,.profileMenuSupport{min-height:46px;padding:8px 0;gap:12px;border-radius:0}
+  .profileMenuActionIcon,.profileMenuSupportIcon{width:30px;height:30px;flex-basis:30px}
+  .profileMenuActionIcon svg,.profileMenuSupportIcon svg{width:22px;height:22px}
+  .profileMenuActionText b,.profileMenuSupportText b{font-size:14px;font-weight:650}
+  .profileMenuUpgrade{min-height:52px;margin:8px 0;padding:8px 10px;gap:10px;border-radius:12px;box-shadow:none}
+  .profileMenuUpgradeIcon{width:34px;height:34px;flex-basis:34px}
+  .profileMenuUpgradeIcon svg{width:21px;height:21px}
+  .profileMenuUpgradeText b{font-size:13px;font-weight:750}
+  .profileMenuUpgradeText span{font-size:10px;font-weight:400}
+  .profileMenuSpacer{flex:0 0 12px;min-height:12px}
+  .profileMenuLogout{min-height:44px;padding:8px}
+  html.nightMode .profileMenuUser{background:transparent}
   </style>`;
 
   const ICONS={
