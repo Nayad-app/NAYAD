@@ -135,6 +135,7 @@
   }
 
   function reportsV11(){
+    if(window.NayadReports)return window.NayadReports.html();
     const rows=orderedInvoices(),current=today();
     const groups=[
       {title:'Хугацаа хэтэрсэн — тохиролцоогүй',items:rows.filter(item=>daysBetween(current,item.due)<0&&!(item.invoice.agreements||[]).length),kind:'overdue'},
