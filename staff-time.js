@@ -6,5 +6,7 @@
  function schedule(history,id,date){return history.filter(h=>h.employee_id===id&&h.effective_from<=date).sort((a,b)=>b.effective_from.localeCompare(a.effective_from)||b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id))[0];}
  function pay(row){if(row.approval_status!=='approved'||!row.wage_snapshot||row.wage_snapshot.type!=='hourly')return 0;const w=row.wage_snapshot;return ((row.approved_seconds-row.overtime_seconds)+row.overtime_seconds*Number(w.multiplier||1))/3600*Number(w.rate||0);}
  function payDates(year,month,days){const last=new Date(Date.UTC(year,month,0)).getUTCDate();return [...new Set(days.map(d=>d===0?last:Math.min(d,last)))].sort((a,b)=>a-b);}
- return {minutes,span,shift,schedule,pay,payDates};
+ function lateAmount(r,mins){if(!r?.enabled||mins<=Number(r.grace||0))return 0;const units=(mins-(r.basis==='all'?0:Number(r.grace||0)))/Math.max(1,Number(r.interval)||1);let amount=(r.rounding==='ceil'?Math.ceil(units):Math.floor(units))*Number(r.amount||0);if(r.cap!=null)amount=Math.min(amount,Number(r.cap));return Math.max(0,Math.round(amount*100)/100);}
+ function deduction(r){return r.approval_status==='approved'?Math.max(0,Number(r.wage_snapshot?.late_deduction)||0):0;}
+ return {lateAmount,deduction,minutes,span,shift,schedule,pay,payDates};
 });

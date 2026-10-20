@@ -10,6 +10,8 @@ create function extensions.digest(text,text) returns bytea language sql as $$sel
 create function extensions.gen_random_bytes(integer) returns bytea language sql as $$select convert_to(repeat('x',$1),'UTF8')$$;`);
 await db.exec(fs.readFileSync('supabase/migrations/20261015051454_employee_attendance.sql','utf8').replace('create extension if not exists pgcrypto with schema extensions;',''));
 await db.exec(fs.readFileSync('supabase/migrations/20261017055919_staff_schedule_approval.sql','utf8'));
+await db.exec(`create table private.staff_media(id uuid primary key default gen_random_uuid(),store_id uuid,actor text,kind text,image text,created_at timestamptz default now());`);
+await db.exec(fs.readFileSync('supabase/migrations/20261020120828_staff_employee_sections.sql','utf8'));
 const owner='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222',store='33333333-3333-4333-8333-333333333333',token='44444444-4444-4444-8444-444444444444';
 await db.exec(`insert into auth.users values('${owner}'),('${other}');insert into stores values('${store}','Synthetic');insert into store_members values('${store}','${owner}','owner'),('${store}','${other}','manager');set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false);`);
 const input={name:'Test',phone:'12345678',pin:'123456',wage_type:'hourly',hourly_rate:7000,overtime_multiplier:1.5,start_time:'09:00',end_time:'18:00',effective_from:'2026-01-01',pay_days:[10,25]};
@@ -28,6 +30,23 @@ assert.equal((await review('2026-01-13','09:00','18:00',true)).rows[0].overtime_
 assert.equal((await review('2026-02-02','09:00','18:00',true)).rows[0].overtime_seconds,3600);
 await assert.rejects(save,/өөрчлөгдсөн/);input.updated_at=e.updated_at;input.pay_days=[10,10];await assert.rejects(save,/давхцахгүй/);input.pay_days=[0];
 await db.exec(`select set_config('request.jwt.claim.sub','${other}',false)`);await assert.rejects(save,/Зөвхөн/);await assert.rejects(()=>review('2026-01-14','09:00','18:00',false),/Зөвхөн/);assert.equal((await db.query('select * from staff_attendance_history')).rows.length,0);
+
+await db.exec(`select set_config('request.jwt.claim.sub','${owner}',false)`);
+input.updated_at=e.updated_at;input.job_title='Худалдагч';input.duties=['Бараа өрөх','Касс'];input.duty_notes='Тайлбар';input.late_rule={enabled:true,grace:5,interval:5,amount:2000,basis:'excess',rounding:'floor',cap:null,effective_from:'2026-01-01'};input.images=[{kind:'avatar',image:'data:image/jpeg;base64,/9j/AA=='}];
+const save3=()=>db.query('select * from staff_save_employee_v3($1,$2)',[store,JSON.stringify(input)]);
+e=(await save3()).rows[0];assert.equal(e.job_title,'Худалдагч');assert.deepEqual(e.duties,['Бараа өрөх','Касс']);
+let late=(await review('2026-01-16','09:17','18:00',false)).rows[0];assert.equal(late.wage_snapshot.late_deduction,4000);assert.equal(late.wage_snapshot.late_minutes,17);
+input.updated_at=e.updated_at;input.late_rule.amount=3000;input.late_rule.effective_from='2026-02-01';input.images=[];e=(await save3()).rows[0];
+assert.equal((await review('2026-01-17','09:17','18:00',false)).rows[0].wage_snapshot.late_deduction,4000);
+assert.equal((await review('2026-02-17','09:17','18:00',false)).rows[0].wage_snapshot.late_deduction,6000);
+late=(await review('2026-01-16','09:17','18:00',false,late.updated_at)).rows[0];assert.equal(late.wage_snapshot.late_deduction,4000);
+const override=(amount,reason)=>db.query('select * from staff_review_attendance_v2($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[store,e.id,'2026-01-16','09:17','18:00','',false,late.updated_at,amount,reason]);
+await assert.rejects(()=>override(0,''),/шалтгаан/);late=(await override(0,'Чөлөөлөв')).rows[0];assert.equal(late.wage_snapshot.late_deduction,0);assert.equal(late.wage_snapshot.late_reason,'Чөлөөлөв');
+input.updated_at=e.updated_at;input.job_title='Must rollback';input.images=[{kind:'avatar',image:'invalid'}];await assert.rejects(save3,/JPEG/);assert.equal((await db.query('select job_title from staff_employees where id=$1',[e.id])).rows[0].job_title,'Худалдагч');input.images=[];input.late_rule.interval=null;await assert.rejects(save3,/тохиргоог/);input.late_rule.interval=5;
+await db.exec(`select set_config('request.jwt.claim.sub','${other}',false)`);await assert.rejects(save3,/Зөвхөн/);assert.equal((await db.query('select * from staff_late_rules')).rows.length,0);await assert.rejects(()=>override(0,'test'),/Зөвхөн/);
+await db.exec('reset role');
+for(const [r,m,expected] of [[{enabled:true,grace:5,interval:5,amount:2000,basis:'excess',rounding:'floor',cap:null},17,4000],[{enabled:true,grace:5,interval:5,amount:2000,basis:'all',rounding:'ceil',cap:5000},17,5000],[{enabled:false},100,0]]){assert.equal(Number((await db.query('select private.staff_late_amount($1,$2) as amount',[JSON.stringify(r),m])).rows[0].amount),expected);}
+assert.equal((await db.query('select * from private.staff_media')).rows.length,1);await db.exec('set role authenticated');
 await db.exec(`reset role;select set_config('request.jwt.claim.sub','',false);insert into staff_store_settings(store_id,attendance_token,latitude,longitude) values('${store}','${token}',47,106);update private.staff_credentials set device_hash=encode(extensions.digest('device','sha256'),'hex') where employee_id='${e.id}';`);
 // An open shift started yesterday and remains active across midnight.
 await db.query(`insert into staff_attendance(store_id,employee_id,work_date,clock_in,original_clock_in) values($1,$2,(now() at time zone 'Asia/Ulaanbaatar')::date-1,((now() at time zone 'Asia/Ulaanbaatar')::date-1+time '23:59') at time zone 'Asia/Ulaanbaatar',((now() at time zone 'Asia/Ulaanbaatar')::date-1+time '23:59') at time zone 'Asia/Ulaanbaatar')`,[store,e.id]);

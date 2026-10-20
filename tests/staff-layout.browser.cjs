@@ -16,7 +16,7 @@ const {chromium}=require('playwright'),fs=require('fs'),assert=require('node:ass
   await page.setViewportSize({width,height:844});await page.evaluate(()=>NayadStaff.tab('salary'));
   const cards=await page.locator('.staffSalaryCard').evaluateAll(els=>els.map(el=>{const card=el.getBoundingClientRect(),name=el.querySelector('.staffSalaryName').getBoundingClientRect(),amount=el.querySelector('.staffSalaryTotal').getBoundingClientRect(),text=el.querySelector('.staffSalaryStatus').getBoundingClientRect();return {width:card.width,scroll:el.scrollWidth,client:el.clientWidth,nameWidth:name.width,amountBelow:amount.top>=text.bottom,amountInside:amount.right<=card.right,headerHeight:name.height}}));
   for(const c of cards){assert.ok(c.nameWidth>100,JSON.stringify(c));assert.ok(c.amountBelow&&c.amountInside);assert.ok(c.scroll<=c.client+1);assert.ok(c.headerHeight<70);}
-  await page.evaluate(()=>NayadStaff.edit('monthly'));
+  await page.evaluate(()=>{NayadStaff.edit('monthly');document.getElementById('staffSalarySection').open=true;});
   const inputs=await page.locator('#staffStart,#staffEnd,#staffEffective').evaluateAll(els=>els.map(el=>{const a=el.getBoundingClientRect(),b=el.parentElement.getBoundingClientRect();return {inside:a.left>=b.left&&a.right<=b.right+1,width:a.width,appearance:getComputedStyle(el).webkitAppearance}}));
   for(const input of inputs){assert.ok(input.inside,JSON.stringify(input));assert.ok(input.width>100);assert.equal(input.appearance,'none');}
   const bounds=await page.locator('#staffStart,#staffEnd').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().toJSON()));assert.ok(bounds[0].right+8<=bounds[1].left,'time inputs must retain their gap');
@@ -24,6 +24,6 @@ const {chromium}=require('playwright'),fs=require('fs'),assert=require('node:ass
   console.log(`PASS staff layout ${width}px — monthly/hourly cards, long name, amount separation, time/date containment`);
  }
  await page.setViewportSize({width:390,height:844});await page.evaluate(()=>NayadStaff.tab('salary'));await page.screenshot({path:'/tmp/nayad-salary-fixed.png'});
- await page.evaluate(()=>NayadStaff.edit('monthly'));await page.locator('#staffStart').scrollIntoViewIfNeeded();await page.screenshot({path:'/tmp/nayad-time-fixed.png'});
+ await page.evaluate(()=>{NayadStaff.edit('monthly');document.getElementById('staffSalarySection').open=true;});await page.locator('#staffStart').scrollIntoViewIfNeeded();await page.screenshot({path:'/tmp/nayad-time-fixed.png'});
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

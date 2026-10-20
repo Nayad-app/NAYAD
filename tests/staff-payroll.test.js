@@ -10,7 +10,7 @@ const migration=fs.readFileSync(path.join(root,'supabase/migrations/202610150514
 assert.match(menu,/Ажилтан, цалин/,'hamburger menu must expose staff payroll');
 assert.match(menu,/NayadStaff\?\.open/,'menu action must open staff payroll');
 assert.match(index,/vendor\/qrcode\.js\?v=1/,'local QR generator must load');
-assert.match(index,/staff-payroll\.js\?v=10/,'staff module must load');
+assert.match(index,/staff-payroll\.js\?v=11/,'staff module must load');
 assert.match(index,/NayadStaff\?\.isAttendanceRoute/,'normal auth boot must not replace the QR attendance screen');
 
 assert.match(staff,/Ажилдаа ирлээ/);
