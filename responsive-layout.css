@@ -471,6 +471,18 @@
 @media(max-width:599px){
  #app.app>header{height:46px;min-height:46px;padding:0 16px}
  #app.app>header .headerMenuButton{width:34px;height:34px;min-height:34px;flex-basis:34px}
- #app.app>main#content{padding-top:14px}
+ #app.app>main#content{padding-top:8px}
  #app.app>main#content:has(.statement){top:46px}
 }
+
+/* Compact, even gaps: shell to heading 8px; heading to controls 8px. */
+#app #content .contactListHead,
+#app #content .loanHead{min-height:38px;margin-bottom:8px}
+#app #content .paymentHead{min-height:0;margin-bottom:8px}
+#app #content .homeTop{min-height:0;margin-bottom:8px;gap:4px}
+#app #content .statementToolbar{margin:0 0 8px}
+#app #content .loanSummaryGrid{margin:0 0 10px}
+#app #content .contactSearchRow{margin-top:0;margin-bottom:8px}
+#app #content .contactSearchRow .search{margin:0}
+#app #content .homeStats{margin-top:0;margin-bottom:10px}
+#app #content .homeUrgentHead{margin-top:0;margin-bottom:8px}
