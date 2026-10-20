@@ -453,3 +453,24 @@
 #modal.statementReadModal,#modal.invoiceDetailModal{align-items:center;justify-content:center;padding:20px 16px}#modal.statementReadModal #sheet,#modal.invoiceDetailModal #sheet{width:min(480px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;border-radius:24px;padding:20px;box-sizing:border-box}#modal.invoiceDetailModal .row h2{flex:1;min-width:0;font-size:20px}#modal.invoiceDetailModal .row>button{flex:0 0 36px;min-height:36px;padding:4px;font-size:24px}
 
 .contactPhoneHeader{display:flex;align-items:center;gap:12px}.contactCallNoticeSheet .contactPhoneHeader h2{flex:1;text-align:left;margin:0;font-size:18px}.contactPhoneHeader button{flex:0 0 36px;height:36px;padding:0;font-size:27px;background:transparent;color:var(--muted)}.contactPhoneChoice{display:flex;align-items:center;gap:12px;padding:18px 0;text-decoration:none;color:var(--text);border-bottom:1px solid var(--line)}.contactPhoneChoice:last-child{border-bottom:0}.contactPhoneAvatar{width:40px;height:40px;flex:0 0 40px;border-radius:50%;background:var(--surface-2,#f3f3f1);display:grid;place-items:center;color:var(--muted)}.contactPhoneChoice svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.contactPhoneText{min-width:0;flex:1;display:flex;flex-direction:column;gap:4px;overflow-wrap:anywhere;font-size:14px}.contactPhoneText b{color:var(--green);font-size:17px}.contactPhoneText small{color:var(--muted);font-size:11px}.contactPhoneIcon{color:var(--green)}.contactPhoneHint{text-align:center;font-size:11px;color:var(--muted);margin:12px 0 0}.modal.contactCallNoticeModal .sheet{max-height:calc(100dvh - 40px);overflow:auto}
+
+/* Shared title scale and spacing across the four primary sections. */
+#app #content .contactListHead .name,
+#app #content .paymentHead .name,
+#app #content .loanHead .name,
+#app #content .homeGreeting strong{font-size:22px;line-height:1.2;font-weight:800;letter-spacing:-.4px;margin:0}
+#app #content .homeWelcome{font-size:11px;line-height:1.3}
+#app #content .contactListHead,
+#app #content .paymentHead,
+#app #content .loanHead{min-height:42px;margin:0 0 10px;align-items:center}
+#app #content .paymentHead .hello{display:none}
+#app #content .homeTop{margin-top:0;margin-bottom:10px}
+#app #content .contactHeaderAddButton,
+#app #content .loanAddMini,
+#app #content .homeInvoiceAdd{width:38px;height:38px;min-height:38px;flex-basis:38px;padding:0;border-radius:50%;font-size:24px;line-height:1}
+@media(max-width:599px){
+ #app.app>header{height:46px;min-height:46px;padding:0 16px}
+ #app.app>header .headerMenuButton{width:34px;height:34px;min-height:34px;flex-basis:34px}
+ #app.app>main#content{padding-top:14px}
+ #app.app>main#content:has(.statement){top:46px}
+}

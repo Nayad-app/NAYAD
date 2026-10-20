@@ -90,7 +90,7 @@
 
   function loanPage(){
     const storeId=activeStoreId();
-    if(!canManage())return `<div class="hello">Санхүүгийн хяналт</div><div class="name">Зээлүүд</div><div class="card center" style="margin-top:22px;padding:34px 18px"><b>Зээлийн мэдээлэл хязгаарлагдсан</b><span class="sub">Зөвхөн дэлгүүрийн эзэн болон менежер харах боломжтой.</span></div>`;
+    if(!canManage())return `<div class="name">Зээлүүд</div><div class="card center" style="margin-top:22px;padding:34px 18px"><b>Зээлийн мэдээлэл хязгаарлагдсан</b><span class="sub">Зөвхөн дэлгүүрийн эзэн болон менежер харах боломжтой.</span></div>`;
     if(storeId&&String(state.storeId)!==String(storeId)&&!state.loading)setTimeout(syncLoans,0);
     const pending=allPending(),current=today(),month=current.slice(0,7);
     const outstanding=state.loans.filter(loan=>loan.status==='active').reduce((sum,loan)=>sum+pendingRows(loan).reduce((s,r)=>s+Number(r.total_amount)-Number(r.paid_amount||0),0),0);
@@ -103,7 +103,7 @@
     const cards=filtered.map(loan=>loanCard(loan)).join('');
     const filterLabel=state.filter==='month'?'Энэ сард төлөх':state.filter==='overdue'?'Хугацаа хэтэрсэн':'ТӨЛӨХ ХУВААРЬ';
     const empty=state.filter==='month'?'Энэ сард төлөх зээл алга':state.filter==='overdue'?'Хугацаа хэтэрсэн зээл алга':'Төлөх үлдэгдэлтэй зээл алга';
-    return `<div class="loanHead"><div><div class="hello">Санхүүгийн хяналт</div><div class="name">Зээлүүд</div></div><button class="primary loanAddMini" type="button" onclick="showLoanCreate()" aria-label="Зээл нэмэх">＋</button></div>
+    return `<div class="loanHead"><div><div class="name">Зээлүүд</div></div><button class="primary loanAddMini" type="button" onclick="showLoanCreate()" aria-label="Зээл нэмэх">＋</button></div>
       <div class="loanSummaryGrid"><button type="button" class="loanSummary ${state.filter==='all'?'selected':''}" aria-pressed="${state.filter==='all'}" onclick="setLoanFilter('all')"><small>Нийт төлөх үлдэгдэл</small><b>${amount(outstanding)}</b></button><button type="button" class="loanSummary ${state.filter==='month'?'selected':''}" aria-pressed="${state.filter==='month'}" onclick="setLoanFilter('month')"><small>Энэ сард төлөх</small><b>${amount(thisMonth)}</b></button><button type="button" class="loanSummary overdue ${state.filter==='overdue'?'selected':''}" aria-pressed="${state.filter==='overdue'}" onclick="setLoanFilter('overdue')"><small>Хугацаа хэтэрсэн</small><b>${amount(overdue)}</b></button></div>
       <div class="paymentSectionTitle"><span>${filterLabel}</span><small>${filtered.length} зээл</small></div>
       <div class="loanList">${state.loading&&!state.loans.length?'<div class="card center sub">Зээлийн мэдээлэл ачаалж байна...</div>':cards||`<div class="emptyPay"><b>${empty}</b><span>${state.filter==='all'?'Банк, ББСБ эсвэл хувь хүний зээлээ энд бүртгэнэ.':'Нийт төлөх үлдэгдэл дээр дарж бүх зээлээ харна уу.'}</span></div>`}</div>
