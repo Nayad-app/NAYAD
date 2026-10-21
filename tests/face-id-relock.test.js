@@ -68,3 +68,52 @@ for(const succeeds of [false,true])test(`canonical Face ID ${succeeds?'success u
   await attempt;
   assert.equal(context.__nayadFaceIdLocked(),!succeeds);assert.equal(state.opened,succeeds?1:0);
 });
+
+test('standalone blur/focus locks even without visibilitychange or pagehide',async()=>{
+  const {context,state,handlers,elements}=setup();
+  handlers.blur[0]();handlers.focus[0]();
+  await context.__nayadAuthReconcile();
+  assert.equal(context.__nayadFaceIdLocked(),true);
+  assert.equal(state.opened,0);
+  assert.equal(elements.app.classList.contains('hide'),true);
+});
+test('a pending save cannot defer privacy lock or lose its user context',async()=>{
+  const {context,state,elements,docHandlers}=setup();
+  context.__nayadUser={id:'owner'};context.__nayadCriticalOperation=true;
+  context.document.visibilityState='hidden';docHandlers.visibilitychange();
+  assert.equal(elements.app.classList.contains('hide'),true);
+  assert.equal(context.__nayadFaceIdLocked(),true);
+  assert.equal(context.__nayadUser.id,'owner');
+  await context.showAuthenticatedApp();assert.equal(state.opened,0);
+});
+test('backgrounding during hidden store preparation still requires verification',async()=>{
+  const {context,elements,docHandlers}=setup();
+  context.__nayadUser={id:'owner'};elements.app.classList.add('hide');
+  context.document.visibilityState='hidden';docHandlers.visibilitychange();
+  assert.equal(context.__nayadFaceIdLocked(),true);
+});
+for(const hidden of [false,true])test(`successful biometric ${hidden?'in background stays locked':'followed by store loading can relock'}`,async()=>{
+  const {context,state,elements,handlers}=setup();context.requestFaceIdLock();
+  elements.faceIdLogin={checked:true};elements.rememberMe={checked:true};
+  context.localStorage.setItem=()=>{};context.REMEMBER_KEY='remember';
+  context.normalizeMongolianPhone=()=>'';context.setAuthBusy=()=>{};context.authMessage=()=>{};context.toast=()=>{};
+  context.faceIdSupported=()=>true;context.passkeyCode=()=>'';context.faceIdFriendlyError=()=>'';
+  context.sb=context.nayadSupabase;
+  context.sb.auth.signInWithPasskey=async()=>({data:{session:state.session,user:state.session.user}});
+  let finish;context.showAuthenticatedApp=()=>new Promise(r=>finish=r);
+  if(hidden)context.document.visibilityState='hidden';
+  vm.runInContext(html.slice(html.indexOf('async function phoneLogin(){'),html.indexOf('\nasync function registerUser')),context);
+  const attempt=context.phoneLogin();await new Promise(setImmediate);
+  if(!hidden){handlers.blur[0]();assert.equal(context.__nayadFaceIdLocked(),true);finish(true)}
+  await attempt;
+  assert.equal(context.__nayadFaceIdLocked(),true);
+  assert.equal(elements.app.classList.contains('hide'),true);
+});
+test('passkey picker focus changes do not create a stale relock after success',()=>{
+  const {context,handlers}=setup();
+  vm.runInContext('faceIdUnlocking=true',context);
+  handlers.blur[0]();handlers.focus[0]();
+  vm.runInContext('faceIdUnlocking=false',context);
+  handlers.focus[0]();
+  assert.equal(context.__nayadFaceIdLocked(),false);
+});
