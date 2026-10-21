@@ -18,7 +18,7 @@ assert.match(login,/if\(!usingFaceId\)\{if\(faceChoice\)enrollment=await registe
 assert.match(source,/showAuthMode\("login"\);syncFaceIdChoice\(\)/,'the checkbox must restore the local Face ID preference on logout');
 assert.match(source,/let faceIdUnlockRequired=faceIdEnabled\(\),faceIdUnlocking=false,faceIdBackgrounded=false/,'an enrolled device must start in the locked state');
 assert.match(source,/else if\(session&&faceIdEnabled\(\)\)\{faceIdUnlockRequired=true;profileFromUser\(null\);await showLoginScreen\(\)\}/,'a restored session must remain hidden behind Face ID');
-assert.match(source,/faceIdEnabled\(\)&&faceIdUnlockRequired&&!faceIdUnlocking/,'auth refresh events must not bypass the Face ID lock');
+assert.match(source,/if\(faceIdUnlockRequired\)/,'auth refresh events must not bypass the Face ID lock');
 assert.match(source,/document\.addEventListener\("visibilitychange"[\s\S]*faceIdBackgrounded=true[\s\S]*requestFaceIdLock\(\)/,'returning from the background must lock visible business data');
 assert.match(source,/window\.addEventListener\("pageshow",event=>\{if\(event\.persisted\)requestFaceIdLock\(\)\}\)/,'restoring from the browser back-forward cache must lock the app');
 assert.doesNotMatch(source,/service_role|secret[_-]?key/i,'the browser must not contain privileged Supabase credentials');

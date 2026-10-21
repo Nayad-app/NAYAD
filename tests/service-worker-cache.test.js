@@ -42,8 +42,8 @@ assert.match(swSource,/\.\/store-switcher\.js\?v=67/);
 assert.match(indexSource,/\.\/store-switcher\.js\?v=67/,'index and service worker must load the same store switcher');
 assert.match(swSource,/\.\/store-recovery\.js\?v=57/);
 assert.match(indexSource,/\.\/store-recovery\.js\?v=57/,'store recovery must be loaded directly, not only injected by the service worker');
-assert.match(swSource,/\.\/auth-guard\.js\?v=57/);
-assert.match(indexSource,/\.\/auth-guard\.js\?v=57/,'auth guard must be loaded directly, not only injected by the service worker');
+assert.match(swSource,/\.\/auth-guard\.js\?v=58/);
+assert.match(indexSource,/\.\/auth-guard\.js\?v=58/,'auth guard must be loaded directly, not only injected by the service worker');
 assert.match(swSource,/\.\/cloud-runtime\.js\?v=59/);
 assert.match(indexSource,/\.\/cloud-runtime\.js\?v=59/,'index and service worker must load the same cloud runtime');
 assert.match(swSource,/\.\/money-input\.js\?v=1/);
@@ -75,15 +75,15 @@ vm.runInContext(swSource,context,{filename:'sw.js'});
 const legacyHtml='<body><script src="./store-switcher.js?v=58"></script><script src="./share.js?v=38"></script><script src="./invoice-cloud.js?v=67"></script></body>';
 const patchedOnce=context.patchDocument(legacyHtml);
 const patchedTwice=context.patchDocument(patchedOnce);
-for(const asset of ['./registration-onboarding.js?v=2',deleteAsset[0],'./store-recovery.js?v=57','./auth-guard.js?v=57','./cloud-runtime.js?v=59','./member-permissions.js?v=2']){
+for(const asset of ['./registration-onboarding.js?v=2',deleteAsset[0],'./store-recovery.js?v=57','./auth-guard.js?v=58','./cloud-runtime.js?v=59','./member-permissions.js?v=2']){
   assert.equal(patchedTwice.split(asset).length-1,1,`${asset} must be injected exactly once`);
 }
 assert.ok(
   patchedTwice.indexOf('./registration-onboarding.js?v=2')<patchedTwice.indexOf('./store-switcher.js?v=67')&&
   patchedTwice.indexOf('./store-switcher.js?v=67')<patchedTwice.indexOf('./store-recovery.js?v=57')&&
   patchedTwice.indexOf('./store-recovery.js?v=57')<patchedTwice.indexOf(deleteAsset[0])&&
-  patchedTwice.indexOf(deleteAsset[0])<patchedTwice.indexOf('./auth-guard.js?v=57')&&
-  patchedTwice.indexOf('./auth-guard.js?v=57')<patchedTwice.indexOf('./money-input.js?v=1')&&
+  patchedTwice.indexOf(deleteAsset[0])<patchedTwice.indexOf('./auth-guard.js?v=58')&&
+  patchedTwice.indexOf('./auth-guard.js?v=58')<patchedTwice.indexOf('./money-input.js?v=1')&&
   patchedTwice.indexOf('./money-input.js?v=1')<patchedTwice.indexOf('./cloud-runtime.js?v=59')&&
   patchedTwice.indexOf('./cloud-runtime.js?v=59')<patchedTwice.indexOf('./invoice-cloud.js?v=79'),
   'legacy documents must receive the same safe store/auth/cloud script order'

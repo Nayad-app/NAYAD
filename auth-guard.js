@@ -1,13 +1,14 @@
-/* NAYAD auth guard v57 — browser Supabase Auth owns session persistence. */
+/* NAYAD auth guard v58 — browser Supabase Auth owns session persistence. */
 (function(){
-  if(window.__nayadAuthGuardV57)return;
-  window.__nayadAuthGuardV57=true;
+  if(window.__nayadAuthGuardV58)return;
+  window.__nayadAuthGuardV58=true;
 
   const originalHandleAuthStateChange=window.handleAuthStateChange;
   const originalShowAuthenticatedApp=window.showAuthenticatedApp;
   const originalShowLoginScreen=window.showLoginScreen;
   const originalPhoneLogin=window.phoneLogin;
   let running=null;
+  function faceLocked(){return window.__nayadFaceIdLocked?.()===true;}
 
   function client(){return window.nayadSupabase||window.sb||null;}
   async function readCurrentSession(){
@@ -80,7 +81,9 @@
 
   async function safeShowAuthenticatedApp(){
     try{
+      if(faceLocked()){await originalShowLoginScreen();return false;}
       const session=await readCurrentSession();
+      if(faceLocked()){await originalShowLoginScreen();return false;}
       const user=session?.user||null;
       if(!user){
         resetRuntimeIdentity();
@@ -100,6 +103,7 @@
   }
 
   async function safeShowLoginScreen(){
+    if(faceLocked())return originalShowLoginScreen();
     try{
       const session=await readCurrentSession();
       if(session?.user){
@@ -113,55 +117,9 @@
   if(typeof originalShowAuthenticatedApp==='function')window.showAuthenticatedApp=safeShowAuthenticatedApp;
   if(typeof originalShowLoginScreen==='function')window.showLoginScreen=safeShowLoginScreen;
 
-  /* Phone login v55: the edge function only resolves and verifies the phone
-     identity. The browser then signs in natively with Supabase Auth. No raw
-     token handoff, no setSession(), and no forced navigation are used. */
-  if(typeof originalPhoneLogin==='function'){
-    window.phoneLogin=async function(){
-      const username=(document.getElementById('loginPhone')?.value||'').trim();
-      if(username.includes('@'))return originalPhoneLogin.apply(this,arguments);
-      const phone=(typeof normalizeMongolianPhone==='function')?normalizeMongolianPhone(username):'';
-      const password=document.getElementById('loginPassword')?.value||'';
-      const remember=document.getElementById('rememberMe')?.checked!==false;
-      if(!username||!password){if(typeof authMessage==='function')authMessage('loginMsg','Утасны дугаар болон нууц үгээ оруулна уу.');return;}
-      if(!phone){if(typeof authMessage==='function')authMessage('loginMsg','Утасны дугаараа 8 оронтой зөв оруулна уу.');return;}
-      if(typeof setAuthBusy==='function')setAuthBusy('loginBtn',true,'Нэвтэрч байна...');
-      try{
-        const url=(typeof SUPABASE_URL!=='undefined'?SUPABASE_URL:'https://kjgtmxcxchjevzoxwqzr.supabase.co')+'/functions/v1/phone-login';
-        const key=(typeof SUPABASE_PUBLISHABLE_KEY!=='undefined'?SUPABASE_PUBLISHABLE_KEY:'');
-        const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','apikey':key},body:JSON.stringify({phone,password})});
-        const result=await response.json().catch(()=>({}));
-        if(!response.ok||typeof result.email!=='string'||!result.email||typeof result.user_id!=='string'||!result.user_id){
-          throw new Error('Invalid login credentials');
-        }
-
-        const c=client();
-        if(!c?.auth?.signInWithPassword)throw new Error('Нэвтрэх үйлчилгээ бэлэн биш байна.');
-        const login=await c.auth.signInWithPassword({email:result.email,password});
-        if(login.error)throw login.error;
-        if(!login.data?.session||!login.data?.user)throw new Error('Нэвтрэх session үүссэнгүй.');
-        if(String(login.data.user.id)!==String(result.user_id)){
-          try{await c.auth.signOut({scope:'local'});}catch(_){ }
-          throw new Error('Нэвтрэх хэрэглэгч таарсангүй.');
-        }
-
-        const rememberKey=(typeof REMEMBER_KEY!=='undefined'?REMEMBER_KEY:'NAYAD_REMEMBER_ME');
-        localStorage.setItem(rememberKey,remember?'1':'0');
-        if(!remember)sessionStorage.setItem('NAYAD_SESSION_ONLY','1');
-        else sessionStorage.removeItem('NAYAD_SESSION_ONLY');
-
-        applyCurrentUser(login.data.user);
-        const opened=await safeShowAuthenticatedApp();
-        if(!opened)throw new Error('Дэлгүүрийн мэдээлэл ачаалж чадсангүй.');
-      }catch(error){
-        console.error(error);
-        const message=(typeof authFriendlyError==='function')?authFriendlyError(error):(error?.message||'Нэвтрэхэд алдаа гарлаа.');
-        if(typeof authMessage==='function')authMessage('loginMsg',message);
-      }finally{
-        if(typeof setAuthBusy==='function')setAuthBusy('loginBtn',false);
-      }
-    };
-  }
+  // The canonical login owns password verification, passkey enrollment and unlock.
+  // A second phone-only implementation bypassed the Face ID checkbox entirely.
+  if(typeof originalPhoneLogin==='function')window.phoneLogin=originalPhoneLogin;
 
   /* Logout is local to this browser. A user signing out here must not revoke
      the same account on other devices. */
@@ -182,10 +140,12 @@
   };
 
   async function reconcile(reason='recovery'){
+    if(faceLocked()){await originalShowLoginScreen();return false;}
     if(running)return running;
     running=(async()=>{
       try{
         const session=await readCurrentSession();
+        if(faceLocked()){await originalShowLoginScreen();return false;}
         if(session?.user){
           applyCurrentUser(session.user);
           const app=document.getElementById('app');

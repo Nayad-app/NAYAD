@@ -1,5 +1,5 @@
 // Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v228";
+const CACHE = "nayad-v229";
 
 const ASSETS = [
   "./",
@@ -19,7 +19,7 @@ const ASSETS = [
   "./store-recovery.js?v=57",
   "./registration-delete.js?v=2",
   "./cloud-runtime.js?v=59",
-  "./auth-guard.js?v=57",
+  "./auth-guard.js?v=58",
   "./mobile-fix.js?v=46",
   "./share.js?v=40",
   "./vendor/qrcode.js?v=1",
@@ -104,7 +104,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=57");
   patched=patched.replace(/\.\/registration-delete\.js\?v=\d+/g,"./registration-delete.js?v=2");
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=59");
-  patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=57");
+  patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=58");
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=40");
   patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=9");
   patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=2");
@@ -119,7 +119,7 @@ function patchDocument(html){
   patched=injectScriptBefore(patched,"./store-switcher.js?v=67","./registration-onboarding.js?v=2");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=67","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
-  patched=injectScriptAfter(patched,"./registration-delete.js?v=2","./auth-guard.js?v=57");
+  patched=injectScriptAfter(patched,"./registration-delete.js?v=2","./auth-guard.js?v=58");
   patched=injectScriptAfter(patched,"./share.js?v=40","./vendor/qrcode.js?v=1");
   patched=injectScriptAfter(patched,"./vendor/qrcode.js?v=1","./staff-hub.js?v=3");
   patched=injectScriptAfter(patched,"./staff-hub.js?v=3","./staff-time.js?v=2");
