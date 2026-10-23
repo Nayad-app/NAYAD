@@ -1,5 +1,5 @@
-// Invalidate the installed app shell for the validated invoice image uploads.
-const CACHE = "nayad-v231";
+// Refresh installed icon assets after the approved edge-light artwork update.
+const CACHE = "nayad-v232";
 
 const ASSETS = [
   "./",
