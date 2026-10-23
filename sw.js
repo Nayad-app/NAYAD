@@ -1,5 +1,5 @@
-// Refresh the phone landing layout so the full page fits the viewport.
-const CACHE = "nayad-v233";
+// Refresh the per-store background picker and store-switch hooks.
+const CACHE = "nayad-v234";
 
 const ASSETS = [
   "./",
@@ -15,7 +15,8 @@ const ASSETS = [
   "./money-input.js?v=1",
   "./image-compress.js?v=1",
   "./registration-onboarding.js?v=2",
-  "./store-switcher.js?v=67",
+  "./store-switcher.js?v=68",
+  "./store-background.js?v=1",
   "./store-recovery.js?v=57",
   "./registration-delete.js?v=2",
   "./cloud-runtime.js?v=59",
@@ -100,7 +101,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=39");
   patched=patched.replace(/\.\/money-input\.js\?v=\d+/g,"./money-input.js?v=1");
   patched=patched.replace(/\.\/registration-onboarding\.js\?v=\d+/g,"./registration-onboarding.js?v=2");
-  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=67");
+  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=68");
   patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=57");
   patched=patched.replace(/\.\/registration-delete\.js\?v=\d+/g,"./registration-delete.js?v=2");
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=59");
@@ -116,8 +117,8 @@ function patchDocument(html){
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=13");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=79","./money-input.js?v=1");
   patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=30");
-  patched=injectScriptBefore(patched,"./store-switcher.js?v=67","./registration-onboarding.js?v=2");
-  patched=injectScriptAfter(patched,"./store-switcher.js?v=67","./store-recovery.js?v=57");
+  patched=injectScriptBefore(patched,"./store-switcher.js?v=68","./registration-onboarding.js?v=2");
+  patched=injectScriptAfter(patched,"./store-switcher.js?v=68","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
   patched=injectScriptAfter(patched,"./registration-delete.js?v=2","./auth-guard.js?v=58");
   patched=injectScriptAfter(patched,"./share.js?v=40","./vendor/qrcode.js?v=1");

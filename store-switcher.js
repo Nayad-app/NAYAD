@@ -196,6 +196,7 @@
   }
 
   function renderBar(){
+    window.__nayadRefreshStoreBackground?.();
     const content=document.getElementById('content');
     if(!content)return;
     content.querySelector('.storeSwitcherBar')?.remove();
