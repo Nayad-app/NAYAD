@@ -1,5 +1,5 @@
-// Refresh installed icon assets after the approved edge-light artwork update.
-const CACHE = "nayad-v232";
+// Refresh the phone landing layout so the full page fits the viewport.
+const CACHE = "nayad-v233";
 
 const ASSETS = [
   "./",

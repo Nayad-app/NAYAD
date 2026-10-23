@@ -55,6 +55,35 @@ body:has(#landing:not(.hide)){background:radial-gradient(circle at 76% 16%,rgba(
 .landingFooter{text-align:right;color:#827e72;font-size:10px;letter-spacing:.2px;padding:0 44px 22px}.landingMenuPanel{display:none}
 @media(max-width:1100px){.landingNav{display:none}.landingMenu{display:grid;place-items:center}.landingHero{grid-template-columns:1fr;width:min(690px,calc(100% - 44px));gap:20px;padding-top:44px}.landingCopy{text-align:center;padding-left:0}.landingCopy h1,.landingCopy p{margin-left:auto;margin-right:auto}.landingActions{justify-content:center}.landingFeatureBox{margin:auto}.deviceShowcase{min-height:540px}}
 @media(max-width:600px){html:has(#landing:not(.hide)),body:has(#landing:not(.hide)){background:#fbf8ef}.landing{width:100%;min-height:100svh;margin:0;border-radius:0;box-shadow:none}.landing:before{width:420px;height:420px;right:-210px;top:330px}.landingHeader{height:66px;padding:0 18px}.landingLogo{font-size:23px}.landingHero{width:100%;min-height:auto;display:flex;flex-direction:column;gap:16px;padding:29px 18px 32px}.landingCopy{display:contents}.landingEyebrow{order:1}.landingCopy h1{order:2;font-size:36px;line-height:1.04;letter-spacing:-2.05px;margin:1px 0 0}.landingCopy p{order:3;font-size:13.5px;line-height:1.55;margin:0 5px 1px}.landingActions{order:4;width:100%;display:grid;grid-template-columns:1.3fr .8fr;gap:8px;margin:1px 0 0}.landingActions button{min-width:0;padding:13px 8px;font-size:12.5px}.landingFeatureBox{order:6;gap:7px}.landingFeature{min-height:40px;padding:7px 9px;font-size:11px;border-radius:11px}.landingCheck{width:23px;height:23px;flex-basis:23px;border-radius:7px}.deviceShowcase{order:5;min-height:390px;width:100%;margin-top:1px}.deviceHalo{width:330px;height:330px}.deviceHalo:before{inset:25px}.deviceHalo:after{inset:54px}.landingPhone{width:182px;height:374px;border-radius:31px;padding:4px;transform:rotate(1.5deg)}.landingPhoneBezel{border-radius:27px;padding:5px}.landingPhoneBezel:before{top:9px;width:50px;height:14px}.landingPhoneScreen{border-radius:23px;padding:12px 8px 10px}.landingPhoneStatus{font-size:5px;padding-bottom:9px}.landingAppTop{margin-bottom:9px}.landingAppLogo{font-size:10px}.landingAvatar{width:18px;height:18px;font-size:6px}.landingHello{font-size:6px}.landingStore{font-size:10px;margin-bottom:8px}.landingBalance{border-radius:12px;padding:10px}.landingBalance small{font-size:6px}.landingBalance strong{font-size:15px;margin:4px 0 8px}.landingBalanceRow{font-size:5px}.landingSectionTitle{font-size:7px;margin:10px 1px 5px}.landingSectionTitle span{font-size:5px}.landingUpcoming{gap:4px}.landingBill{border-radius:8px;padding:6px;grid-template-columns:20px 1fr auto;gap:5px}.landingBillIcon{width:20px;height:20px;border-radius:6px;font-size:7px}.landingBill b,.landingBill strong{font-size:6px}.landingBill small{font-size:5px}.landingMiniNav{left:11px;right:11px;bottom:9px;height:33px;border-radius:10px;font-size:5px}.landingMiniNav i{font-size:8px}.landingMiniNav .active i{width:17px;height:13px;border-radius:5px}.landingFloatCard{min-width:114px;border-radius:12px;padding:8px 9px}.landingFloatCard small{font-size:6px;margin-bottom:3px}.landingFloatCard strong{font-size:11px}.landingFloatCard .pill{font-size:5px;margin-top:4px;padding:3px 5px}.landingFloatCard.one{left:-3px;top:82px}.landingFloatCard.two{right:-5px;bottom:78px}.landingFloatCard.two strong{font-size:9px}.landingFooter{text-align:center;padding:0 18px 24px}.landingMenuPanel{position:absolute;right:14px;top:60px;background:#fff;border:1px solid #e4e2da;border-radius:17px;padding:8px;width:240px;box-shadow:0 15px 35px rgba(0,0,0,.16);z-index:8}.landingMenuPanel button{display:block;width:100%;text-align:left;background:transparent;padding:12px 10px;border-bottom:1px solid #efeee9;font-size:13px;font-weight:750}.landingMenuPanel button:last-child{border-bottom:0}.landingMenuPanel.open{display:block}}
+.landingDeviceArt{display:contents}
+/* Fit the complete phone landing page to the available screen, including safe areas.
+   Only the decorative phone scales; text and controls remain real-sized. */
+@media(max-width:600px){
+  html:has(#landing:not(.hide)),body:has(#landing:not(.hide)){height:100%;overflow:hidden;overscroll-behavior:none}
+  #landing{position:fixed;inset:0;height:100vh;height:100dvh;min-height:0;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);display:flex;flex-direction:column}
+  #landing.hide{display:none}
+  #landing .landingHeader{height:52px;flex:0 0 52px;padding:0 18px}
+  #landing>main{flex:1;min-height:0;display:flex;flex-direction:column}
+  #landing .landingHero{flex:1;min-height:0;gap:8px;padding:12px 18px 8px}
+  #landing .landingHero>.landingCopy>*{flex-shrink:0}
+  #landing .landingEyebrow{font-size:9px;padding:5px 9px;gap:6px}
+  #landing .landingEyebrow:before{width:20px;height:20px}
+  #landing .landingCopy h1{font-size:clamp(26px,7.5vw,34px);letter-spacing:-1.5px}
+  #landing .landingCopy p{font-size:12px;line-height:1.4}
+  #landing .landingActions button{min-height:44px;padding:10px 6px}
+  #landing .landingFeature{min-height:32px;padding:4px 8px;font-size:10px}
+  #landing .landingCheck{width:21px;height:21px;flex-basis:21px}
+  #landing .deviceShowcase{flex:1;min-height:0;margin:0;isolation:isolate}
+  #landing .landingDeviceArt{position:absolute;width:360px;height:390px;display:grid;place-items:center;transform:scale(var(--landing-art-scale,.5));transform-origin:center}
+  #landing .landingFooter{flex-shrink:0;font-size:9px;padding:4px 18px 10px}
+  #landing .landingMenuPanel{top:48px;max-height:calc(100dvh - 100px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));overflow-y:auto;overscroll-behavior:contain}
+}
+@media(max-width:600px) and (max-height:700px){
+  #landing .landingHero{gap:5px;padding-top:6px}
+  #landing .landingCopy h1{font-size:26px;line-height:1.02}
+  #landing .landingCopy p{font-size:11px}
+  #landing .landingFooter{padding-bottom:6px}
+}
 </style>
 <style>
 .splash{background:radial-gradient(circle at 50% 42%,#202020 0%,#090909 48%,#000 100%);overflow:hidden}
@@ -171,6 +200,7 @@ html.nightMode .authError{background:#3D2022;border-color:#713B3D;color:#FFD9D9}
         </div>
       </div>
       <div class="deviceShowcase" aria-label="NAYAD app-ийн нүүр дэлгэцийн жишээ">
+        <div class="landingDeviceArt">
         <div class="deviceHalo"></div>
         <div class="landingFloatCard one"><small>Нийт өглөг</small><strong>₮12,450,000</strong><span class="pill">Энэ сарын тойм</span></div>
         <div class="landingPhone">
@@ -189,6 +219,7 @@ html.nightMode .authError{background:#3D2022;border-color:#713B3D;color:#FFD9D9}
           </div></div>
         </div>
         <div class="landingFloatCard two"><small>Дараагийн төлөлт</small><strong><span class="dot"></span>2 хоногийн дараа</strong></div>
+        </div>
       </div>
     </section>
     <section id="pricing" class="landingFooter">Үнийн санал удахгүй танилцуулагдана.</section>
@@ -370,8 +401,18 @@ window.__nayadApplyData=function(next,renderNow=true){
 <script src="./subscription.js?v=5"></script>
 <script src="./member-permissions.js?v=2"></script>
 <script>
+// ResizeObserver also runs when the hidden landing page becomes visible again.
+(()=>{
+  const stage=document.querySelector('#landing .deviceShowcase');
+  const art=document.querySelector('#landing .landingDeviceArt');
+  if(!stage||!art)return;
+  const fit=()=>{const {width,height}=stage.getBoundingClientRect();if(width&&height)art.style.setProperty('--landing-art-scale',Math.min(1,width/360,height/400).toFixed(4))};
+  if(window.ResizeObserver)new ResizeObserver(fit).observe(stage);
+  window.addEventListener('resize',fit);
+  fit();
+})();
 function showLandingScreen(){document.getElementById("app")?.classList.add("hide");document.getElementById("login")?.classList.add("hide");document.getElementById("landing")?.classList.remove("hide");document.getElementById("landingMenuPanel")?.classList.remove("open");window.scrollTo({top:0,behavior:"instant"})}
-function landingScroll(id){document.getElementById(id)?.scrollIntoView({behavior:"smooth",block:"start"})}
+function landingScroll(id){if(!window.matchMedia('(max-width:600px)').matches)document.getElementById(id)?.scrollIntoView({behavior:"smooth",block:"start"})}
 function toggleLandingMenu(){document.getElementById("landingMenuPanel")?.classList.toggle("open")}
 function showInstallGuide(){sheet(`<h2>App суулгах заавар</h2><p class="authSub">NAYAD app-ийг утасныхаа үндсэн дэлгэц дээр нэмээд хурдан нэвтэрч ашиглана.</p><div class="card"><b>iPhone</b><p class="sub">Safari-ийн Share товчийг дараад <b>Нүүр дэлгэцэнд нэмэх</b>-ийг сонгоно.</p></div><div class="card"><b>Android</b><p class="sub">Chrome-ийн цэсийг нээгээд <b>Install app</b> эсвэл <b>Add to Home screen</b>-ийг сонгоно.</p></div><button class="primary full" onclick="closeSheet()">Ойлголоо</button>`)}
 function showContact(){sheet(`<h2>Холбоо барих</h2><p class="authSub">NAYAD-ийн талаар асуух зүйл байвал бидэнтэй холбогдоно уу.</p><a class="primary full" style="display:block;text-align:center;text-decoration:none;color:#111" href="tel:+97672231380">Утас: 72231380</a>`)}
