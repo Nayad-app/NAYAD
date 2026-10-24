@@ -101,6 +101,26 @@ const allocationDetail=await detail(pid);assert.equal(allocationDetail.allocatio
 const searched=await page({kind:'payment',query:'lookup-only'});assert.equal(searched.rows.length,1);assert.equal(searched.rows[0].id,pid);assert.equal(searched.totals.payment.amount,100);
 await db.exec(`insert into payments(id,store_id,supplier_id,payment_date,created_at,created_by,status,amount) values('20000000-0000-0000-0000-000000000001','${store}','${supplier}',current_date,now()+interval '1 minute','${owner}','posted',999);`);
 assert.equal((await page({},0,first.asof)).totals.payment.amount,12100,'later inserts do not shift the current pagination snapshot');
+
+await db.exec(fs.readFileSync(new URL('../supabase/migrations/20261024152251_statement_current_invoice_amount.sql',import.meta.url),'utf8'));
+const editedInvoice='30000000-0000-0000-0000-000000000001';
+await db.exec(`insert into invoices(id,store_id,supplier_id,amount,invoice_no,status,created_by) values('${editedInvoice}','${store}','${supplier}',100,'EDIT-TEST','confirmed','${owner}')`);
+const beforeHistory=(await db.query(`select details from finance_audit_events where entity_id='${editedInvoice}' and action='insert'`)).rows;
+const invoiceRow=(await page({kind:'invoice'})).rows.find(r=>r.entity_id===editedInvoice);
+const invoiceTotal=(await page()).totals.invoice.amount;
+await db.exec(`update invoices set amount=72.05 where id='${editedInvoice}'`);
+assert.equal((await detail(invoiceRow.id)).amount,72.05,'detail must show corrected amount');
+assert.equal((await page({kind:'invoice',min:'72',max:'73'})).rows.filter(r=>r.entity_id===editedInvoice).length,1,'amount filter uses corrected amount');
+assert.equal((await page()).totals.invoice.amount,invoiceTotal-27.95,'totals use corrected amount without adding adjustment rows');
+assert.deepEqual((await db.query(`select details from finance_audit_events where entity_id='${editedInvoice}' and action='insert'`)).rows,beforeHistory,'original insert snapshots are unchanged');
+for(const corrected of [1805892.05,2000000.17,72.05]){
+ await db.exec(`update invoices set amount=${corrected} where id='${editedInvoice}'`);
+ assert.equal((await detail(invoiceRow.id)).amount,corrected);
+ assert.equal((await page()).totals.invoice.amount,invoiceTotal-100+corrected);
+}
+await db.exec(`select set_config('request.jwt.claim.sub','${other}',false)`);
+assert.equal((await page()).rows.length,0,'new reader retains store permissions');
+await db.exec(`select set_config('request.jwt.claim.sub','${owner}',false)`);
 console.log('paged statement SQL: PASS — pages, totals, transliteration, details and permission isolation');
 await db.exec(`delete from stores where id='${store}';`);
 assert.equal((await db.query('select * from finance_audit_events')).rows.length,0,'store deletion cascades audit');

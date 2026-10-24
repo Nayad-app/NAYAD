@@ -58,6 +58,8 @@ vm.createContext(ctx);vm.runInContext(fs.readFileSync(require('node:path').join(
  elements.stQuery.value='ба';api.suggestSuppliers();assert.match(elements.stSupplierOptions.innerHTML,/Баясах/);
  api.pickSupplier('supplier-a');assert.equal(elements.stQuery.value,'Баясах');assert.equal(elements.stSupplierOptions.hidden,true);assert.equal(scopes.length,beforeSuggest,'selection waits for Search');await api.apply();assert.equal(scopes.at(-1).p_filters.supplier,'supplier-a');assert.equal(scopes.at(-1).p_filters.query,'');
  elements.stQuery.value='baraa';api.suggestSuppliers();assert.equal(elements.stQuery.dataset.supplier,'');api.clearSupplierQuery();assert.equal(elements.stSupplierOptions.hidden,true);await api.apply();assert.equal(scopes.at(-1).p_filters.supplier,'');
+ api.invalidate();assert.doesNotMatch(api.html(),/<b>450 ₮<\/b>/,'invalidated invoice total cannot remain visible');
+ invoice.amount=425.05;await api.reload();assert.match(api.html(),/<b>425.05 ₮<\/b>/,'reloaded statement shows edited invoice total');
  let release;requestHold=new Promise(r=>release=r);const pending=api.reload();ctx.__nayadActiveStoreId='store-b';api.tabs();release();await pending;
  assert.doesNotMatch(api.html(),/25,100/,'late response from former store must be discarded');
  fail=true;await api.reload();assert.match(api.html(),/Хуулга ачаалж чадсангүй/);assert.doesNotMatch(api.html(),/Нийт дүн/,'failure must not present a false zero total');

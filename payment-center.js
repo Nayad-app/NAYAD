@@ -501,6 +501,7 @@
       const {error}=await sb().rpc('edit_confirmed_invoice',{p_invoice_id:invoiceId,p_invoice_no:invoiceNo||null,p_invoice_date:invoiceDate,p_due_date:dueDate,p_amount:invoiceAmount,p_discount_percent:discountPercent,p_discount_deadline:discountDeadline,p_note:note,p_images:newImages.length?newImages:null});
       if(error)throw error;
       remoteComplete=true;
+      window.NayadStatement?.invalidate?.();
       const oldPaths=Array.isArray(invoice.image_paths)?invoice.image_paths:(invoice.image_path?[invoice.image_path]:[]);
       if(newImages.length&&oldPaths.length){try{await removeInvoiceStoragePaths(oldPaths);}catch(error){console.warn('Old invoice images cleanup:',error);}}
       clearInvoiceEditFiles();
