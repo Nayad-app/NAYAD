@@ -74,6 +74,28 @@
     if(typeof window.__nayadParseMoneyInput==='function')return window.__nayadParseMoneyInput(value);
     const parsed=Number(String(value??'').replace(/,/g,''));return Number.isFinite(parsed)?parsed:0;
   }
+  // Keep legacy RPCs compatible; the database retains the full ratio precision.
+  function onTimeAmount(invoice){
+    if(!invoice||!Number(invoice.discount_percent))return 0;
+    return Math.round((Number(invoice.amount)-Number(invoice.amount)*Number(invoice.discount_percent)/100)*100)/100;
+  }
+  function amountDiscount(total,raw){
+    if(!String(raw).trim())return 0;
+    const cash=Number(String(raw).replace(/,/g,''));
+    if(!Number.isFinite(cash)||cash<=0||cash>total||Math.abs(cash*100-Math.round(cash*100))>0.0001)return NaN;
+    return (total-cash)/total*100;
+  }
+  function bindAmountPreview(prefix){
+    const update=()=>{
+      const total=moneyInputValue(document.getElementById(prefix+'Amount')?.value);
+      const raw=document.getElementById(prefix+'Discount')?.value||'';
+      const percent=amountDiscount(total,raw),deadline=document.getElementById(prefix+'DiscountDeadline')?.value;
+      const hint=document.getElementById(prefix+'DiscountHint');
+      if(hint)hint.textContent=raw&&Number.isFinite(percent)&&deadline?`${deadline} хүртэл ${moneyInputText(moneyInputValue(raw))} ₮ · Хэтэрвэл ${moneyInputText(total)} ₮`:'';
+    };
+    for(const suffix of ['Amount','Discount','DiscountDeadline'])document.getElementById(prefix+suffix)?.addEventListener?.('input',update);
+    update();
+  }
   function moneyInputText(value){
     if(typeof window.__nayadFormatMoneyInput==='function')return window.__nayadFormatMoneyInput(value);
     return String(value??'');
@@ -597,8 +619,8 @@
       <div class="field"><label>Төлөх хугацаа</label><input id="cloudIDueDate" type="date" value="${esc(draft?.due_date||'')}"></div>
       <div class="field"><label>Падааны дугаар</label><input id="cloudINo" value="${esc(draft?.no||'')}" placeholder="INV-0001"></div>
       <div class="field"><label>Нийт дүн</label><input id="cloudIAmount" data-money-input type="text" inputmode="decimal" autocomplete="off" value="${moneyInputText(Number(draft?.amount)||'')}" placeholder="0"></div>
-      <div class="field"><label>Хугацаандаа төлөх хөнгөлөлт (%) — заавал биш</label><input id="cloudIDiscount" type="number" inputmode="decimal" min="0" max="99.99" step="0.01" value="${Number(draft?.discount_percent)||''}" placeholder="Жишээ: 4"></div>
-      <div class="field"><label>Хөнгөлөлтийн эцсийн өдөр — заавал биш</label><input id="cloudIDiscountDeadline" type="date" value="${esc(draft?.discount_deadline||'')}"></div>
+      <div class="field"><label>Хугацаандаа төлбөл (₮) — заавал биш</label><input id="cloudIDiscount" data-money-input type="text" inputmode="decimal" autocomplete="off" value="${moneyInputText(onTimeAmount(draft)||'')}" placeholder="Жишээ: 96,000"></div>
+      <div class="field"><label>Хөнгөлөлтийн эцсийн өдөр — заавал биш</label><input id="cloudIDiscountDeadline" type="date" value="${esc(draft?.discount_deadline||'')}"></div><div id="cloudIDiscountHint" class="sub"></div>
       <div class="field"><label>Нэмэлт тэмдэглэл — заавал биш</label><textarea id="cloudINote" maxlength="500" placeholder="Шаардлагатай зүйлээ тэмдэглэнэ үү">${esc(draft?.note||'')}</textarea></div>
       <div class="field"><label>Падааны зураг — заавал биш, олон хуудас нэмэх боломжтой</label>
         <div class="imageTools"><button type="button" class="secondary" onclick="document.getElementById('cloudGalleryInput').click()">🖼️ Зураг сонгох</button><button type="button" class="secondary" onclick="document.getElementById('cloudCameraInput').click()">📷 Камераар авах</button></div>
@@ -606,6 +628,7 @@
         <div class="sub" style="margin-top:7px">Зүүн талын ☷ тэмдэг дээр дараад шууд дээш/доош чирж дарааллыг солино.</div><div id="cloudImageList" class="imageList"></div>
       </div>
       <div class="actions"><button class="secondary" onclick="window.__cancelCloudInvoice()">Болих</button><button id="cloudConfirmInvoiceBtn" class="primary" onclick="window.__saveCloudInvoice()">ПАДААН БҮРТГЭХ</button></div>`);
+    bindAmountPreview('cloudI');
     document.getElementById('modal')?.classList.add('invoiceFormModal');
     document.getElementById('sheet')?.classList.add('invoiceFormSheet');
     if(direct){
@@ -639,12 +662,14 @@
     const date=val('cloudIDate')||new Date().toISOString().slice(0,10);
     const dueDate=val('cloudIDueDate')||null;
     const no=val('cloudINo')||('INV-'+Date.now().toString().slice(-6));
-    const discountPercent=Number(val('cloudIDiscount'))||0;
+    const discountPercent=amountDiscount(amount,val('cloudIDiscount'));
     const discountDeadline=val('cloudIDiscountDeadline')||null;
     const note=val('cloudINote').slice(0,500)||null;
     if(!amount||amount<0){notify('Нийт дүн оруулна уу.');return;}
     if(!dueDate){notify('Төлөх хугацаа оруулна уу.');return;}
     if(dueDate<date){notify('Төлөх хугацаа падааны өдрөөс өмнө байж болохгүй.');return;}
+    if(!Number.isFinite(discountPercent)){notify('Хугацаандаа төлөх дүн 0-ээс их, нийт дүнгээс ихгүй байна.');return;}
+    if(discountPercent>0&&discountDeadline&&(discountDeadline<date||discountDeadline>dueDate)){notify('Хөнгөлөлтийн өдөр падааны огноо болон төлөх хугацааны хооронд байна.');return;}
     if(discountPercent>0&&!discountDeadline){notify('Хөнгөлөлтийн эцсийн өдрийг оруулна уу.');return;}
     if(window.__nayadCriticalOperation){notify('Өмнөх хадгалалт дууссаны дараа дахин оролдоно уу.');return;}
     const target=cloudCompanyTarget?{...cloudCompanyTarget}:{localId:cloudCompanyId,supplierId:null,name:'',storeId:window.__nayadActiveStoreId||null,userId:window.__nayadUser?.id||null};

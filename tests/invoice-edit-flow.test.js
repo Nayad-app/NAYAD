@@ -68,7 +68,7 @@ Object.assign(values,{
   reviseInvoiceDueDate:{value:'2026-09-01'},
   reviseInvoiceNo:{value:'INV-PAID-EDIT'},
   reviseInvoiceAmount:{value:'400000'},
-  reviseInvoiceDiscount:{value:'0'},
+  reviseInvoiceDiscount:{value:''},
   reviseInvoiceDiscountDeadline:{value:''},
   reviseInvoiceNote:{value:'Шинэ тэмдэглэл'},
   saveInvoiceRevisionBtn:{disabled:false,textContent:'ӨӨРЧЛӨЛТИЙГ ХАДГАЛАХ'}

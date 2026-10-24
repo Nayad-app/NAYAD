@@ -43,7 +43,7 @@ function createHarness(options={}){
     cloudIDueDate:{value:'2026-08-30'},
     cloudINo:{value:'INV-ADV'},
     cloudIAmount:{value:'1000'},
-    cloudIDiscount:{value:'0'},
+    cloudIDiscount:{value:''},
     cloudIDiscountDeadline:{value:''},
     cloudINote:{value:''},
     cloudConfirmInvoiceBtn:{disabled:false,textContent:'ПАДААН БҮРТГЭХ'}

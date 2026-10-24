@@ -36,7 +36,7 @@ const elements={
   cloudIDueDate:{value:'2026-08-30'},
   cloudINo:{value:'INV-0001'},
   cloudIAmount:{value:'1000000'},
-  cloudIDiscount:{value:'4'},
+  cloudIDiscount:{value:'960000'},
   cloudIDiscountDeadline:{value:'2026-08-25'},
   cloudINote:{value:'Туршилтын тэмдэглэл'},
   cloudConfirmInvoiceBtn:{disabled:false,textContent:'ПАДААН БҮРТГЭХ'}

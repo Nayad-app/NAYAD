@@ -48,10 +48,10 @@ assert.match(swSource,/\.\/cloud-runtime\.js\?v=59/);
 assert.match(indexSource,/\.\/cloud-runtime\.js\?v=59/,'index and service worker must load the same cloud runtime');
 assert.match(swSource,/\.\/money-input\.js\?v=1/);
 assert.match(indexSource,/\.\/money-input\.js\?v=1/,'index and service worker must load the money formatter');
-assert.match(swSource,/\.\/invoice-cloud\.js\?v=79/);
-assert.match(indexSource,/\.\/invoice-cloud\.js\?v=79/,'index and service worker must load the same invoice code');
-assert.match(swSource,/\.\/payment-center\.js\?v=29/);
-assert.match(indexSource,/\.\/payment-center\.js\?v=29/,'index and service worker must load the same payment center');
+assert.match(swSource,/\.\/invoice-cloud\.js\?v=80/);
+assert.match(indexSource,/\.\/invoice-cloud\.js\?v=80/,'index and service worker must load the same invoice code');
+assert.match(swSource,/\.\/payment-center\.js\?v=30/);
+assert.match(indexSource,/\.\/payment-center\.js\?v=30/,'index and service worker must load the same payment center');
 assert.match(swSource,/\.\/loans\.js\?v=13/);
 assert.match(indexSource,/\.\/loans\.js\?v=13/,'index and service worker must load the loan module');
 assert.match(swSource,/\.\/contact-types\.js\?v=30/);
@@ -85,7 +85,7 @@ assert.ok(
   patchedTwice.indexOf(deleteAsset[0])<patchedTwice.indexOf('./auth-guard.js?v=58')&&
   patchedTwice.indexOf('./auth-guard.js?v=58')<patchedTwice.indexOf('./money-input.js?v=1')&&
   patchedTwice.indexOf('./money-input.js?v=1')<patchedTwice.indexOf('./cloud-runtime.js?v=59')&&
-  patchedTwice.indexOf('./cloud-runtime.js?v=59')<patchedTwice.indexOf('./invoice-cloud.js?v=79'),
+  patchedTwice.indexOf('./cloud-runtime.js?v=59')<patchedTwice.indexOf('./invoice-cloud.js?v=80'),
   'legacy documents must receive the same safe store/auth/cloud script order'
 );
 assert.equal(patchedTwice.split('./profile-menu.js?v=9').length-1,1,'profile drawer must be injected exactly once');
@@ -127,7 +127,7 @@ async function dispatch(request){
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 assert.equal(patchedTwice.split('./payment-statement.js?v=20').length-1,1,'statement module injected once');
-assert.ok(patchedTwice.indexOf('./payment-statement.js?v=20')<patchedTwice.indexOf('./payment-center.js?v=29'),'statement loads before center');
+assert.ok(patchedTwice.indexOf('./payment-statement.js?v=20')<patchedTwice.indexOf('./payment-center.js?v=30'),'statement loads before center');
 assert.ok(patchedTwice.indexOf('./statement-search.js?v=1')<patchedTwice.indexOf('./payment-statement.js?v=20'),'search loads before statement');
 
 for(const asset of ['./loan-contract-editor.js?v=5','./loan-contract-schedule.js?v=2'])assert.equal(patchedTwice.split(asset).length-1,1);

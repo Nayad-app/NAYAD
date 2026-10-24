@@ -42,6 +42,28 @@
     if(typeof window.__nayadParseMoneyInput==='function')return window.__nayadParseMoneyInput(value);
     const parsed=Number(String(value??'').replace(/,/g,''));return Number.isFinite(parsed)?parsed:0;
   }
+  // Keep legacy RPCs compatible; the database retains the full ratio precision.
+  function onTimeAmount(invoice){
+    if(!invoice||!Number(invoice.discount_percent))return 0;
+    return Math.round((Number(invoice.amount)-Number(invoice.amount)*Number(invoice.discount_percent)/100)*100)/100;
+  }
+  function amountDiscount(total,raw){
+    if(!String(raw).trim())return 0;
+    const cash=Number(String(raw).replace(/,/g,''));
+    if(!Number.isFinite(cash)||cash<=0||cash>total||Math.abs(cash*100-Math.round(cash*100))>0.0001)return NaN;
+    return (total-cash)/total*100;
+  }
+  function bindAmountPreview(prefix){
+    const update=()=>{
+      const total=moneyInputValue(document.getElementById(prefix+'Amount')?.value);
+      const raw=document.getElementById(prefix+'Discount')?.value||'';
+      const percent=amountDiscount(total,raw),deadline=document.getElementById(prefix+'DiscountDeadline')?.value;
+      const hint=document.getElementById(prefix+'DiscountHint');
+      if(hint)hint.textContent=raw&&Number.isFinite(percent)&&deadline?`${deadline} хүртэл ${moneyInputText(moneyInputValue(raw))} ₮ · Хэтэрвэл ${moneyInputText(total)} ₮`:'';
+    };
+    for(const suffix of ['Amount','Discount','DiscountDeadline'])document.getElementById(prefix+suffix)?.addEventListener?.('input',update);
+    update();
+  }
   function moneyInputText(value){
     if(typeof window.__nayadFormatMoneyInput==='function')return window.__nayadFormatMoneyInput(value);
     return String(value??'');
@@ -126,7 +148,7 @@
       <div class="dueRank">${index+1}</div>
       <div class="dueCompany"><span class="circle ${esc(item.company.color||'green')}">${esc((item.company.name||'N').slice(0,1).toUpperCase())}</span></div>
       <div class="dueDetails"><b>${esc(item.company.name)}</b><span>${esc(item.invoice.no||'Дугааргүй')}</span><span class="dueExact">Төлөх өдөр ${dateLabel(item.due)}</span><span class="dueState ${meta.kind}">${meta.negotiated?'Тохиролцсон · ':''}${esc(meta.label)}</span></div>
-      <div class="dueMoney"><b>${amount(item.balance)}</b>${discount.eligible?`<span>${discount.percent}% хэмнэнэ</span>`:''}<button class="primary" onclick="event.stopPropagation();window.payment('${esc(item.company.id)}','${esc(item.invoice.id)}')">Төлөх</button>${meta.kind==='overdue'?`<button class="linkButton" onclick="event.stopPropagation();window.showInvoiceAgreement('${esc(item.invoice.id)}')">Тохиролцох</button>`:''}</div>
+      <div class="dueMoney"><b>${amount(discount.cash)}</b>${discount.eligible?`<span>${amount(discount.saving)} хэмнэнэ</span>`:''}<button class="primary" onclick="event.stopPropagation();window.payment('${esc(item.company.id)}','${esc(item.invoice.id)}')">Төлөх</button>${meta.kind==='overdue'?`<button class="linkButton" onclick="event.stopPropagation();window.showInvoiceAgreement('${esc(item.invoice.id)}')">Тохиролцох</button>`:''}</div>
     </article>`;
   }
 
@@ -153,7 +175,7 @@
     const content=document.getElementById('content');if(!content)return;
     content.innerHTML=`<button class="back" onclick="page='companies';render()">← Буцах</button><div class="center"><div class="circle ${esc(company.color||'green')}" style="margin:auto;width:48px;height:48px">${esc((company.name||'N').slice(0,1).toUpperCase())}</div><h2 style="margin:8px 0 2px">${esc(company.name)}</h2><div class="bigAmount">${amount(company.debt)}</div><div class="sub">Баталгаажсан нийт өр</div></div>
       <details class="contactDetails"><summary class="sectionTitle"><span>Харилцагчийн мэдээлэл</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 9 7 7 7-7"/></svg></summary><div class="card"><div class="invoice"><div><small>Регистр</small><b>${esc(company.reg||'—')}</b></div></div><div class="invoice"><div><small>Хаяг</small><b>${esc(company.address||'—')}</b></div></div><div class="invoice"><div><small>Худалдааны төлөөлөгч</small><b>${esc(company.sales||'—')}</b></div><div>${typeof tel==='function'?tel(company.salesPhone):''}</div></div><div class="invoice"><div><small>Банк</small><b>${esc(company.bank||'—')}</b></div></div><div class="invoice"><div><small>Дансны дугаар</small><b>${esc(company.bankAccount||'—')}</b></div></div></div>
-      </details><div class="sectionTitle">Падаанууд</div><div class="card">${invoices.length?invoices.map(invoice=>{const status=invoice.status||'confirmed',balance=balanceOf(invoice);return `<div class="invoice invoiceClickable" role="button" tabindex="0" onclick="window.showInvoiceDetails('${esc(invoice.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.showInvoiceDetails('${esc(invoice.id)}')}"><div><small>${esc(invoice.date||'')} · ${esc(invoice.no||'Дугааргүй')}</small><b>${amount(invoice.amount)}</b><span class="invoiceStatus ${status}">${status==='cancelled'?'Цуцалсан':balance?'Төлөх өдөр '+dateLabel(dueOf(invoice)):'Төлөгдсөн'}</span></div><div><span class="${balance?'redText':'greenText'}">${balance?amount(balance):'Төлөгдсөн'}</span><small class="detailHint">Дэлгэрэнгүй →</small></div></div>`;}).join(''):'<div class="sub">Падаан алга.</div>'}</div>
+      </details><div class="sectionTitle">Падаанууд</div><div class="card">${invoices.length?invoices.map(invoice=>{const status=invoice.status||'confirmed',balance=balanceOf(invoice);return `<div class="invoice invoiceClickable" role="button" tabindex="0" onclick="window.showInvoiceDetails('${esc(invoice.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.showInvoiceDetails('${esc(invoice.id)}')}"><div><small>${esc(invoice.date||'')} · ${esc(invoice.no||'Дугааргүй')}</small><b>${amount(invoice.amount)}</b><span class="invoiceStatus ${status}">${status==='cancelled'?'Цуцалсан':balance?'Төлөх өдөр '+dateLabel(dueOf(invoice)):'Төлөгдсөн'}</span></div><div><span class="${balance?'redText':'greenText'}">${balance?amount(discountInfo(invoice).cash):'Төлөгдсөн'}</span><small class="detailHint">Дэлгэрэнгүй →</small></div></div>`;}).join(''):'<div class="sub">Падаан алга.</div>'}</div>
       <button class="primary full" onclick="invoice('${esc(company.id)}')">＋ Падаан нэмэх</button><button class="secondary full" style="margin-top:8px" onclick="payment('${esc(company.id)}')">Төлбөр бүртгэх</button><button class="secondary full" style="margin-top:8px" onclick="window.editCompany(Number('${esc(company.id)}'))">✎ Мэдээлэл засах</button>`;
   }
 
@@ -289,7 +311,7 @@
     let postedPayments=[];
     if(paid){try{postedPayments=await postedPaymentsForInvoice(invoiceId);}catch(error){console.warn('Invoice payment history:',error);}}
     open(`<div class="row"><h2>Падааны дэлгэрэнгүй</h2><button class="secondary" aria-label="Хаах" onclick="closeSheet()">×</button></div>
-      <div class="invoiceDetailCard"><b>${esc(company.name)}</b><span>${esc(invoice.no||'Дугааргүй')}</span><div class="detailGrid"><small>Падааны огноо<b>${dateLabel(invoice.date)}</b></small><small>Төлөх хугацаа<b>${dateLabel(dueOf(invoice))}</b></small><small>Нийт дүн<b>${amount(invoice.amount)}</b></small><small>Үлдэгдэл<b class="${balance?'redText':'greenText'}">${amount(balance)}</b></small></div>${paid?`<div class="paidSummary"><span>Төлсөн дүн</span><b>${amount(paid)}</b></div>`:''}${discount?`<div class="agreementInfo">Хугацаандаа төлбөл ${discount}% хөнгөлөлт эдэлнэ${invoice.discount_deadline?' · '+dateLabel(invoice.discount_deadline)+' хүртэл':''}.</div>`:''}${invoice.note?`<div class="invoiceNote"><small>Нэмэлт тэмдэглэл</small><p>${esc(invoice.note)}</p></div>`:''}${Number(invoice.image_count)||invoice.image_url?`<button class="secondary full invoiceImageButton" onclick="window.viewInvoiceImages('${esc(invoice.id)}')">▧ Падааны зураг үзэх</button>`:''}</div>
+      <div class="invoiceDetailCard"><b>${esc(company.name)}</b><span>${esc(invoice.no||'Дугааргүй')}</span><div class="detailGrid"><small>Падааны огноо<b>${dateLabel(invoice.date)}</b></small><small>Төлөх хугацаа<b>${dateLabel(dueOf(invoice))}</b></small><small>Нийт дүн<b>${amount(invoice.amount)}</b></small><small>Үлдэгдэл<b class="${balance?'redText':'greenText'}">${amount(discountInfo(invoice).cash)}</b></small></div>${paid?`<div class="paidSummary"><span>Төлсөн дүн</span><b>${amount(paid)}</b></div>`:''}${discount?`<div class="agreementInfo">Хугацаандаа төлбөл ${amount(onTimeAmount(invoice))}${invoice.discount_deadline?' · '+dateLabel(invoice.discount_deadline)+' хүртэл':''}.</div>`:''}${invoice.note?`<div class="invoiceNote"><small>Нэмэлт тэмдэглэл</small><p>${esc(invoice.note)}</p></div>`:''}${Number(invoice.image_count)||invoice.image_url?`<button class="secondary full invoiceImageButton" onclick="window.viewInvoiceImages('${esc(invoice.id)}')">▧ Падааны зураг үзэх</button>`:''}</div>
       ${status==='confirmed'?`<p class="sub">Падааны мэдээллийг хүссэн үедээ засна. Өмнө бүртгэсэн төлбөр өөрчлөгдөхгүй.</p><div class="invoiceDetailActions"><button class="primary" onclick="window.editConfirmedInvoice('${esc(invoice.id)}')">✎ Падаан засах</button><button class="invoiceDeleteButton" onclick="window.showInvoiceDeleteConfirm('${esc(invoice.id)}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg><span>Устгах</span></button></div>`:`<div class="agreementWarning"><b>Засах боломжгүй</b><span>Цуцалсан падааныг засах боломжгүй.</span></div><button class="invoiceDeleteButton full invoiceDeleteStandalone" onclick="window.showInvoiceDeleteConfirm('${esc(invoice.id)}')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 11v5M14 11v5"/></svg><span>Падаан устгах</span></button>`}
       ${paid?paymentReversalRows(postedPayments,invoiceId):''}
       `);
@@ -385,11 +407,12 @@
       <div class="field"><label>Падааны огноо</label><input id="reviseInvoiceDate" type="date" value="${esc(invoice.date||today())}"></div>
       <div class="field"><label>Төлөх хугацаа</label><input id="reviseInvoiceDueDate" type="date" value="${esc(invoice.due_date||'')}"></div>
       <div class="field"><label>Падааны дугаар</label><input id="reviseInvoiceNo" maxlength="120" value="${esc(invoice.no||'')}"></div>
-      <div class="field"><label>Хугацаандаа төлөх хөнгөлөлт (%) — заавал биш</label><input id="reviseInvoiceDiscount" type="number" inputmode="decimal" min="0" max="99.99" step="0.01" value="${Number(invoice.discount_percent)||''}"></div>
-      <div class="field"><label>Хөнгөлөлтийн эцсийн өдөр — заавал биш</label><input id="reviseInvoiceDiscountDeadline" type="date" value="${esc(invoice.discount_deadline||'')}"></div>
+      <div class="field"><label>Хугацаандаа төлбөл (₮) — заавал биш</label><input id="reviseInvoiceDiscount" data-money-input type="text" inputmode="decimal" autocomplete="off" value="${moneyInputText(onTimeAmount(invoice)||'')}"></div>
+      <div class="field"><label>Хөнгөлөлтийн эцсийн өдөр — заавал биш</label><input id="reviseInvoiceDiscountDeadline" type="date" value="${esc(invoice.discount_deadline||'')}"></div><div id="reviseInvoiceDiscountHint" class="sub"></div>
       <div class="field"><label>Нэмэлт тэмдэглэл — заавал биш</label><textarea id="reviseInvoiceNote" maxlength="1000" placeholder="Падаантай холбоотой тэмдэглэл">${esc(invoice.note||'')}</textarea></div>
       <div class="field"><label>Падааны зураг</label><div class="invoiceEditImageRow"><span><b>${imageCount?`${imageCount} зураг хавсаргасан`:'Зураг хавсаргаагүй'}</b><small>Шинэ зураг сонговол одоогийн зургийг солино.</small></span><label class="secondary invoiceEditPicker">Солих<input type="file" accept="image/*" multiple onchange="window.selectInvoiceEditFiles(this.files)"></label></div><div id="invoiceEditPreviews" class="invoiceEditPreviews"></div></div>
       <div class="actions"><button class="secondary" onclick="window.cancelInvoiceEdit('${esc(invoice.id)}')">Болих</button><button id="saveInvoiceRevisionBtn" class="primary" onclick="window.saveConfirmedInvoiceRevision('${esc(invoice.id)}')">ӨӨРЧЛӨЛТИЙГ ХАДГАЛАХ</button></div>`);
+    bindAmountPreview('reviseInvoice');
     document.getElementById('modal')?.classList.add('invoiceFormModal');
     document.getElementById('sheet')?.classList.add('invoiceFormSheet');
   };
@@ -427,12 +450,13 @@
     const invoice=invoiceById(invoiceId),company=companyForInvoice(invoiceId);if(!invoice||!company)return;
     const input=id=>document.getElementById(id)?.value||'';
     const invoiceDate=input('reviseInvoiceDate'),dueDate=input('reviseInvoiceDueDate'),invoiceNo=input('reviseInvoiceNo').trim();
-    const invoiceAmount=moneyInputValue(input('reviseInvoiceAmount')),discountPercent=Number(input('reviseInvoiceDiscount'))||0;
+    const invoiceAmount=moneyInputValue(input('reviseInvoiceAmount')),discountPercent=amountDiscount(invoiceAmount,input('reviseInvoiceDiscount'));
     const discountDeadline=input('reviseInvoiceDiscountDeadline')||null,note=input('reviseInvoiceNote').trim()||null,paid=Number(invoice.paid)||0;
     if(!invoiceDate||!dueDate||!Number.isFinite(invoiceAmount)||invoiceAmount<=0){notify('Огноо, төлөх хугацаа болон зөв дүн оруулна уу.');return;}
     if(invoiceAmount<paid){notify(`Нийт дүнг төлсөн ${amount(paid)}-өөс бага болгох боломжгүй.`);return;}
     if(dueDate<invoiceDate){notify('Төлөх хугацаа падааны өдрөөс өмнө байж болохгүй.');return;}
-    if(discountPercent<0||discountPercent>=100){notify('Хөнгөлөлтийн хувь 0–99.99 хооронд байна.');return;}
+    if(!Number.isFinite(discountPercent)){notify('Хугацаандаа төлөх дүн 0-ээс их, нийт дүнгээс ихгүй байна.');return;}
+    if(discountPercent>0&&discountDeadline&&(discountDeadline<invoiceDate||discountDeadline>dueDate)){notify('Хөнгөлөлтийн өдөр падааны огноо болон төлөх хугацааны хооронд байна.');return;}
     if(discountPercent>0&&!discountDeadline){notify('Хөнгөлөлтийн эцсийн өдрийг оруулна уу.');return;}
     if(window.__nayadCriticalOperation){notify('Өмнөх хадгалалт дууссаны дараа дахин оролдоно уу.');return;}
     const button=document.getElementById('saveInvoiceRevisionBtn');if(button){button.disabled=true;button.textContent='Хадгалж байна...';}
