@@ -158,3 +158,21 @@ context.filterHomeCompanies('');assert.equal(context.__nayadHomeDebtList(names).
 context.filterHomeCompanies('bat');context.__nayadActiveStoreId='another-store';
 assert.equal(context.__nayadHomeDebtList(names).length,4,'new store clears prior search');
 assert.match(context.__nayadHomeDebtControls(),/Байгууллага хайх/);
+
+// Exercise the real payment calculation through the actual home card renderer.
+const paymentSource=fs.readFileSync(path.join(root,'payment-center.js'),'utf8');
+const discountFunction=paymentSource.slice(paymentSource.indexOf('  function discountInfo('),paymentSource.indexOf('  function dueMeta('));
+context.today=()=> '2026-10-31';
+context.balanceOf=i=>Math.max(i.amount-(i.paid||0),0);
+vm.runInContext(discountFunction,context);
+const timely={id:99,name:'Свитрөүд',contactType:'organization',debt:1236440,invoices:[{id:'timely',amount:1236440,paid:0,status:'confirmed',discount_percent:26952/1236440*100,discount_deadline:'2026-10-31',due_date:'2026-10-31'}]};
+assert.match(context.card(timely,true),/>1209488 ₮</,'home shows timely cash amount');
+timely.invoices[0].paid=500000;
+assert.match(context.card(timely,true),/>709488 ₮</,'partial payment still shows timely remainder before deadline');
+context.today=()=> '2026-11-01';
+assert.match(context.card(timely,true),/>736440 ₮</,'after deadline the unpaid principal is due, with no discount');
+timely.invoices.push({id:'other',amount:10000,paid:0,status:'confirmed'});
+assert.match(context.card(timely,true),/>746440 ₮</,'multiple invoices sum independently');
+timely.invoices[0].paid=1236440;timely.invoices[0].discount_taken=26952;
+assert.match(context.card(timely,true),/>10000 ₮</,'settled discounted invoice never reopens after expiry');
+assert.equal(timely.debt,1236440,'display must not mutate stored accounting debt');

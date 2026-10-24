@@ -50,12 +50,12 @@ assert.match(swSource,/\.\/money-input\.js\?v=1/);
 assert.match(indexSource,/\.\/money-input\.js\?v=1/,'index and service worker must load the money formatter');
 assert.match(swSource,/\.\/invoice-cloud\.js\?v=80/);
 assert.match(indexSource,/\.\/invoice-cloud\.js\?v=80/,'index and service worker must load the same invoice code');
-assert.match(swSource,/\.\/payment-center\.js\?v=30/);
-assert.match(indexSource,/\.\/payment-center\.js\?v=30/,'index and service worker must load the same payment center');
+assert.match(swSource,/\.\/payment-center\.js\?v=31/);
+assert.match(indexSource,/\.\/payment-center\.js\?v=31/,'index and service worker must load the same payment center');
 assert.match(swSource,/\.\/loans\.js\?v=13/);
 assert.match(indexSource,/\.\/loans\.js\?v=13/,'index and service worker must load the loan module');
-assert.match(swSource,/\.\/contact-types\.js\?v=30/);
-assert.match(indexSource,/\.\/contact-types\.js\?v=30/,'index and service worker must load the contact type module');
+assert.match(swSource,/\.\/contact-types\.js\?v=31/);
+assert.match(indexSource,/\.\/contact-types\.js\?v=31/,'index and service worker must load the contact type module');
 assert.match(swSource,/\.\/supplier-cloud\.js\?v=64/);
 assert.match(indexSource,/\.\/supplier-cloud\.js\?v=64/,'index and service worker must load the same supplier code');
 assert.match(swSource,/\.\/share\.js\?v=40/);
@@ -127,7 +127,7 @@ async function dispatch(request){
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 assert.equal(patchedTwice.split('./payment-statement.js?v=20').length-1,1,'statement module injected once');
-assert.ok(patchedTwice.indexOf('./payment-statement.js?v=20')<patchedTwice.indexOf('./payment-center.js?v=30'),'statement loads before center');
+assert.ok(patchedTwice.indexOf('./payment-statement.js?v=20')<patchedTwice.indexOf('./payment-center.js?v=31'),'statement loads before center');
 assert.ok(patchedTwice.indexOf('./statement-search.js?v=1')<patchedTwice.indexOf('./payment-statement.js?v=20'),'search loads before statement');
 
 for(const asset of ['./loan-contract-editor.js?v=5','./loan-contract-schedule.js?v=2'])assert.equal(patchedTwice.split(asset).length-1,1);

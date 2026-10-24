@@ -15,7 +15,7 @@ for(const file of ['invoice-cloud.js','payment-center.js']){
 }
 const source=fs.readFileSync('payment-center.js','utf8');
 const fn=source.slice(source.indexOf('  function discountInfo('),source.indexOf('  function dueMeta('));
-const c=vm.createContext({today:()=> '2026-10-31',balanceOf:i=>Math.max(i.amount-i.paid,0)});vm.runInContext(fn,c);
+const c=vm.createContext({window:{},today:()=> '2026-10-31',balanceOf:i=>Math.max(i.amount-i.paid,0)});vm.runInContext(fn,c);
 test('deadline inclusive, late, partial, settled, reversal',()=>{
  const i={amount:100000,paid:0,discount_percent:4,discount_deadline:'2026-10-31'};
  assert.equal(c.discountInfo(i,'2026-10-31').cash,96000);

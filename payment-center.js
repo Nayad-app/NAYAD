@@ -121,6 +121,8 @@
     const cash=eligible?Math.max(Math.round((balance-remainingDiscount)*100)/100,0):balance;
     return {eligible,percent,cash,saving:Math.max(balance-cash,0),remainingDiscount};
   }
+  // One payable calculation shared by payment entry and home display.
+  window.__nayadInvoicePayable=(invoice,onDate)=>discountInfo(invoice,onDate).cash;
   function dueMeta(invoice){
     const due=dueOf(invoice),days=daysBetween(today(),due),negotiated=Array.isArray(invoice.agreements)&&invoice.agreements.length>0;
     if(!due)return {kind:'unknown',label:'Хугацаа оруулаагүй',days,negotiated};
