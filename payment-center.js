@@ -15,7 +15,7 @@
       debt+=balance;limit+=cash;
       const paid=Math.min(Math.max(left,0),cash),saving=paid===cash&&paid>0?cents(info.saving):0;
       if(paid>0){allocations.push({invoice_id:invoice.id,amount:paid/100});left-=paid;discount+=saving;}
-      rows.push({invoice,paid:paid/100,saving:saving/100,remaining:(balance-paid-saving)/100});
+      rows.push({invoice,paid:paid/100,saving:saving/100,remaining:(balance-paid-saving)/100,payableRemaining:Math.max(cash-paid,0)/100});
     }
     return {allocations,rows,debt:debt/100,limit:limit/100,discount:discount/100,excess:Math.max(cents(value)-limit,0)/100};
   }
@@ -175,7 +175,7 @@
     try{selected=company;}catch(_){ }
     const invoices=(company.invoices||[]).filter(invoice=>(invoice.status||'confirmed')!=='draft').sort((a,b)=>{const rank=i=>i.status==='cancelled'?2:Math.max((Number(i.amount)||0)-(Number(i.paid)||0),0)>0?0:1;return rank(a)-rank(b)||String(b.date||b.invoice_date||'').localeCompare(String(a.date||a.invoice_date||''));});
     const content=document.getElementById('content');if(!content)return;
-    content.innerHTML=`<button class="back" onclick="page='companies';render()">← Буцах</button><div class="center"><div class="circle ${esc(company.color||'green')}" style="margin:auto;width:48px;height:48px">${esc((company.name||'N').slice(0,1).toUpperCase())}</div><h2 style="margin:8px 0 2px">${esc(company.name)}</h2><div class="bigAmount">${amount(company.debt)}</div><div class="sub">Баталгаажсан нийт өр</div></div>
+    content.innerHTML=`<button class="back" onclick="page='companies';render()">← Буцах</button><div class="center"><div class="circle ${esc(company.color||'green')}" style="margin:auto;width:48px;height:48px">${esc((company.name||'N').slice(0,1).toUpperCase())}</div><h2 style="margin:8px 0 2px">${esc(company.name)}</h2><div class="bigAmount">${amount(paymentPlan(company,0,today()).limit)}</div><div class="sub">Баталгаажсан нийт өр</div></div>
       <details class="contactDetails"><summary class="sectionTitle"><span>Харилцагчийн мэдээлэл</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 9 7 7 7-7"/></svg></summary><div class="card"><div class="invoice"><div><small>Регистр</small><b>${esc(company.reg||'—')}</b></div></div><div class="invoice"><div><small>Хаяг</small><b>${esc(company.address||'—')}</b></div></div><div class="invoice"><div><small>Худалдааны төлөөлөгч</small><b>${esc(company.sales||'—')}</b></div><div>${typeof tel==='function'?tel(company.salesPhone):''}</div></div><div class="invoice"><div><small>Банк</small><b>${esc(company.bank||'—')}</b></div></div><div class="invoice"><div><small>Дансны дугаар</small><b>${esc(company.bankAccount||'—')}</b></div></div></div>
       </details><div class="sectionTitle">Падаанууд</div><div class="card">${invoices.length?invoices.map(invoice=>{const status=invoice.status||'confirmed',balance=balanceOf(invoice);return `<div class="invoice invoiceClickable" role="button" tabindex="0" onclick="window.showInvoiceDetails('${esc(invoice.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.showInvoiceDetails('${esc(invoice.id)}')}"><div><small>${esc(invoice.date||'')} · ${esc(invoice.no||'Дугааргүй')}</small><b>${amount(invoice.amount)}</b><span class="invoiceStatus ${status}">${status==='cancelled'?'Цуцалсан':balance?'Төлөх өдөр '+dateLabel(dueOf(invoice)):'Төлөгдсөн'}</span></div><div><span class="${balance?'redText':'greenText'}">${balance?amount(discountInfo(invoice).cash):'Төлөгдсөн'}</span><small class="detailHint">Дэлгэрэнгүй →</small></div></div>`;}).join(''):'<div class="sub">Падаан алга.</div>'}</div>
       <button class="primary full" onclick="invoice('${esc(company.id)}')">＋ Падаан нэмэх</button><button class="secondary full" style="margin-top:8px" onclick="payment('${esc(company.id)}')">Төлбөр бүртгэх</button><button class="secondary full" style="margin-top:8px" onclick="window.editCompany(Number('${esc(company.id)}'))">✎ Мэдээлэл засах</button>`;
@@ -184,7 +184,7 @@
   function directPaymentForm(){
     const companies=state().companies.filter(company=>company.status!=='inactive'&&(company.invoices||[]).some(invoice=>isConfirmed(invoice)&&balanceOf(invoice)>0)).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'mn',{sensitivity:'base'}));
     if(!companies.length){notify('Төлөгдөөгүй падаантай нийлүүлэгч алга.');return;}
-    const options=companies.map(company=>`<option value="${esc(company.id)}">${esc(company.name)} — ${amount(company.debt)}</option>`).join('');
+    const options=companies.map(company=>`<option value="${esc(company.id)}">${esc(company.name)} — ${amount(paymentPlan(company,0,today()).limit)}</option>`).join('');
     openPayment(`<div class="pcFormHeader"><h2>Төлбөр бүртгэх</h2><button type="button" class="pcFormClose" aria-label="Хаах" onclick="closeSheet()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><p class="sub">Төлбөр бүртгэх нийлүүлэгчээ сонгоно уу.</p><div class="field"><label>Нийлүүлэгч</label><select id="directPaymentCompany"><option value="">Нийлүүлэгч сонгох</option>${options}</select></div><div class="actions pcFormActions"><button class="primary" onclick="openSelectedPayment()">Үргэлжлүүлэх</button></div>`);
   }
 
@@ -197,7 +197,7 @@
     const plan=paymentPlan(company,0,today());
 
     openPayment(`<div class="pcFormHeader"><h2>Төлбөр бүртгэх</h2><button type="button" class="pcFormClose" aria-label="Хаах" onclick="closeSheet()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="paySupplierCard"><b>${esc(company.name)}</b><span>${esc(company.bank||'Банк сонгоогүй')}</span></div>
-      <div class="payTotal"><span>Нийт үлдэгдэл</span><b>${amount(plan.debt)}</b></div>
+      <div class="payTotal"><span>Нийт үлдэгдэл</span><b id="paymentCurrentBalance">${amount(plan.limit)}</b></div>
       <div class="field"><label for="pcAmount">Төлөх дүн</label><div class="pcCopyRow"><input id="pcAmount" data-money-input inputmode="decimal" autocomplete="off" value="${moneyInputText(plan.limit)}" oninput="recalculatePaymentTotal()"></div></div>
       <p class="sub">Падааны огноогоор хуучнаас нь эхэлж хасна.</p>
       <div id="pcWarning" class="agreementWarning" role="status" hidden></div>
@@ -222,13 +222,14 @@
     const field=document.getElementById('pcAmount');
     if(field&&paymentDraft){
       const total=moneyInputValue(field.value),plan=paymentPlan(companyById(paymentDraft.companyId),total,document.getElementById('pcDate')?.value||today());
+      const currentBalance=document.getElementById('paymentCurrentBalance');if(currentBalance)currentBalance.textContent=amount(plan.limit);
       const invalid=total<=0||plan.excess>0;
       document.getElementById('pcContinue').disabled=invalid;
       const warning=document.getElementById('pcWarning');warning.hidden=!plan.excess;warning.textContent=plan.excess?`${amount(plan.excess)}-өөр илүү байна. Хөнгөлөлт тооцсон төлөх дүн: ${amount(plan.limit)}.`:'';
       document.getElementById('pcAdjust').hidden=!plan.excess;
       document.getElementById('pcBreakdown').hidden=invalid;
-      document.getElementById('allocationList').innerHTML=plan.rows.filter(r=>r.paid>0).map(r=>`<div class="pcAllocation"><b>${esc(r.invoice.no||'Дугааргүй')} · ${dateLabel(r.invoice.date)}</b><strong>${amount(r.paid)}</strong><small>Төлсний дараах үлдэгдэл: ${amount(r.remaining)}</small>${r.saving?`<small>Хөнгөлөлт: ${amount(r.saving)}</small>`:''}</div>`).join('');
-      document.getElementById('paymentCenterTotal').textContent=plan.excess?'—':amount(plan.debt-Math.max(total,0)-plan.discount);
+      document.getElementById('allocationList').innerHTML=plan.rows.filter(r=>r.paid>0).map(r=>`<div class="pcAllocation"><b>${esc(r.invoice.no||'Дугааргүй')} · ${dateLabel(r.invoice.date)}</b><strong>${amount(r.paid)}</strong><small>Төлсний дараах үлдэгдэл: ${amount(r.payableRemaining)}</small>${r.saving?`<small>Хөнгөлөлт: ${amount(r.saving)}</small>`:''}</div>`).join('');
+      document.getElementById('paymentCenterTotal').textContent=plan.excess?'—':amount(Math.max(plan.limit-Math.max(total,0),0));
       return total;
     }
     let total=0;
@@ -260,10 +261,10 @@
     const total=allocations.reduce((sum,item)=>sum+cents(item.amount),0)/100;if(!total){notify('Төлөх дүн оруулна уу.');return;}
     const selectedInvoices=allocations.map(item=>invoiceById(item.invoice_id)).filter(Boolean);
     const discount=allocations.reduce((sum,item,index)=>{const inv=selectedInvoices[index],info=inv?discountInfo(inv,document.getElementById('pcDate')?.value||today()):{saving:0,cash:0};return sum+(Math.abs(item.amount-info.cash)<0.01?info.saving:0);},0);
-    pendingPayment={store:activeStoreId(),companyId,companyName:company.name,supplierId:company.supabase_supplier_id,allocations,total,discount,date:document.getElementById('pcDate')?.value||today(),method:document.getElementById('pcMethod')?.value||'Бусад',reference:String(company.paymentReference||'').trim()||null,note:document.getElementById('pcNote')?.value.trim()||null,previousDebt:plan.debt,bankAccount:company.bankAccount||'',bankIban:company.bankIban||''};
+    pendingPayment={store:activeStoreId(),companyId,companyName:company.name,supplierId:company.supabase_supplier_id,allocations,total,discount,date:document.getElementById('pcDate')?.value||today(),method:document.getElementById('pcMethod')?.value||'Бусад',reference:String(company.paymentReference||'').trim()||null,note:document.getElementById('pcNote')?.value.trim()||null,previousDebt:plan.debt,payableBefore:plan.limit,bankAccount:company.bankAccount||'',bankIban:company.bankIban||''};
     const transferRow=(label,value,key)=>`<div class="pcCopyRow"><span>${label}<br><b>${esc(value||'Оруулаагүй')}</b></span>${value?copyButton(key):''}</div>`;
     const transferDetails=`<div class="card pcTransferDetails">${pendingPayment.bankIban?transferRow('IBAN',pendingPayment.bankIban,'iban'):''}${transferRow('Дансны дугаар',pendingPayment.bankAccount,'account')}${transferRow('Гүйлгээний утга',pendingPayment.reference,'reference')}${transferRow('Төлөх дүн',amount(total),'amount')}</div>`;
-    openPayment(`<h2>Төлбөр баталгаажуулах</h2><div class="confirmPay"><span>Нийлүүлэгч<b>${esc(company.name)}</b></span><span>Өмнөх өр<b>${amount(pendingPayment.previousDebt)}</b></span><span>Банкнаас төлөх<b>${amount(total)}</b></span>${discount?`<span class="discountLine">Хөнгөлөлтөөр хаагдах<b>${amount(discount)}</b></span>`:''}<span class="newBalance">Төлсний дараах өр<b>${amount(Math.max(pendingPayment.previousDebt-total-discount,0))}</b></span></div>${transferDetails}<p class="sub">Төлбөр баталгаажсаны дараа устгахгүй. Алдаа гарвал шалтгаантай буцаалт хийнэ.</p><div class="actions"><button class="secondary" onclick="payment('${esc(companyId)}')">Буцах</button><button id="commitPaymentBtn" class="primary" onclick="commitPaymentCenter()">Баталгаажуулах</button></div>`);
+    openPayment(`<h2>Төлбөр баталгаажуулах</h2><div class="confirmPay"><span>Нийлүүлэгч<b>${esc(company.name)}</b></span><span>Өмнөх өр<b>${amount(pendingPayment.payableBefore)}</b></span><span>Банкнаас төлөх<b>${amount(total)}</b></span>${discount?`<span class="discountLine">Хөнгөлөлтөөр хаагдах<b>${amount(discount)}</b></span>`:''}<span class="newBalance">Төлсний дараах өр<b>${amount(Math.max(pendingPayment.payableBefore-total,0))}</b></span></div>${transferDetails}<p class="sub">Төлбөр баталгаажсаны дараа устгахгүй. Алдаа гарвал шалтгаантай буцаалт хийнэ.</p><div class="actions"><button class="secondary" onclick="payment('${esc(companyId)}')">Буцах</button><button id="commitPaymentBtn" class="primary" onclick="commitPaymentCenter()">Баталгаажуулах</button></div>`);
   };
 
   window.commitPaymentCenter=async function(){

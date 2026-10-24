@@ -176,3 +176,12 @@ assert.match(context.card(timely,true),/>746440 ₮</,'multiple invoices sum ind
 timely.invoices[0].paid=1236440;timely.invoices[0].discount_taken=26952;
 assert.match(context.card(timely,true),/>10000 ₮</,'settled discounted invoice never reopens after expiry');
 assert.equal(timely.debt,1236440,'display must not mutate stored accounting debt');
+
+// The contact opened from the home row must show the same current cash balance.
+timely.invoices=[{id:'timely',amount:1236440,paid:0,status:'confirmed',discount_percent:26952/1236440*100,discount_deadline:'2026-10-31',due_date:'2026-10-31'}];
+context.data.companies.push(timely);documentNodes.content={innerHTML:''};
+context.today=()=> '2026-10-31';context.company(99);
+assert.match(documentNodes.content.innerHTML,/Нийт өр<\/span><b>1209488 ₮/);
+assert.doesNotMatch(documentNodes.content.innerHTML,/1236440 ₮/,'no undiscounted balance in the open contact');
+timely.invoices[0].paid=500000;context.today=()=> '2026-11-01';context.company(99);
+assert.match(documentNodes.content.innerHTML,/Нийт өр<\/span><b>736440 ₮/);

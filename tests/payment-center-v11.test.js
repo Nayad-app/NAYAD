@@ -118,3 +118,15 @@ context.document.getElementById=id=>id==='modal'?modal:id==='pcAmount'?groupedIn
 context.window.reviewPaymentCenter(5);
 assert.match(paymentSheet,/Төлбөр баталгаажуулах/);
 assert.ok(modalClasses.has('paymentFormModal'),'confirmation stays open');
+
+// Payment header and remaining cash respond to the selected payment date.
+const ui={pcAmount:{value:'10000'},pcDate:{value:'2099-08-24'},pcContinue:{},pcWarning:{},pcAdjust:{},pcBreakdown:{},allocationList:{},paymentCenterTotal:{},paymentCurrentBalance:{}};
+context.document.getElementById=id=>ui[id]||null;
+context.window.payment(2);
+assert.match(paymentSheet,/id="paymentCurrentBalance">48[,  ]?000 ₮/,'payment header shows discounted total');
+context.window.recalculatePaymentTotal();
+assert.match(ui.paymentCurrentBalance.textContent,/48[,  ]?000/);
+assert.match(ui.paymentCenterTotal.textContent,/38[,  ]?000/,'timely partial payment shows remaining timely cash');
+ui.pcDate.value='2099-08-25';context.window.recalculatePaymentTotal();
+assert.match(ui.paymentCurrentBalance.textContent,/50[,  ]?000/,'expiry restores principal in the header');
+assert.match(ui.paymentCenterTotal.textContent,/40[,  ]?000/);
