@@ -41,6 +41,7 @@
   function hide(selector,hidden){document.querySelectorAll(selector).forEach(element=>{element.classList.toggle('nayadPermissionHidden',hidden);});}
   function apply(){
     installGuards();
+    if(!can('staff','edit')&&!new URLSearchParams(location.search).has('tsag'))window.NayadStaff?.close();
     document.querySelectorAll('.nav[data-page]').forEach(button=>{button.classList.toggle('nayadPermissionHidden',!pageAllowed(button.dataset.page));});
     hide('[onclick*="addCompany"],[onclick*="editCompany"],[onclick*="saveCompany"],[onclick*="saveEdit"]',!can('customers','edit'));
     hide('[onclick*="invoice("],[onclick*="editConfirmedInvoice"],[onclick*="showInvoiceAgreement"]',!can('invoices','edit'));

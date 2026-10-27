@@ -16,10 +16,12 @@ const elements={
   shareInvitePerminvoices:{value:'view'},
   shareInvitePermpayments:{value:'none'},
   shareInvitePermloans:{value:'view'},
+  shareInvitePermstaff:{value:'edit'},
   shareMemberPermcustomers:{value:'view'},
   shareMemberPerminvoices:{value:'edit'},
   shareMemberPermpayments:{value:'none'},
   shareMemberPermloans:{value:'none'},
+  shareMemberPermstaff:{value:'edit'},
   saveMemberPermissionButton:{disabled:false,textContent:'Хадгалах'},
   removeStoreMemberButton:{disabled:false,textContent:'Хасах'},
   shareInviteButton:{
@@ -82,6 +84,8 @@ vm.runInContext(fs.readFileSync(path.join(__dirname,'..','share.js'),'utf8'),con
   assert.match(sheetHtml,/Харилцагч/);
   assert.match(sheetHtml,/Нэмэх, засах/);
   assert.match(sheetHtml,/Эрх засах/);
+  assert.match(sheetHtml,/Ажилтны эрх/);
+  assert.match(sheetHtml,/Бүх эрх/);
   assert.match(sheetHtml,/Хасах/);
   assert.doesNotMatch(sheetHtml,/name@gmail\.com|＋ Гишүүн урих/,'old invite UI must be gone');
 
@@ -90,7 +94,7 @@ vm.runInContext(fs.readFileSync(path.join(__dirname,'..','share.js'),'utf8'),con
   assert.equal(inviteCalls[0].name,'send-store-invite');
   assert.equal(inviteCalls[0].options.body.store_id,'store-1');
   assert.equal(inviteCalls[0].options.body.email,'member@example.com');
-  assert.deepEqual(JSON.parse(JSON.stringify(inviteCalls[0].options.body.permissions)),{customers:'edit',invoices:'view',payments:'none',loans:'view'});
+  assert.deepEqual(JSON.parse(JSON.stringify(inviteCalls[0].options.body.permissions)),{customers:'edit',invoices:'view',payments:'none',loans:'view',staff:'edit'});
   assert.match(sheetHtml,/Урилга илгээгдлээ/);
   assert.match(sheetHtml,/member@example\.com/);
   assert.match(sheetHtml,/invite-token/);
@@ -110,7 +114,7 @@ vm.runInContext(fs.readFileSync(path.join(__dirname,'..','share.js'),'utf8'),con
   const updateCall=rpcCalls.find(call=>call.name==='update_store_member_permissions');
   assert.equal(updateCall.args.p_store_id,'store-1');
   assert.equal(updateCall.args.p_user_id,'member-1');
-  assert.deepEqual(JSON.parse(JSON.stringify(updateCall.args.p_permissions)),{customers:'view',invoices:'edit',payments:'none',loans:'none'});
+  assert.deepEqual(JSON.parse(JSON.stringify(updateCall.args.p_permissions)),{customers:'view',invoices:'edit',payments:'none',loans:'none',staff:'edit'});
 
   context.window.confirmRemoveStoreMember('member-1');
   assert.match(sheetHtml,/Гишүүн хасах/);

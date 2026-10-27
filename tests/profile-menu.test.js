@@ -68,6 +68,7 @@ context.window.__nayadUser={
   id:'user-1',email:'namka@example.com',
   user_metadata:{full_name:'Namka',login_phone:'+97699112233'}
 };
+context.window.__nayadCan=()=>true;
 context.window.__nayadActiveStore={id:'store-1',name:'Namka store',role:'owner'};
 context.window.getCurrentUserProfile=()=>({name:'Namka',avatar:'',provider:'email'});
 context.window.showNayadStorePicker=()=>{storePickerCalls++;};
@@ -156,7 +157,7 @@ assert.match(indexSource,/class="homeActiveStore"/,'home must keep a compact act
 assert.doesNotMatch(indexSource,/class="homeShareBtn"|class="logoutIconButton"/,'home/header must not keep the old standalone actions');
 assert.doesNotMatch(storeSource,/storeSwitcherButton/,'large active-store switcher must be removed');
 assert.doesNotMatch(shareSource,/function addShareButton/,'sharing must only be exposed through the profile drawer');
-assert.match(indexSource,/\.\/profile-menu\.js\?v=9/,'profile drawer must include employee and payroll access');
+assert.match(indexSource,/\.\/profile-menu\.js\?v=10/,'profile drawer must include employee and payroll access');
 assert.match(indexSource,/\.\/subscription\.js\?v=5/,'subscription flow must load after the app modules');
 
 console.log('profile-menu: PASS — store/profile actions live in the right drawer with logout at the bottom');

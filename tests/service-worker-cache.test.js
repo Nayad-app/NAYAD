@@ -38,8 +38,8 @@ const indexDeleteAsset=indexSource.match(/\.\/registration-delete\.js\?v=(\d+)/)
 assert.ok(deleteAsset,'the active-registration deletion code must be cached for the installed app');
 assert.ok(indexDeleteAsset,'the active-registration deletion code must load in the live document');
 assert.equal(indexDeleteAsset[1],deleteAsset[1],'index and service worker must load the same registration deletion code');
-assert.match(swSource,/\.\/store-switcher\.js\?v=68/);
-assert.match(indexSource,/\.\/store-switcher\.js\?v=68/,'index and service worker must load the same store switcher');
+assert.match(swSource,/\.\/store-switcher\.js\?v=69/);
+assert.match(indexSource,/\.\/store-switcher\.js\?v=69/,'index and service worker must load the same store switcher');
 assert.match(swSource,/\.\/store-recovery\.js\?v=57/);
 assert.match(indexSource,/\.\/store-recovery\.js\?v=57/,'store recovery must be loaded directly, not only injected by the service worker');
 assert.match(swSource,/\.\/auth-guard\.js\?v=58/);
@@ -58,10 +58,10 @@ assert.match(swSource,/\.\/contact-types\.js\?v=32/);
 assert.match(indexSource,/\.\/contact-types\.js\?v=32/,'index and service worker must load the contact type module');
 assert.match(swSource,/\.\/supplier-cloud\.js\?v=64/);
 assert.match(indexSource,/\.\/supplier-cloud\.js\?v=64/,'index and service worker must load the same supplier code');
-assert.match(swSource,/\.\/share\.js\?v=40/);
-assert.match(indexSource,/\.\/share\.js\?v=40/,'index and service worker must load the same sharing code');
-assert.match(swSource,/\.\/profile-menu\.js\?v=9/);
-assert.match(indexSource,/\.\/profile-menu\.js\?v=9/,'index and service worker must load the profile drawer');
+assert.match(swSource,/\.\/share\.js\?v=41/);
+assert.match(indexSource,/\.\/share\.js\?v=41/,'index and service worker must load the same sharing code');
+assert.match(swSource,/\.\/profile-menu\.js\?v=10/);
+assert.match(indexSource,/\.\/profile-menu\.js\?v=10/,'index and service worker must load the profile drawer');
 assert.match(swSource,/\.\/admin-dashboard\.js\?v=2/);
 assert.match(indexSource,/\.\/admin-dashboard\.js\?v=2/,'index and service worker must load the timestamped payment dashboard');
 assert.match(swSource,/\.\/subscription\.js\?v=5/);
@@ -79,8 +79,8 @@ for(const asset of ['./registration-onboarding.js?v=2',deleteAsset[0],'./store-r
   assert.equal(patchedTwice.split(asset).length-1,1,`${asset} must be injected exactly once`);
 }
 assert.ok(
-  patchedTwice.indexOf('./registration-onboarding.js?v=2')<patchedTwice.indexOf('./store-switcher.js?v=68')&&
-  patchedTwice.indexOf('./store-switcher.js?v=68')<patchedTwice.indexOf('./store-recovery.js?v=57')&&
+  patchedTwice.indexOf('./registration-onboarding.js?v=2')<patchedTwice.indexOf('./store-switcher.js?v=69')&&
+  patchedTwice.indexOf('./store-switcher.js?v=69')<patchedTwice.indexOf('./store-recovery.js?v=57')&&
   patchedTwice.indexOf('./store-recovery.js?v=57')<patchedTwice.indexOf(deleteAsset[0])&&
   patchedTwice.indexOf(deleteAsset[0])<patchedTwice.indexOf('./auth-guard.js?v=58')&&
   patchedTwice.indexOf('./auth-guard.js?v=58')<patchedTwice.indexOf('./money-input.js?v=1')&&
@@ -88,14 +88,14 @@ assert.ok(
   patchedTwice.indexOf('./cloud-runtime.js?v=59')<patchedTwice.indexOf('./invoice-cloud.js?v=80'),
   'legacy documents must receive the same safe store/auth/cloud script order'
 );
-assert.equal(patchedTwice.split('./profile-menu.js?v=9').length-1,1,'profile drawer must be injected exactly once');
-assert.equal(patchedTwice.split('./staff-payroll.js?v=13').length-1,1,'staff payroll must be injected exactly once');
+assert.equal(patchedTwice.split('./profile-menu.js?v=10').length-1,1,'profile drawer must be injected exactly once');
+assert.equal(patchedTwice.split('./staff-payroll.js?v=14').length-1,1,'staff payroll must be injected exactly once');
 assert.equal(patchedTwice.split('./admin-dashboard.js?v=2').length-1,1,'admin dashboard must be injected exactly once');
 assert.equal(patchedTwice.split('./subscription.js?v=5').length-1,1,'subscription flow must be injected exactly once');
 assert.ok(patchedTwice.indexOf('./subscription.js?v=5')<patchedTwice.indexOf('./member-permissions.js?v=2'),'permission guard must load after all feature modules');
 assert.equal(patchedTwice.split('./loans.js?v=13').length-1,1,'loan module must be injected exactly once');
-assert.ok(patchedTwice.indexOf('./share.js?v=40')<patchedTwice.indexOf('./staff-payroll.js?v=13'),'staff payroll must load after sharing actions');
-assert.ok(patchedTwice.indexOf('./staff-payroll.js?v=13')<patchedTwice.indexOf('./profile-menu.js?v=9'),'profile drawer must load after staff payroll');
+assert.ok(patchedTwice.indexOf('./share.js?v=41')<patchedTwice.indexOf('./staff-payroll.js?v=14'),'staff payroll must load after sharing actions');
+assert.ok(patchedTwice.indexOf('./staff-payroll.js?v=14')<patchedTwice.indexOf('./profile-menu.js?v=10'),'profile drawer must load after staff payroll');
 
 async function dispatch(request){
   let responsePromise;
@@ -137,4 +137,4 @@ assert.equal(patchedTwice.split('./loan-payment.js?v=3').length-1,1);
 
 const existingStaff=context.patchDocument('<body><script src="./staff-hub.js?v=3"></script><script src="./staff-payroll.js?v=4"></script></body>');
 assert.ok(!existingStaff.includes('staff-payroll.js?v=4'));
-assert.ok(existingStaff.indexOf('staff-time.js?v=2')<existingStaff.indexOf('staff-payroll.js?v=13'));
+assert.ok(existingStaff.indexOf('staff-time.js?v=2')<existingStaff.indexOf('staff-payroll.js?v=14'));

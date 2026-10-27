@@ -67,7 +67,7 @@
     return isComplete(store)?store:null;
   }
   function roleLabel(role){return role==='owner'?'Эзэмшигч':'Гишүүн';}
-  const PERMISSION_MODULES=['customers','invoices','payments','loans'];
+  const PERMISSION_MODULES=['customers','invoices','payments','loans','staff'];
   function normalizedPermissions(value,role=''){
     const hasExplicit=value&&typeof value==='object';
     const source=hasExplicit?value:(role==='owner'||role==='manager'
@@ -77,6 +77,7 @@
     PERMISSION_MODULES.forEach(module=>{result[module]=['none','view','edit'].includes(source[module])?source[module]:'none';});
     if(result.payments==='edit'&&result.invoices==='none')result.invoices='view';
     if(result.customers==='none'&&(result.invoices!=='none'||result.payments!=='none'))result.customers='view';
+    result.staff=source.staff==='edit'?'edit':'none';
     return result;
   }
   function can(module,action='view'){

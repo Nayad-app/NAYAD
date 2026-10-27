@@ -20,7 +20,7 @@ const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (
   "'": "&#39;",
 }[character] ?? character));
 
-const permissionModules = ["customers", "invoices", "payments", "loans"] as const;
+const permissionModules = ["customers", "invoices", "payments", "loans", "staff"] as const;
 const normalizePermissions = (value: unknown) => {
   const legacyDefault: Record<string, unknown> = { customers: "view", invoices: "view", payments: "view", loans: "none" };
   const source = value === undefined || value === null
@@ -35,6 +35,7 @@ const normalizePermissions = (value: unknown) => {
   if (result.customers === "none" && (result.invoices !== "none" || result.payments !== "none")) {
     result.customers = "view";
   }
+  result.staff = source.staff === "edit" ? "edit" : "none";
   return result;
 };
 

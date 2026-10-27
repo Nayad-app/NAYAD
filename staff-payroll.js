@@ -87,7 +87,7 @@
   function install(){if(!document.getElementById('nayad-staff-style'))document.head.insertAdjacentHTML('beforeend',STYLE);}
   function root(){let el=document.getElementById('staffRoot');if(!el){el=document.createElement('div');el.id='staffRoot';el.className='staffRoot';document.body.appendChild(el);}return el;}
   function close(){document.getElementById('appPrintSheet')?.remove();window.NayadHub?.stop();clearInterval(state.timer);state.timer=null;document.getElementById('staffRoot')?.remove();document.body.classList.remove('staffOpen');}
-  async function open(){document.getElementById('appPrintSheet')?.remove();if(!storeId())return window.toast?.('Дэлгүүрээ сонгоно уу.');install();document.body.classList.add('staffOpen');root().innerHTML=shell('<div class="staffEmpty">Ачаалж байна…</div>');await load();render();}
+  async function open(){if(!window.__nayadCan?.('staff','edit'))return window.toast?.('Ажилтан удирдах эрхгүй байна.');document.getElementById('appPrintSheet')?.remove();if(!storeId())return window.toast?.('Дэлгүүрээ сонгоно уу.');install();document.body.classList.add('staffOpen');root().innerHTML=shell('<div class="staffEmpty">Ачаалж байна…</div>');await load();render();}
   function shell(body,title='Ажилтан, цалин',back='NayadStaff.close()'){return `<div class="staffShell"><div class="staffHead"><button type="button" onclick="${back}" aria-label="Буцах">←</button><h1>${esc(title)}</h1></div><div class="staffStore">${window.NayadApplications?.icon||''} ${esc(store()?.name||'Дэлгүүр')}</div>${body}</div>`;}
   async function load(){state.loading=true;try{const id=storeId(),start=today().slice(0,8)+'01';const [employees,attendance,settings,schedules,lateRules]=await Promise.all([sb().from('staff_employees').select('*').eq('store_id',id).eq('active',true).order('name'),sb().from('staff_attendance').select('*').eq('store_id',id).gte('work_date',start).order('work_date',{ascending:false}),sb().rpc('staff_ensure_settings',{p_store_id:id}),sb().from('staff_schedule_history').select('*').eq('store_id',id).order('effective_from',{ascending:false}),sb().from('staff_late_rules').select('*').eq('store_id',id)]);if(employees.error)throw employees.error;if(attendance.error)throw attendance.error;if(settings.error)throw settings.error;if(schedules.error)throw schedules.error;if(lateRules.error)throw lateRules.error;state.lateRules=lateRules.data||[];state.schedules=schedules.data||[];state.employees=employees.data||[];state.attendance=attendance.data||[];state.settings=settings.data||null;}catch(error){console.error('Staff load:',error);window.toast?.(error.message||'Ажилтны мэдээлэл ачаалсангүй.');}finally{state.loading=false;}}
   function tabs(){return `<div class="staffTabs">${[['employees','Ажилтан'],['time','Цаг'],['salary','Цалин'],['chat','Чат']].map(([key,label])=>`<button class="${state.tab===key?'active':''}" onclick="NayadStaff.tab('${key}')">${label}</button>`).join('')}</div>`;}
@@ -176,7 +176,7 @@
     });
     document.body.appendChild(button);
     function update(){
-      button.hidden=!app.getClientRects().length||getComputedStyle(app).display==='none'||!nav.querySelector('[data-page="home"].active');
+      button.hidden=!window.__nayadCan?.('staff','edit')||!app.getClientRects().length||getComputedStyle(app).display==='none'||!nav.querySelector('[data-page="home"].active');
       const rect=nav.getBoundingClientRect();
       button.style.bottom=rect.top>innerHeight/2?Math.max(18,innerHeight-rect.top+18)+'px':'max(24px, env(safe-area-inset-bottom))';
     }

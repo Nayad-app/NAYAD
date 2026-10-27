@@ -132,7 +132,7 @@
     const email=user.email||'';
     const contact=phone?`Утас: ${esc(phone)}`:(email?esc(email):esc(p.provider||'Нэвтрэлт'));
     const avatar=p.avatar?`<img class="profileMenuAvatar" src="${esc(p.avatar)}" alt="">`:`<div class="profileMenuAvatar">${cameraIcon}</div>`;
-    const canManageStaff=['owner','manager'].includes(activeStore()?.role||'');
+    const canManageStaff=Boolean(window.__nayadCan?.('staff','edit'));
     return `<div class="profileMenuLayout"><div class="profileMenuHeader"><b id="profileMenuTitle">Цэс</b><button class="profileMenuClose" type="button" onclick="closeProfileMenu()" aria-label="Цэс хаах"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><button class="profileMenuUser" type="button" onclick="profileMenuAction('settings')" aria-label="Профайлын тохиргоо">${avatar}<div class="profileMenuUserMeta"><b>${esc(p.name||'Нэр тодорхойгүй')}</b><span>${contact}</span></div></button><div class="profileMenuActions">${action(ICONS.switch,'Дэлгүүр солих','','store')}${action(ICONS.share,'Дэлгүүр хуваалцах','','share')}${canManageStaff?action(ICONS.staff,'Ажилтан, цалин','','staff'):''}</div><div class="profileMenuActions">${themeControl()}${action(ICONS.bell,'Notification','','notifications')}</div>${upgradeControl()}<div class="profileMenuActions">${action(ICONS.report,'Тайлан','','reports')}</div><div class="profileMenuActions">${supportControl()}</div><div class="profileMenuSpacer"></div><button class="profileMenuLogout" type="button" onclick="profileMenuAction('logout')">${ICONS.logout}<span>Гарах</span></button></div>`;
   }
 

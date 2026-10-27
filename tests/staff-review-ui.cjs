@@ -2,7 +2,7 @@ const {JSDOM}=require('jsdom'),fs=require('fs'),assert=require('node:assert/stri
 (async()=>{const dom=new JSDOM('<!doctype html><body></body>',{url:'https://test.invalid/',runScripts:'outside-only'}),w=dom.window;
 const e={id:'employee',name:'Бат',phone:'12345678',wage_type:'hourly',hourly_rate:7000,daily_hours:9,overtime_multiplier:1.5,pay_days:[10,25],updated_at:'2026-01-01T00:00:00Z'};
 const h={id:'schedule',employee_id:e.id,effective_from:'2026-01-01',start_time:'09:00:00',end_time:'18:00:00',created_at:'2026-01-01T00:00:00Z'};
-let calls=[],rows=[];w.__nayadActiveStore={id:'store',name:'Жишээ дэлгүүр'};w.toast=msg=>{w.lastToast=msg};
+let calls=[],rows=[];w.__nayadCan=()=>true;w.__nayadActiveStore={id:'store',name:'Жишээ дэлгүүр'};w.toast=msg=>{w.lastToast=msg};
 w.nayadSupabase={from(table){let filters={};const q={select(){return q},eq(k,v){filters[k]=v;return q},gte(){return q},lt(){return q},order(){return q},maybeSingle(){return Promise.resolve({data:rows.find(r=>r.work_date===filters.work_date)||null,error:null})},then(resolve){return Promise.resolve({data:table==='staff_employees'?[e]:table==='staff_schedule_history'?[h]:table==='staff_late_rules'?[]:rows,error:null}).then(resolve)}};return q},async rpc(name,args){calls.push({name,args});return {data:name==='staff_ensure_settings'?{}:name==='staff_hub'?{media:[]}:null,error:null}}};
 for(const file of ['staff-time.js','staff-payroll.js'])w.eval(fs.readFileSync(file,'utf8'));
 await w.NayadStaff.open();w.NayadStaff.edit(e.id);assert.equal(w.document.querySelector('#staffStart').value,'09:00');assert.equal(w.document.querySelectorAll('.staffPayDay').length,2);

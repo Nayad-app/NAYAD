@@ -42,7 +42,8 @@
     {key:'customers',label:'Харилцагч'},
     {key:'invoices',label:'Падаан'},
     {key:'payments',label:'Төлөлт'},
-    {key:'loans',label:'Зээл'}
+    {key:'loans',label:'Зээл'},
+    {key:'staff',label:'Ажилтны эрх'}
   ];
   const DEFAULT_PERMISSIONS={customers:'view',invoices:'view',payments:'view',loans:'none'};
   function normalizePermissions(value){
@@ -51,13 +52,13 @@
     MODULES.forEach(({key})=>{result[key]=['none','view','edit'].includes(source[key])?source[key]:'none';});
     if(result.payments==='edit'&&result.invoices==='none')result.invoices='view';
     if(result.customers==='none'&&(result.invoices!=='none'||result.payments!=='none'))result.customers='view';
-    return result;
+    result.staff=source.staff==='edit'?'edit':'none';return result;
   }
   function levelOptions(selected){return [['none','Харахгүй'],['view','Зөвхөн харах'],['edit','Нэмэх, засах']].map(([value,label])=>`<option value="${value}" ${selected===value?'selected':''}>${label}</option>`).join('');}
-  function permissionControls(prefix,permissions){const value=normalizePermissions(permissions);return `<div class="sharePermissionBox">${MODULES.map(({key,label})=>`<label class="sharePermissionRow"><b>${label}</b><select id="${prefix}${key}" onchange="syncStorePermissionControls('${prefix}')">${levelOptions(value[key])}</select></label>`).join('')}</div><div class="sharePermissionHint">Падаан эсвэл төлөлт харах эрх өгвөл харилцагчийн нэр мөн харагдана. Төлөлт засахад падааны харах эрх автоматаар нэмэгдэнэ. Мэдээлэл бүр мөсөн устгах эрх зөвхөн дэлгүүрийн эзэнд байна.</div>`;}
+  function permissionControls(prefix,permissions){const value=normalizePermissions(permissions);return `<div class="sharePermissionBox">${MODULES.map(({key,label})=>`<label class="sharePermissionRow"><b>${label}</b><select id="${prefix}${key}" onchange="syncStorePermissionControls('${prefix}')">${key==='staff'?[['none','Хаалттай'],['edit','Бүх эрх']].map(([v,l])=>`<option value="${v}" ${value[key]===v?'selected':''}>${l}</option>`).join(''):levelOptions(value[key])}</select></label>`).join('')}</div><div class="sharePermissionHint">Падаан эсвэл төлөлт харах эрх өгвөл харилцагчийн нэр мөн харагдана. Төлөлт засахад падааны харах эрх автоматаар нэмэгдэнэ. Ажилтны эрх нь ажилтан, цаг, цалин, анкетыг бүрэн удирдах эрх өгнө. Бусад хэсгийн мэдээлэл устгах эрх зөвхөн эзэнд байна.</div>`;}
   function readPermissions(prefix){const value={};MODULES.forEach(({key})=>{value[key]=document.getElementById(prefix+key)?.value||'none';});return normalizePermissions(value);}
   function syncPermissionControls(prefix){const value=readPermissions(prefix);MODULES.forEach(({key})=>{const select=document.getElementById(prefix+key);if(select)select.value=value[key];});}
-  function permissionSummary(value){const permissions=normalizePermissions(value);return MODULES.filter(({key})=>permissions[key]!=='none').map(({key,label})=>`${label}: ${permissions[key]==='edit'?'засах':'харах'}`).join(' · ')||'Эрх өгөөгүй';}
+  function permissionSummary(value){const permissions=normalizePermissions(value);return MODULES.filter(({key})=>permissions[key]!=='none').map(({key,label})=>`${label}: ${key==='staff'?'бүх эрх':permissions[key]==='edit'?'засах':'харах'}`).join(' · ')||'Эрх өгөөгүй';}
 
   async function getStore(){
     const client=sb(); if(!client)return null;

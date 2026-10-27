@@ -1,5 +1,5 @@
 // Refresh the per-store background picker and store-switch hooks.
-const CACHE = "nayad-v238";
+const CACHE = "nayad-v239";
 
 const ASSETS = [
   "./",
@@ -15,21 +15,21 @@ const ASSETS = [
   "./money-input.js?v=1",
   "./image-compress.js?v=1",
   "./registration-onboarding.js?v=2",
-  "./store-switcher.js?v=68",
+  "./store-switcher.js?v=69",
   "./store-background.js?v=1",
   "./store-recovery.js?v=57",
   "./registration-delete.js?v=2",
   "./cloud-runtime.js?v=59",
   "./auth-guard.js?v=58",
   "./mobile-fix.js?v=46",
-  "./share.js?v=40",
+  "./share.js?v=41",
   "./vendor/qrcode.js?v=1",
   "./staff-hub.js?v=3",
   "./staff-time.js?v=2",
-  "./staff-payroll.js?v=13",
+  "./staff-payroll.js?v=14",
   "./staff-salary.js?v=1",
   "./staff-applications.js?v=1",
-  "./profile-menu.js?v=9",
+  "./profile-menu.js?v=10",
   "./notification-settings.js?v=1",
   "./admin-dashboard.js?v=2",
   "./subscription.js?v=5",
@@ -96,18 +96,18 @@ function patchDocument(html){
   html=html.includes("/section-router.js")?html:html.replace('<head>','<head><script src="/section-router.js?v=4"></script>');
   html=html.replace(/\.\/staff-hub\.js\?v=\d+/g,"./staff-hub.js?v=3");
   html=html.replace(/\.\/staff-time\.js\?v=\d+/g,"./staff-time.js?v=2");
-  html=html.replace(/\.\/staff-payroll\.js\?v=\d+/g,"./staff-payroll.js?v=13");
+  html=html.replace(/\.\/staff-payroll\.js\?v=\d+/g,"./staff-payroll.js?v=14");
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=39");
   patched=patched.replace(/\.\/money-input\.js\?v=\d+/g,"./money-input.js?v=1");
   patched=patched.replace(/\.\/registration-onboarding\.js\?v=\d+/g,"./registration-onboarding.js?v=2");
-  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=68");
+  patched=patched.replace(/\.\/store-switcher\.js\?v=\d+/g,"./store-switcher.js?v=69");
   patched=patched.replace(/\.\/store-recovery\.js\?v=\d+/g,"./store-recovery.js?v=57");
   patched=patched.replace(/\.\/registration-delete\.js\?v=\d+/g,"./registration-delete.js?v=2");
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=59");
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=58");
-  patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=40");
-  patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=9");
+  patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=41");
+  patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=10");
   patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=2");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=5");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=80");
@@ -117,19 +117,19 @@ function patchDocument(html){
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=13");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=80","./money-input.js?v=1");
   patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=32");
-  patched=injectScriptBefore(patched,"./store-switcher.js?v=68","./registration-onboarding.js?v=2");
-  patched=injectScriptAfter(patched,"./store-switcher.js?v=68","./store-recovery.js?v=57");
+  patched=injectScriptBefore(patched,"./store-switcher.js?v=69","./registration-onboarding.js?v=2");
+  patched=injectScriptAfter(patched,"./store-switcher.js?v=69","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
   patched=injectScriptAfter(patched,"./registration-delete.js?v=2","./auth-guard.js?v=58");
-  patched=injectScriptAfter(patched,"./share.js?v=40","./vendor/qrcode.js?v=1");
+  patched=injectScriptAfter(patched,"./share.js?v=41","./vendor/qrcode.js?v=1");
   patched=injectScriptAfter(patched,"./vendor/qrcode.js?v=1","./staff-hub.js?v=3");
   patched=injectScriptAfter(patched,"./staff-hub.js?v=3","./staff-time.js?v=2");
-  patched=injectScriptAfter(patched,"./staff-time.js?v=2","./staff-payroll.js?v=13");
-  patched=injectScriptAfter(patched,"./staff-payroll.js?v=13","./staff-salary.js?v=1");
+  patched=injectScriptAfter(patched,"./staff-time.js?v=2","./staff-payroll.js?v=14");
+  patched=injectScriptAfter(patched,"./staff-payroll.js?v=14","./staff-salary.js?v=1");
   patched=injectScriptAfter(patched,"./staff-salary.js?v=1","./staff-applications.js?v=1");
-  patched=injectScriptAfter(patched,"./staff-applications.js?v=1","./profile-menu.js?v=9");
-  patched=injectScriptAfter(patched,"./profile-menu.js?v=9","./admin-dashboard.js?v=2");
-  patched=injectScriptAfter(patched,"./profile-menu.js?v=9","./notification-settings.js?v=1");
+  patched=injectScriptAfter(patched,"./staff-applications.js?v=1","./profile-menu.js?v=10");
+  patched=injectScriptAfter(patched,"./profile-menu.js?v=10","./admin-dashboard.js?v=2");
+  patched=injectScriptAfter(patched,"./profile-menu.js?v=10","./notification-settings.js?v=1");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=80","./payment-center.js?v=33");
