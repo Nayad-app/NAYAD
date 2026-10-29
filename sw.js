@@ -1,5 +1,5 @@
 // Refresh the per-store background picker and store-switch hooks.
-const CACHE = "nayad-v240";
+const CACHE = "nayad-v241";
 
 const ASSETS = [
   "./",
@@ -29,7 +29,7 @@ const ASSETS = [
   "./staff-payroll.js?v=15",
   "./staff-salary.js?v=1",
   "./staff-applications.js?v=1",
-  "./staff-self-service.js?v=1",
+  "./staff-self-service.js?v=2",
   "./profile-menu.js?v=10",
   "./notification-settings.js?v=1",
   "./admin-dashboard.js?v=2",
@@ -128,7 +128,7 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./staff-time.js?v=2","./staff-payroll.js?v=15");
   patched=injectScriptAfter(patched,"./staff-payroll.js?v=15","./staff-salary.js?v=1");
   patched=injectScriptAfter(patched,"./staff-salary.js?v=1","./staff-applications.js?v=1");
-  patched=injectScriptAfter(patched,"./staff-applications.js?v=1","./staff-self-service.js?v=1");
+  patched=injectScriptAfter(patched,"./staff-applications.js?v=1","./staff-self-service.js?v=2");
   patched=injectScriptAfter(patched,"./staff-applications.js?v=1","./profile-menu.js?v=10");
   patched=injectScriptAfter(patched,"./profile-menu.js?v=10","./admin-dashboard.js?v=2");
   patched=injectScriptAfter(patched,"./profile-menu.js?v=10","./notification-settings.js?v=1");
