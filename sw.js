@@ -1,5 +1,5 @@
 // Refresh the per-store background picker and store-switch hooks.
-const CACHE = "nayad-v239";
+const CACHE = "nayad-v240";
 
 const ASSETS = [
   "./",
@@ -24,11 +24,12 @@ const ASSETS = [
   "./mobile-fix.js?v=46",
   "./share.js?v=41",
   "./vendor/qrcode.js?v=1",
-  "./staff-hub.js?v=3",
+  "./staff-hub.js?v=4",
   "./staff-time.js?v=2",
-  "./staff-payroll.js?v=14",
+  "./staff-payroll.js?v=15",
   "./staff-salary.js?v=1",
   "./staff-applications.js?v=1",
+  "./staff-self-service.js?v=1",
   "./profile-menu.js?v=10",
   "./notification-settings.js?v=1",
   "./admin-dashboard.js?v=2",
@@ -94,9 +95,9 @@ function injectCloudRuntimeBeforeCloudModules(html){
 function patchDocument(html){
   html=html.includes('<base href="/">')?html:html.replace('<head>','<head><base href="/">');
   html=html.includes("/section-router.js")?html:html.replace('<head>','<head><script src="/section-router.js?v=4"></script>');
-  html=html.replace(/\.\/staff-hub\.js\?v=\d+/g,"./staff-hub.js?v=3");
+  html=html.replace(/\.\/staff-hub\.js\?v=\d+/g,"./staff-hub.js?v=4");
   html=html.replace(/\.\/staff-time\.js\?v=\d+/g,"./staff-time.js?v=2");
-  html=html.replace(/\.\/staff-payroll\.js\?v=\d+/g,"./staff-payroll.js?v=14");
+  html=html.replace(/\.\/staff-payroll\.js\?v=\d+/g,"./staff-payroll.js?v=15");
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=39");
   patched=patched.replace(/\.\/money-input\.js\?v=\d+/g,"./money-input.js?v=1");
@@ -122,11 +123,12 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
   patched=injectScriptAfter(patched,"./registration-delete.js?v=2","./auth-guard.js?v=58");
   patched=injectScriptAfter(patched,"./share.js?v=41","./vendor/qrcode.js?v=1");
-  patched=injectScriptAfter(patched,"./vendor/qrcode.js?v=1","./staff-hub.js?v=3");
-  patched=injectScriptAfter(patched,"./staff-hub.js?v=3","./staff-time.js?v=2");
-  patched=injectScriptAfter(patched,"./staff-time.js?v=2","./staff-payroll.js?v=14");
-  patched=injectScriptAfter(patched,"./staff-payroll.js?v=14","./staff-salary.js?v=1");
+  patched=injectScriptAfter(patched,"./vendor/qrcode.js?v=1","./staff-hub.js?v=4");
+  patched=injectScriptAfter(patched,"./staff-hub.js?v=4","./staff-time.js?v=2");
+  patched=injectScriptAfter(patched,"./staff-time.js?v=2","./staff-payroll.js?v=15");
+  patched=injectScriptAfter(patched,"./staff-payroll.js?v=15","./staff-salary.js?v=1");
   patched=injectScriptAfter(patched,"./staff-salary.js?v=1","./staff-applications.js?v=1");
+  patched=injectScriptAfter(patched,"./staff-applications.js?v=1","./staff-self-service.js?v=1");
   patched=injectScriptAfter(patched,"./staff-applications.js?v=1","./profile-menu.js?v=10");
   patched=injectScriptAfter(patched,"./profile-menu.js?v=10","./admin-dashboard.js?v=2");
   patched=injectScriptAfter(patched,"./profile-menu.js?v=10","./notification-settings.js?v=1");

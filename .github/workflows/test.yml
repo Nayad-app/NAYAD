@@ -36,3 +36,6 @@ jobs:
       - run: PGLITE_MODULE="$PWD/tests/push-validation/node_modules/@electric-sql/pglite/dist/index.js" node tests/statement-activity.sql-test.mjs
 
       - run: NODE_PATH="$PWD/tests/push-validation/node_modules" node tests/staff-permissions-database.cjs
+
+      - run: NODE_PATH="$PWD/tests/push-validation/node_modules" node tests/staff-self-service-database.cjs
+      - run: NODE_PATH="$PWD/tests/push-validation/node_modules" node tests/staff-self-service-ui.cjs

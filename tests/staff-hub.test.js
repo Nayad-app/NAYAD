@@ -7,8 +7,8 @@ const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
 const hub=fs.readFileSync(path.join(root,'staff-hub.js'),'utf8');
 const migration=fs.readFileSync(path.join(root,'supabase/migrations/20261016070800_expose_staff_phone_in_hub.sql'),'utf8');
 
-assert.match(html,/staff-hub\.js\?v=3/,'the live app must load the phone-enabled staff hub');
-assert.match(sw,/staff-hub\.js\?v=3/,'the installed app must cache the phone-enabled staff hub');
+assert.match(html,/staff-hub\.js\?v=4/,'the live app must load the phone-enabled staff hub');
+assert.match(sw,/staff-hub\.js\?v=4/,'the installed app must cache the phone-enabled staff hub');
 assert.match(hub,/staff_hub_contacts/,'the chat list must fetch store-scoped employee phone numbers');
 assert.match(hub,/href="tel:\+976/,'the call control must use a direct Mongolia telephone link');
 assert.match(hub,/class="hubChatOpen"/,'the employee name area must remain a separate chat target');
