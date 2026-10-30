@@ -72,7 +72,7 @@
   function photoUrl(user){
     const path=user?.user_metadata?.avatar_path;if(!path||!user?.id||!path.startsWith(user.id+'/'))return '';
     const key=user.id+':'+path;if(photoCache.key===key&&photoCache.until>Date.now())return photoCache.url;
-    if(photoPending!==key){photoPending=key;const client=window.nayadSupabase;
+    if(photoPending!==key){const client=window.nayadSupabase;if(!client)return '';photoPending=key;
       if(client)client.storage.from(PHOTO_BUCKET).createSignedUrl(path,3600).then(({data,error})=>{
         if(photoPending===key)photoPending='';if(window.__nayadUser?.id!==user.id||window.__nayadUser?.user_metadata?.avatar_path!==path)return;
         photoCache={key,url:error?'':data?.signedUrl||'',until:Date.now()+(error?30000:3300000)};
@@ -81,25 +81,36 @@
     }return '';
   }
   function photoMarkup(){const p=profile();return p.avatar?`<img src="${esc(p.avatar)}" alt="Профайл зураг" style="width:72px;height:72px;border-radius:50%;object-fit:cover">`:cameraIcon;}
-  function photoFields(){return `<div class="profilePhotoSettings" style="display:flex;align-items:center;gap:14px;margin:16px 0"><span id="profilePhotoPreview" style="width:72px;height:72px;flex:0 0 72px;border-radius:50%;background:var(--surface-2,#eee);display:grid;place-items:center;overflow:hidden">${photoMarkup()}</span><div><button type="button" class="secondary" id="profilePhotoChoose" onclick="NayadProfilePhoto.choose()">Зураг сонгох / солих</button><div class="sub">Зураг сонгоход автоматаар хадгална.</div></div></div>`;}
+  function photoFields(){return `<div class="profilePhotoSettings" style="display:flex;align-items:center;gap:14px;margin:16px 0"><span id="profilePhotoPreview" style="width:72px;height:72px;flex:0 0 72px;border-radius:50%;background:var(--surface-2,#eee);display:grid;place-items:center;overflow:hidden">${photoMarkup()}</span><div><button type="button" class="secondary" id="profilePhotoChoose" onclick="NayadProfilePhoto.choose()">Зураг сонгох / солих</button><div class="sub">Зураг сонгоход автоматаар хадгална.</div></div></div><p id="profilePhotoStatus" role="status" aria-live="polite" style="font-size:13px;overflow-wrap:anywhere"></p>`;}
   function refreshPhotoPreview(){const el=document.getElementById('profilePhotoPreview');if(el)el.innerHTML=photoMarkup();}
   async function preparePhoto(file){
-    if(!file.type.startsWith('image/')||file.type==='image/svg+xml')throw Error('Зургийн файл сонгоно уу.');
-    if(file.size>10*1024*1024)throw Error('10 МБ-аас бага зураг сонгоно уу.');
+    if((file.type&&!file.type.startsWith('image/'))||file.type==='image/svg+xml'||(!file.type&&!/\.(jpe?g|png|webp|heic|heif|gif|avif)$/i.test(file.name||'')))throw Error('Зургийн файл сонгоно уу.');
+    if(file.size>30*1024*1024)throw Error('30 МБ-аас бага зураг сонгоно уу.');
     const url=URL.createObjectURL(file);try{const img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('Зургийг нээж чадсангүй. JPG эсвэл PNG зураг сонгоно уу.'));img.src=url;});const c=document.createElement('canvas');c.width=c.height=320;const ctx=c.getContext('2d'),size=Math.min(img.naturalWidth,img.naturalHeight);ctx.fillStyle='#fff';ctx.fillRect(0,0,320,320);ctx.drawImage(img,(img.naturalWidth-size)/2,(img.naturalHeight-size)/2,size,size,0,0,320,320);return await new Promise((resolve,reject)=>c.toBlob(blob=>blob?resolve(blob):reject(Error('Зураг бэлтгэж чадсангүй.')),'image/jpeg',.85));}finally{URL.revokeObjectURL(url);}
   }
+  function photoStatus(message,error=false){const node=document.getElementById('profilePhotoStatus');if(node){node.textContent=message;node.style.color=error?'var(--red,#b83232)':'var(--muted,#777)';}}
   async function savePhoto(file){
-    if(photoBusy||!file)return;const user=window.__nayadUser,client=window.nayadSupabase;if(!user?.id||!client)return;
-    photoBusy=true;const btn=document.getElementById('profilePhotoChoose');if(btn){btn.disabled=true;btn.textContent='Хадгалж байна…';}
+    if(photoBusy||!file)return;const user=window.__nayadUser,client=window.nayadSupabase;if(!user?.id||!client){photoStatus('Нэвтрэлт бэлэн болоогүй байна. Дахин нээгээд оролдоно уу.',true);return;}
+    photoBusy=true;photoStatus('Зургийг бэлтгэж байна…');const btn=document.getElementById('profilePhotoChoose');if(btn){btn.disabled=true;btn.textContent='Хадгалж байна…';}
     try{const blob=await preparePhoto(file);if(window.__nayadUser?.id!==user.id)throw Error('Нэвтрэлт өөрчлөгдсөн байна.');
+      photoStatus('Зургийг хадгалж байна…');
       const path=user.id+'/'+crypto.randomUUID()+'.jpg';const {error:uploadError}=await client.storage.from(PHOTO_BUCKET).upload(path,blob,{contentType:'image/jpeg',upsert:false});if(uploadError)throw uploadError;
       const {data:current,error:identityError}=await client.auth.getUser();if(identityError||current?.user?.id!==user.id||window.__nayadUser?.id!==user.id)throw Error('Нэвтрэлт өөрчлөгдсөн байна.');
       const {data,error}=await client.auth.updateUser({data:{avatar_path:path}});if(error)throw error;
-      if(window.__nayadUser?.id!==user.id)return;window.__nayadUser=data.user;photoCache={key:'',url:'',until:0};window.updateProfileUI?.();refreshPhotoPreview();window.toast?.('Профайл зураг хадгалагдлаа.');
+      if(window.__nayadUser?.id!==user.id)return;window.__nayadUser=data.user;photoCache={key:'',url:'',until:0};photoPending='';window.updateProfileUI?.();refreshPhotoPreview();photoStatus('Профайл зураг хадгалагдлаа.');window.toast?.('Профайл зураг хадгалагдлаа.');
       const old=user.user_metadata?.avatar_path;if(old&&old!==path&&old.startsWith(user.id+'/'))client.storage.from(PHOTO_BUCKET).remove([old]).catch(()=>{});
-    }catch(e){window.toast?.(e.message||'Зураг хадгалж чадсангүй.');}finally{photoBusy=false;if(btn){btn.disabled=false;btn.textContent='Зураг сонгох / солих';}}
+    }catch(e){const message=e.message||'Зураг хадгалж чадсангүй.';photoStatus(message,true);window.toast?.(message);}finally{photoBusy=false;if(btn){btn.disabled=false;btn.textContent='Зураг сонгох / солих';}}
   }
-  function choosePhoto(){if(photoBusy)return;const input=document.createElement('input');input.type='file';input.accept='image/*';input.onchange=()=>savePhoto(input.files?.[0]);input.click();}
+  function choosePhoto(){
+    if(photoBusy)return;
+    // Keep a connected, reusable input alive while iOS hands control to Photos.
+    let input=document.getElementById('nayadProfilePhotoInput');
+    if(!input){input=document.createElement('input');input.id='nayadProfilePhotoInput';input.type='file';input.accept='image/jpeg,image/png,image/webp,image/heic,image/heif';input.tabIndex=-1;input.setAttribute('aria-label','Профайл зураг сонгох');input.style.cssText='position:fixed;left:-10000px;top:0;width:1px;height:1px;opacity:0';document.body.append(input);
+      input.addEventListener('change',()=>{const file=input.files?.[0];input.value='';if(file)savePhoto(file);});
+      input.addEventListener('cancel',()=>{input.value='';});
+    }
+    input.value='';input.click();
+  }
   window.NayadProfilePhoto={url:photoUrl,fields:photoFields,choose:choosePhoto,save:savePhoto};
 
   function profile(){return typeof window.getCurrentUserProfile==='function'?window.getCurrentUserProfile():{name:'Профайл',avatar:''};}

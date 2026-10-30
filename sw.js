@@ -1,5 +1,5 @@
 // Refresh the per-store background picker and store-switch hooks.
-const CACHE = "nayad-v243";
+const CACHE = "nayad-v244";
 
 const ASSETS = [
   "./",
@@ -30,7 +30,7 @@ const ASSETS = [
   "./staff-salary.js?v=1",
   "./staff-applications.js?v=1",
   "./staff-self-service.js?v=2",
-  "./profile-menu.js?v=10",
+  "./profile-menu.js?v=11",
   "./notification-settings.js?v=1",
   "./admin-dashboard.js?v=2",
   "./subscription.js?v=5",
@@ -109,7 +109,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/cloud-runtime\.js\?v=\d+/g,"./cloud-runtime.js?v=59");
   patched=patched.replace(/\.\/auth-guard\.js\?v=\d+/g,"./auth-guard.js?v=58");
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=41");
-  patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=10");
+  patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=11");
   patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=2");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=5");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=80");
@@ -130,9 +130,9 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./staff-payroll.js?v=15","./staff-salary.js?v=1");
   patched=injectScriptAfter(patched,"./staff-salary.js?v=1","./staff-applications.js?v=1");
   patched=injectScriptAfter(patched,"./staff-applications.js?v=1","./staff-self-service.js?v=2");
-  patched=injectScriptAfter(patched,"./staff-applications.js?v=1","./profile-menu.js?v=10");
-  patched=injectScriptAfter(patched,"./profile-menu.js?v=10","./admin-dashboard.js?v=2");
-  patched=injectScriptAfter(patched,"./profile-menu.js?v=10","./notification-settings.js?v=1");
+  patched=injectScriptAfter(patched,"./staff-applications.js?v=1","./profile-menu.js?v=11");
+  patched=injectScriptAfter(patched,"./profile-menu.js?v=11","./admin-dashboard.js?v=2");
+  patched=injectScriptAfter(patched,"./profile-menu.js?v=11","./notification-settings.js?v=1");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=80","./payment-center.js?v=35");
