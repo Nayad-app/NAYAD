@@ -1,0 +1,25 @@
+const {PGlite}=require('@electric-sql/pglite'),fs=require('fs'),assert=require('node:assert/strict'),{randomUUID}=require('crypto');
+(async()=>{
+const db=new PGlite();await db.exec(`create role anon;create role authenticated;create schema auth;
+create function auth.uid() returns uuid language sql as $$select '11111111-1111-4111-8111-111111111111'::uuid$$;
+create function public.is_store_member(uuid) returns boolean language sql as $$select $1='22222222-2222-4222-8222-222222222222'::uuid$$;
+create table suppliers(id uuid primary key,store_id uuid);
+create table invoices(id uuid primary key,store_id uuid,supplier_id uuid,amount numeric,paid numeric default 0,status text default 'confirmed',invoice_date date,due_date date,created_at timestamptz default now(),updated_at timestamptz,discount_percent numeric default 0,discount_deadline date);
+create table payments(id uuid primary key,store_id uuid,supplier_id uuid,invoice_id uuid,payment_date date,amount numeric,method text,note text,created_by uuid,reference text,status text);
+create table payment_allocations(payment_id uuid,invoice_id uuid,cash_amount numeric,debt_reduction numeric,discount_amount numeric,unique(payment_id,invoice_id));
+create table invoice_agreements(invoice_id uuid,agreed_due_date date,status text);
+create table finance_audit_events(store_id uuid,entity_type text,entity_id uuid,action text,actor_id uuid,details jsonb);`);
+await db.exec(fs.readFileSync('supabase/migrations/20260822100000_invoice_discount_is_invoice_level.sql','utf8'));
+const store='22222222-2222-4222-8222-222222222222',supplier=randomUUID(),foreign=randomUUID(),old=randomUUID(),middle=randomUUID(),newest=randomUUID(),other=randomUUID();
+await db.query('insert into suppliers values($1,$3),($2,$3)',[supplier,foreign,store]);
+for(const [id,sid,amount,date] of [[old,supplier,427235,'2026-10-08'],[middle,supplier,438700,'2026-10-12'],[newest,supplier,532720,'2026-10-26'],[other,foreign,100000,'2026-10-01']])await db.query('insert into invoices(id,store_id,supplier_id,amount,invoice_date) values($1,$2,$3,$4,$5)',[id,store,sid,amount,date]);
+const pay=async(amount,allocations,date='2026-10-30')=>(await db.query('select * from post_supplier_payment_v11($1,$2,$3,$4,$5,null,null,$6)',[randomUUID(),supplier,amount,date,'Bank',JSON.stringify(allocations)])).rows[0];
+const paid=async id=>Number((await db.query('select paid from invoices where id=$1',[id])).rows[0].paid);
+let result=await pay(532720,[{invoice_id:newest,amount:532720}]);assert.equal(Number(result.remaining_balance),865935);assert.equal(await paid(newest),532720);assert.equal(await paid(old),0);assert.equal(await paid(middle),0);
+result=await pay(500000,[{invoice_id:old,amount:427235},{invoice_id:middle,amount:72765}]);assert.equal(Number(result.remaining_balance),365935);assert.equal(await paid(old),427235);assert.equal(await paid(middle),72765);
+const count=async()=>Number((await db.query('select count(*) n from payments')).rows[0].n),before=await count();
+await assert.rejects(()=>pay(1000,[{invoice_id:other,amount:1000}]),/not available/);await assert.rejects(()=>pay(1000,[{invoice_id:middle,amount:500}]),/fully allocated/);assert.equal(await count(),before);assert.equal(await paid(other),0);assert.equal(await paid(middle),72765);
+const discount=randomUUID();await db.query("insert into invoices(id,store_id,supplier_id,amount,paid,invoice_date,discount_percent,discount_deadline) values($1,$2,$3,1500000,455000,'2026-10-01',3,'2026-10-30')",[discount,store,supplier]);
+result=await pay(1000000,[{invoice_id:discount,amount:1000000}]);assert.equal(Number(result.discount_total),45000);assert.equal(await paid(discount),1500000);assert.equal(await paid(middle),72765);
+await db.close();console.log('payment-selection-database: PASS — only allocated invoices change, multi/partial payment, other supplier denial, transaction rollback, timely discount');
+})().catch(e=>{console.error(e);process.exit(1)});

@@ -8,16 +8,18 @@
   const cents=value=>Math.round((Number(value)||0)*100);
   const copyIcon='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="7" width="12" height="14" rx="2"/><path d="M8 3h10a2 2 0 0 1 2 2v12"/></svg>';
   function payableInvoices(company){return (company?.invoices||[]).filter(i=>isConfirmed(i)&&balanceOf(i)>0).sort((a,b)=>String(a.date||a.created_at||'9999').localeCompare(String(b.date||b.created_at||'9999'))||String(a.id).localeCompare(String(b.id)));}
-  function paymentPlan(company,value,date){
-    let left=cents(value),debt=0,limit=0,discount=0;const allocations=[],rows=[];
+  function paymentPlan(company,value,date,selectedIds=null){
+    let left=cents(value),debt=0,limit=0,allLimit=0,discount=0;const allocations=[],rows=[];
     for(const invoice of payableInvoices(company)){
       const balance=cents(balanceOf(invoice)),info=discountInfo(invoice,date),cash=cents(info.cash);
-      debt+=balance;limit+=cash;
+      debt+=balance;allLimit+=cash;
+      if(selectedIds&&!selectedIds.has(String(invoice.id)))continue;
+      limit+=cash;
       const paid=Math.min(Math.max(left,0),cash),saving=paid===cash&&paid>0?cents(info.saving):0;
       if(paid>0){allocations.push({invoice_id:invoice.id,amount:paid/100});left-=paid;discount+=saving;}
       rows.push({invoice,paid:paid/100,saving:saving/100,remaining:(balance-paid-saving)/100,payableRemaining:Math.max(cash-paid,0)/100});
     }
-    return {allocations,rows,debt:debt/100,limit:limit/100,discount:discount/100,excess:Math.max(cents(value)-limit,0)/100};
+    return {allocations,rows,debt:debt/100,limit:limit/100,allLimit:allLimit/100,discount:discount/100,excess:Math.max(cents(value)-limit,0)/100};
   }
   const copyButton=key=>`<button type="button" class="pcCopy" aria-label="Хуулах" onclick="copyPaymentField('${key}',this)">${copyIcon}</button>`;
   window.copyPaymentField=async function(key,button){
@@ -188,28 +190,57 @@
     openPayment(`<div class="pcFormHeader"><h2>Төлбөр бүртгэх</h2><button type="button" class="pcFormClose" aria-label="Хаах" onclick="closeSheet()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><p class="sub">Төлбөр бүртгэх нийлүүлэгчээ сонгоно уу.</p><div class="field"><label>Нийлүүлэгч</label><select id="directPaymentCompany"><option value="">Нийлүүлэгч сонгох</option>${options}</select></div><div class="actions pcFormActions"><button class="primary" onclick="openSelectedPayment()">Үргэлжлүүлэх</button></div>`);
   }
 
-  function paymentForm(companyId,focusInvoiceId){
+  function paymentForm(companyId,focusInvoiceId,restore=false){
     if(companyId==null||companyId===''){directPaymentForm();return;}
     const company=companyById(companyId);if(!company){notify('Нийлүүлэгч олдсонгүй.');return;}
     const invoices=payableInvoices(company);
     if(!invoices.length){notify('Төлөгдөөгүй падаан алга.');return;}
-    paymentDraft={companyId:company.id,store:activeStoreId()};pendingPayment=null;
-    const plan=paymentPlan(company,0,today());
+    const previous=restore&&paymentDraft?.companyId===company.id&&paymentDraft.store===activeStoreId()?paymentDraft:null;
+    const focus=invoices.find(i=>String(i.id)===String(focusInvoiceId));
+    paymentDraft=previous||{companyId:company.id,store:activeStoreId(),mode:focus?'selected':'fifo',selectedIds:new Set(focus?[String(focus.id)]:[])};pendingPayment=null;
+    const date=paymentDraft.form?.date||today(),plan=paymentPlan(company,0,date,selectionIds());
 
     openPayment(`<div class="pcFormHeader"><h2>Төлбөр бүртгэх</h2><button type="button" class="pcFormClose" aria-label="Хаах" onclick="closeSheet()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="paySupplierCard"><b>${esc(company.name)}</b><span>${esc(company.bank||'Банк сонгоогүй')}</span></div>
-      <div class="payTotal"><span>Нийт үлдэгдэл</span><b id="paymentCurrentBalance">${amount(plan.limit)}</b></div>
-      <div class="field"><label for="pcAmount">Төлөх дүн</label><div class="pcCopyRow"><input id="pcAmount" data-money-input inputmode="decimal" autocomplete="off" value="${moneyInputText(plan.limit)}" oninput="recalculatePaymentTotal()"></div></div>
-      <p class="sub">Падааны огноогоор хуучнаас нь эхэлж хасна.</p>
+      <div class="payTotal"><span>Нийт үлдэгдэл</span><b id="paymentCurrentBalance">${amount(plan.allLimit)}</b></div>
+      <div class="pcModes" role="group" aria-label="Төлбөр хуваарилах горим"><button type="button" id="pcModeFifo" onclick="setPaymentMode('fifo')">Эхнээс нь</button><button type="button" id="pcModeSelected" onclick="setPaymentMode('selected')">Падаан сонгох</button></div>
+      <div id="pcInvoicePicker" hidden></div>
+      <div class="field"><label for="pcAmount">Төлөх дүн</label><div class="pcCopyRow"><input id="pcAmount" data-money-input inputmode="decimal" autocomplete="off" value="${moneyInputText(paymentDraft.form?.amount??plan.limit)}" oninput="recalculatePaymentTotal()"></div></div>
+      <p class="sub" id="pcModeHint"></p>
       <div id="pcWarning" class="agreementWarning" role="status" hidden></div>
       <button type="button" id="pcAdjust" class="secondary full" hidden onclick="adjustPaymentAmount()">Нийт төлөх дүнгээр тааруулах</button>
       <details open id="pcBreakdown"><summary>Төлбөрийн задаргаа</summary><div id="allocationList"></div></details>
       <div class="payTotal"><span>Төлсний дараах үлдэгдэл</span><b id="paymentCenterTotal">${amount(plan.debt)}</b></div>
       <div class="field"><label>Төлбөрийн арга</label><select id="pcMethod"><option value="Банк">Дансаар</option><option>Бэлэн мөнгө</option><option>QPay</option><option>Карт</option><option>Бусад</option></select></div>
-      <div class="field"><label>Огноо</label><input id="pcDate" type="date" value="${today()}" onchange="recalculatePaymentTotal()"></div>
+      <div class="field"><label>Огноо</label><input id="pcDate" type="date" value="${date}" onchange="recalculatePaymentTotal()"></div>
       <div class="field"><label>Тайлбар — заавал биш</label><textarea id="pcNote" maxlength="300"></textarea></div>
       <div class="actions pcFormActions"><button id="pcContinue" class="primary" onclick="reviewPaymentCenter('${esc(company.id)}')">Үргэлжлүүлэх</button></div>`);
-    setTimeout(()=>window.recalculatePaymentTotal(),0);
+    if(paymentDraft.form){document.getElementById('pcMethod').value=paymentDraft.form.method;document.getElementById('pcNote').value=paymentDraft.form.note;}
+    const draft=paymentDraft;setTimeout(()=>{if(paymentDraft===draft)window.recalculatePaymentTotal();},0);
   }
+
+  function selectionIds(){return paymentDraft?.mode==='selected'?paymentDraft.selectedIds:null;}
+  function draftPlan(value=0){return paymentPlan(companyById(paymentDraft.companyId),value,document.getElementById('pcDate')?.value||today(),selectionIds());}
+  function renderPaymentChoices(){
+    const picker=document.getElementById('pcInvoicePicker');if(!picker||!paymentDraft)return;
+    const selected=paymentDraft.mode==='selected',date=document.getElementById('pcDate')?.value||today();
+    for(const [id,active] of [['pcModeFifo',!selected],['pcModeSelected',selected]]){const b=document.getElementById(id);b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}
+    document.getElementById('pcModeHint').textContent=selected?'Зөвхөн сонгосон падаанд, хуучнаас нь эхэлж хасна.':'Падааны огноогоор хуучнаас нь эхэлж хасна.';
+    picker.hidden=!selected;if(!selected)return;
+    const invoices=payableInvoices(companyById(paymentDraft.companyId));
+    picker.innerHTML=`<b>Төлөх падаанаа сонгоно уу</b><p class="sub">Нэг эсвэл хэд хэдийг сонгож болно.</p><div class="pcPickRows">${invoices.map((i,index)=>`<label class="pcPickRow ${paymentDraft.selectedIds.has(String(i.id))?'selected':''}"><input type="checkbox" class="pcInvoiceCheck" data-index="${index}" ${paymentDraft.selectedIds.has(String(i.id))?'checked':''}><span><b>${esc(i.no||'Дугааргүй')}</b><small>${dateLabel(i.date)}</small></span><strong>${amount(discountInfo(i,date).cash)}</strong></label>`).join('')}</div>`;
+    picker.querySelectorAll('.pcInvoiceCheck').forEach(check=>check.addEventListener('change',()=>window.selectPaymentInvoice(String(invoices[Number(check.dataset.index)].id),check.checked)));
+  }
+  window.setPaymentMode=function(mode){
+    if(!paymentDraft||paymentDraft.store!==activeStoreId()||!['fifo','selected'].includes(mode))return;
+    paymentDraft.mode=mode;pendingPayment=null;window.adjustPaymentAmount();
+  };
+  window.selectPaymentInvoice=function(id,checked){
+    if(!paymentDraft||paymentDraft.store!==activeStoreId()||paymentDraft.mode!=='selected')return;
+    if(!payableInvoices(companyById(paymentDraft.companyId)).some(i=>String(i.id)===String(id)))return;
+    if(checked)paymentDraft.selectedIds.add(String(id));else paymentDraft.selectedIds.delete(String(id));
+    pendingPayment=null;window.adjustPaymentAmount();
+  };
+  window.backPaymentCenter=function(){if(paymentDraft&&paymentDraft.store===activeStoreId())paymentForm(paymentDraft.companyId,null,true);};
 
   window.openSelectedPayment=function(){
     const companyId=document.getElementById('directPaymentCompany')?.value||'';
@@ -221,15 +252,17 @@
   window.recalculatePaymentTotal=function(){
     const field=document.getElementById('pcAmount');
     if(field&&paymentDraft){
-      const total=moneyInputValue(field.value),plan=paymentPlan(companyById(paymentDraft.companyId),total,document.getElementById('pcDate')?.value||today());
-      const currentBalance=document.getElementById('paymentCurrentBalance');if(currentBalance)currentBalance.textContent=amount(plan.limit);
-      const invalid=total<=0||plan.excess>0;
+      if(paymentDraft.store!==activeStoreId())return 0;
+      renderPaymentChoices();
+      const total=moneyInputValue(field.value),plan=draftPlan(total);
+      const currentBalance=document.getElementById('paymentCurrentBalance');if(currentBalance)currentBalance.textContent=amount(plan.allLimit);
+      const empty=paymentDraft.mode==='selected'&&!plan.rows.length,invalid=total<=0||plan.excess>0||empty;
       document.getElementById('pcContinue').disabled=invalid;
-      const warning=document.getElementById('pcWarning');warning.hidden=!plan.excess;warning.textContent=plan.excess?`${amount(plan.excess)}-өөр илүү байна. Хөнгөлөлт тооцсон төлөх дүн: ${amount(plan.limit)}.`:'';
+      const warning=document.getElementById('pcWarning');warning.hidden=!plan.excess&&!empty;warning.textContent=empty?'Төлөх падаанаа сонгоно уу.':plan.excess?`${amount(plan.excess)}-өөр илүү байна. ${paymentDraft.mode==='selected'?'Сонгосон падааны':'Хөнгөлөлт тооцсон'} төлөх дүн: ${amount(plan.limit)}.`:'';
       document.getElementById('pcAdjust').hidden=!plan.excess;
       document.getElementById('pcBreakdown').hidden=invalid;
       document.getElementById('allocationList').innerHTML=plan.rows.filter(r=>r.paid>0).map(r=>`<div class="pcAllocation"><b>${esc(r.invoice.no||'Дугааргүй')} · ${dateLabel(r.invoice.date)}</b><strong>${amount(r.paid)}</strong><small>Төлсний дараах үлдэгдэл: ${amount(r.payableRemaining)}</small>${r.saving?`<small>Хөнгөлөлт: ${amount(r.saving)}</small>`:''}</div>`).join('');
-      document.getElementById('paymentCenterTotal').textContent=plan.excess?'—':amount(Math.max(plan.limit-Math.max(total,0),0));
+      document.getElementById('paymentCenterTotal').textContent=plan.excess?'—':amount(Math.max(plan.allLimit-Math.max(total,0),0));
       return total;
     }
     let total=0;
@@ -240,7 +273,7 @@
     const target=document.getElementById('paymentCenterTotal');if(target)target.textContent=amount(total);
     return total;
   };
-  window.adjustPaymentAmount=function(){const input=document.getElementById('pcAmount');if(!input||!paymentDraft)return;input.value=moneyInputText(paymentPlan(companyById(paymentDraft.companyId),0,document.getElementById('pcDate')?.value||today()).limit);window.recalculatePaymentTotal();};
+  window.adjustPaymentAmount=function(){const input=document.getElementById('pcAmount');if(!input||!paymentDraft)return;input.value=moneyInputText(draftPlan().limit);window.recalculatePaymentTotal();};
 
   /* Checking an invoice means “pay this invoice in full” by default. The
      amount remains editable, so a partial/manual payment is still possible. */
@@ -255,16 +288,18 @@
   window.reviewPaymentCenter=function(companyId){
     const company=companyById(companyId);if(!company)return;
     if(!paymentDraft||paymentDraft.companyId!==company.id||paymentDraft.store!==activeStoreId())return notify('Дэлгүүр өөрчлөгдсөн байна. Дахин нээнэ үү.');
-    const entered=moneyInputValue(document.getElementById('pcAmount')?.value),plan=paymentPlan(company,entered,document.getElementById('pcDate')?.value||today());
+    const entered=moneyInputValue(document.getElementById('pcAmount')?.value),plan=draftPlan(entered);
     if(entered<=0||plan.excess>0){window.recalculatePaymentTotal();return;}
     const allocations=plan.allocations;
     const total=allocations.reduce((sum,item)=>sum+cents(item.amount),0)/100;if(!total){notify('Төлөх дүн оруулна уу.');return;}
     const selectedInvoices=allocations.map(item=>invoiceById(item.invoice_id)).filter(Boolean);
     const discount=allocations.reduce((sum,item,index)=>{const inv=selectedInvoices[index],info=inv?discountInfo(inv,document.getElementById('pcDate')?.value||today()):{saving:0,cash:0};return sum+(Math.abs(item.amount-info.cash)<0.01?info.saving:0);},0);
-    pendingPayment={store:activeStoreId(),companyId,companyName:company.name,supplierId:company.supabase_supplier_id,allocations,total,discount,date:document.getElementById('pcDate')?.value||today(),method:document.getElementById('pcMethod')?.value||'Бусад',reference:String(company.paymentReference||'').trim()||null,note:document.getElementById('pcNote')?.value.trim()||null,previousDebt:plan.debt,payableBefore:plan.limit,bankAccount:company.bankAccount||'',bankIban:company.bankIban||''};
+    pendingPayment={store:activeStoreId(),companyId,companyName:company.name,supplierId:company.supabase_supplier_id,allocations,total,discount,date:document.getElementById('pcDate')?.value||today(),method:document.getElementById('pcMethod')?.value||'Бусад',reference:String(company.paymentReference||'').trim()||null,note:document.getElementById('pcNote')?.value.trim()||null,previousDebt:plan.debt,payableBefore:plan.allLimit,bankAccount:company.bankAccount||'',bankIban:company.bankIban||''};
+    paymentDraft.form={amount:entered,date:pendingPayment.date,method:pendingPayment.method,note:pendingPayment.note||''};
+    const allocationSummary=`<div class="card"><b>${paymentDraft.mode==='selected'?'Сонгосон падааны төлөлт':'Эхнээс нь төлөх'}</b>${plan.rows.filter(r=>r.paid>0).map(r=>`<div class="pcAllocation"><b>${esc(r.invoice.no||'Дугааргүй')} · ${dateLabel(r.invoice.date)}</b><strong>${amount(r.paid)}</strong><small>Үлдэх: ${amount(r.payableRemaining)}</small></div>`).join('')}</div>`;
     const transferRow=(label,value,key)=>`<div class="pcCopyRow"><span>${label}<br><b>${esc(value||'Оруулаагүй')}</b></span>${value?copyButton(key):''}</div>`;
     const transferDetails=`<div class="card pcTransferDetails">${pendingPayment.bankIban?transferRow('IBAN',pendingPayment.bankIban,'iban'):''}${transferRow('Дансны дугаар',pendingPayment.bankAccount,'account')}${transferRow('Гүйлгээний утга',pendingPayment.reference,'reference')}${transferRow('Төлөх дүн',amount(total),'amount')}</div>`;
-    openPayment(`<h2>Төлбөр баталгаажуулах</h2><div class="confirmPay"><span>Нийлүүлэгч<b>${esc(company.name)}</b></span><span>Өмнөх өр<b>${amount(pendingPayment.payableBefore)}</b></span><span>Банкнаас төлөх<b>${amount(total)}</b></span>${discount?`<span class="discountLine">Хөнгөлөлтөөр хаагдах<b>${amount(discount)}</b></span>`:''}<span class="newBalance">Төлсний дараах өр<b>${amount(Math.max(pendingPayment.payableBefore-total,0))}</b></span></div>${transferDetails}<p class="sub">Төлбөр баталгаажсаны дараа устгахгүй. Алдаа гарвал шалтгаантай буцаалт хийнэ.</p><div class="actions"><button class="secondary" onclick="payment('${esc(companyId)}')">Буцах</button><button id="commitPaymentBtn" class="primary" onclick="commitPaymentCenter()">Баталгаажуулах</button></div>`);
+    openPayment(`<h2>Төлбөр баталгаажуулах</h2><div class="confirmPay"><span>Нийлүүлэгч<b>${esc(company.name)}</b></span><span>Өмнөх өр<b>${amount(pendingPayment.payableBefore)}</b></span><span>Банкнаас төлөх<b>${amount(total)}</b></span>${discount?`<span class="discountLine">Хөнгөлөлтөөр хаагдах<b>${amount(discount)}</b></span>`:''}<span class="newBalance">Төлсний дараах өр<b>${amount(Math.max(pendingPayment.payableBefore-total,0))}</b></span></div>${allocationSummary}${transferDetails}<p class="sub">Төлбөр баталгаажсаны дараа устгахгүй. Алдаа гарвал шалтгаантай буцаалт хийнэ.</p><div class="actions"><button class="secondary" onclick="backPaymentCenter()">Буцах</button><button id="commitPaymentBtn" class="primary" onclick="commitPaymentCenter()">Баталгаажуулах</button></div>`);
   };
 
   window.commitPaymentCenter=async function(){
@@ -600,6 +635,7 @@
   const nightStyle=document.createElement('style');
   nightStyle.textContent=`
     .pcFormHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.pcFormHeader h2{min-width:0;margin:0}.pcFormClose{display:grid;place-items:center;flex-shrink:0;width:44px;height:44px;padding:10px;background:transparent;border:0;color:var(--muted);border-radius:0}.pcFormClose svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}.paymentFormModal .pcFormActions{grid-template-columns:1fr}.pcFormActions>button{width:100%}
+    .pcModes{display:flex;gap:4px;background:var(--surface-2,#f1f1ee);border-radius:12px;padding:4px;margin:14px 0}.pcModes button{flex:1;min-width:0;padding:13px 8px;border:0;border-radius:9px;background:transparent;color:var(--text,#171717);font:inherit;font-size:14px;font-weight:650}.pcModes button.active{background:#ffc400;color:#171717}.pcPickRows{border:1px solid var(--line,#ddd);border-radius:12px;overflow:hidden;margin:10px 0}.pcPickRow{display:flex!important;align-items:center;gap:10px;padding:12px;margin:0!important;border-bottom:1px solid var(--line,#ddd);cursor:pointer;font-size:13px}.pcPickRow:last-child{border-bottom:0}.pcPickRow.selected{background:#fff4c5;color:#171717}.pcPickRow input{width:22px!important;height:22px!important;min-height:0!important;flex:0 0 22px;accent-color:#ffc400}.pcPickRow span{flex:1;min-width:0}.pcPickRow b,.pcPickRow small{display:block;overflow-wrap:anywhere}.pcPickRow small{color:var(--muted,#777);margin-top:4px}.pcPickRow strong{white-space:nowrap;font-size:13px}
     .pcCopyRow{display:flex;align-items:center;gap:10px;min-width:0;margin:8px 0}.pcCopyRow>span,.pcCopyRow>input{flex:1;min-width:0;overflow-wrap:anywhere}.pcCopy{flex-shrink:0;max-width:120px;white-space:normal;min-width:44px;min-height:44px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface,#fff);color:inherit;font-size:12px;display:grid;place-items:center}.pcCopyRow #pcAmount{font-size:24px;font-weight:800;border:2px solid #ffc107}.pcAllocation{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;padding:14px 0;border-bottom:1px solid var(--line);font-size:13px}.pcAllocation small{grid-column:1/-1;color:var(--muted);font-size:12px}.paymentFormModal .payTotal{flex-wrap:wrap}.paymentFormModal input[type=date]{display:block;appearance:none;-webkit-appearance:none;box-sizing:border-box;min-width:0;width:100%;max-width:100%}.paymentFormModal input[type=date]::-webkit-date-and-time-value{text-align:left;min-width:0}.paymentFormModal [hidden]{display:none!important}#pcContinue:disabled{opacity:.45}#pcBreakdown{border:1px solid var(--line);border-radius:14px;padding:14px;margin:16px 0}#pcBreakdown summary{font-weight:700;cursor:pointer}
     .noticeButton{display:grid;place-items:center;border-radius:14px;box-shadow:var(--shadow-sm);transition:transform .14s ease,background .18s ease}.noticeButton svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}.noticeButton i{border:2px solid var(--surface);box-shadow:0 2px 5px rgba(0,0,0,.16)}
     html.nightMode .noticeButton{background:#272725;color:var(--yellow);border-color:#464640;box-shadow:0 5px 16px rgba(0,0,0,.28)}html.nightMode .noticeButton i{border-color:#272725}
