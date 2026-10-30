@@ -179,7 +179,7 @@
     const content=document.getElementById('content');if(!content)return;
     content.innerHTML=`<button class="back" onclick="page='companies';render()">← Буцах</button><div class="center"><div class="circle ${esc(company.color||'green')}" style="margin:auto;width:48px;height:48px">${esc((company.name||'N').slice(0,1).toUpperCase())}</div><h2 style="margin:8px 0 2px">${esc(company.name)}</h2><div class="bigAmount">${amount(paymentPlan(company,0,today()).limit)}</div><div class="sub">Баталгаажсан нийт өр</div></div>
       <details class="contactDetails"><summary class="sectionTitle"><span>Харилцагчийн мэдээлэл</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 9 7 7 7-7"/></svg></summary><div class="card"><div class="invoice"><div><small>Регистр</small><b>${esc(company.reg||'—')}</b></div></div><div class="invoice"><div><small>Хаяг</small><b>${esc(company.address||'—')}</b></div></div><div class="invoice"><div><small>Худалдааны төлөөлөгч</small><b>${esc(company.sales||'—')}</b></div><div>${typeof tel==='function'?tel(company.salesPhone):''}</div></div><div class="invoice"><div><small>Банк</small><b>${esc(company.bank||'—')}</b></div></div><div class="invoice"><div><small>Дансны дугаар</small><b>${esc(company.bankAccount||'—')}</b></div></div></div>
-      </details><div class="sectionTitle">Падаанууд</div><div class="card">${invoices.length?invoices.map(invoice=>{const status=invoice.status||'confirmed',balance=balanceOf(invoice);return `<div class="invoice invoiceClickable" role="button" tabindex="0" onclick="window.showInvoiceDetails('${esc(invoice.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.showInvoiceDetails('${esc(invoice.id)}')}"><div><small>${esc(invoice.date||'')} · ${esc(invoice.no||'Дугааргүй')}</small><b>${amount(invoice.amount)}</b><span class="invoiceStatus ${status}">${status==='cancelled'?'Цуцалсан':balance?'Төлөх өдөр '+dateLabel(dueOf(invoice)):'Төлөгдсөн'}</span></div><div><span class="${balance?'redText':'greenText'}">${balance?amount(discountInfo(invoice).cash):'Төлөгдсөн'}</span><small class="detailHint">Дэлгэрэнгүй →</small></div></div>`;}).join(''):'<div class="sub">Падаан алга.</div>'}</div>
+      </details><div class="sectionTitle">Падаанууд</div><div class="card">${invoices.length?invoices.map(invoice=>{const status=invoice.status||'confirmed',balance=balanceOf(invoice);return `<div class="invoice invoiceClickable" data-cart-invoice="${esc(invoice.id)}" role="button" tabindex="0" onclick="window.showInvoiceDetails('${esc(invoice.id)}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.showInvoiceDetails('${esc(invoice.id)}')}"><div><small>${esc(invoice.date||'')} · ${esc(invoice.no||'Дугааргүй')}</small><b>${amount(invoice.amount)}</b><span class="invoiceStatus ${status}">${status==='cancelled'?'Цуцалсан':balance?'Төлөх өдөр '+dateLabel(dueOf(invoice)):'Төлөгдсөн'}</span></div><div><span class="${balance?'redText':'greenText'}">${balance?amount(discountInfo(invoice).cash):'Төлөгдсөн'}</span><small class="detailHint">Дэлгэрэнгүй →</small></div></div>`;}).join(''):'<div class="sub">Падаан алга.</div>'}</div>
       <button class="primary full" onclick="invoice('${esc(company.id)}')">＋ Падаан нэмэх</button><button class="secondary full" style="margin-top:8px" onclick="payment('${esc(company.id)}')">Төлбөр бүртгэх</button><button class="secondary full" style="margin-top:8px" onclick="window.editCompany(Number('${esc(company.id)}'))">✎ Мэдээлэл засах</button>`;
   }
 
@@ -196,8 +196,9 @@
     const invoices=payableInvoices(company);
     if(!invoices.length){notify('Төлөгдөөгүй падаан алга.');return;}
     const previous=restore&&paymentDraft?.companyId===company.id&&paymentDraft.store===activeStoreId()?paymentDraft:null;
-    const focus=invoices.find(i=>String(i.id)===String(focusInvoiceId));
-    paymentDraft=previous||{companyId:company.id,store:activeStoreId(),mode:focus?'selected':'fifo',selectedIds:new Set(focus?[String(focus.id)]:[])};pendingPayment=null;
+    const requested=Array.isArray(focusInvoiceId)?focusInvoiceId.map(String):[String(focusInvoiceId)];
+    const focused=invoices.filter(i=>requested.includes(String(i.id))),focus=focused[0];
+    paymentDraft=previous||{companyId:company.id,store:activeStoreId(),mode:focus?'selected':'fifo',selectedIds:new Set(focused.map(i=>String(i.id))),cartScope:Array.isArray(focusInvoiceId)?window.NayadInvoiceCart?.scope():null};pendingPayment=null;
     const date=paymentDraft.form?.date||today(),plan=paymentPlan(company,0,date,selectionIds());
 
     openPayment(`<div class="pcFormHeader"><h2>Төлбөр бүртгэх</h2><button type="button" class="pcFormClose" aria-label="Хаах" onclick="closeSheet()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="paySupplierCard"><b>${esc(company.name)}</b><span>${esc(company.bank||'Банк сонгоогүй')}</span></div>
@@ -294,7 +295,7 @@
     const total=allocations.reduce((sum,item)=>sum+cents(item.amount),0)/100;if(!total){notify('Төлөх дүн оруулна уу.');return;}
     const selectedInvoices=allocations.map(item=>invoiceById(item.invoice_id)).filter(Boolean);
     const discount=allocations.reduce((sum,item,index)=>{const inv=selectedInvoices[index],info=inv?discountInfo(inv,document.getElementById('pcDate')?.value||today()):{saving:0,cash:0};return sum+(Math.abs(item.amount-info.cash)<0.01?info.saving:0);},0);
-    pendingPayment={store:activeStoreId(),companyId,companyName:company.name,supplierId:company.supabase_supplier_id,allocations,total,discount,date:document.getElementById('pcDate')?.value||today(),method:document.getElementById('pcMethod')?.value||'Бусад',reference:String(company.paymentReference||'').trim()||null,note:document.getElementById('pcNote')?.value.trim()||null,previousDebt:plan.debt,payableBefore:plan.allLimit,bankAccount:company.bankAccount||'',bankIban:company.bankIban||''};
+    pendingPayment={cartScope:paymentDraft.cartScope,settledIds:plan.rows.filter(r=>r.paid>0&&r.payableRemaining<0.005).map(r=>String(r.invoice.id)),store:activeStoreId(),companyId,companyName:company.name,supplierId:company.supabase_supplier_id,allocations,total,discount,date:document.getElementById('pcDate')?.value||today(),method:document.getElementById('pcMethod')?.value||'Бусад',reference:String(company.paymentReference||'').trim()||null,note:document.getElementById('pcNote')?.value.trim()||null,previousDebt:plan.debt,payableBefore:plan.allLimit,bankAccount:company.bankAccount||'',bankIban:company.bankIban||''};
     paymentDraft.form={amount:entered,date:pendingPayment.date,method:pendingPayment.method,note:pendingPayment.note||''};
     const allocationSummary=`<div class="card"><b>${paymentDraft.mode==='selected'?'Сонгосон падааны төлөлт':'Эхнээс нь төлөх'}</b>${plan.rows.filter(r=>r.paid>0).map(r=>`<div class="pcAllocation"><b>${esc(r.invoice.no||'Дугааргүй')} · ${dateLabel(r.invoice.date)}</b><strong>${amount(r.paid)}</strong><small>Үлдэх: ${amount(r.payableRemaining)}</small></div>`).join('')}</div>`;
     const transferRow=(label,value,key)=>`<div class="pcCopyRow"><span>${label}<br><b>${esc(value||'Оруулаагүй')}</b></span>${value?copyButton(key):''}</div>`;
@@ -304,6 +305,7 @@
 
   window.commitPaymentCenter=async function(){
     const payment=pendingPayment;if(!payment)return;
+    if(payment.cartScope&&payment.cartScope!==window.NayadInvoiceCart?.scope())return notify('Хэрэглэгч эсвэл дэлгүүр өөрчлөгдсөн байна. Дахин нээнэ үү.');
     if(window.__nayadCriticalOperation==='payment-v11')return;
     if(payment.store!==activeStoreId())return notify('Дэлгүүр өөрчлөгдсөн байна. Дахин нээнэ үү.');
     const button=document.getElementById('commitPaymentBtn');if(button){button.disabled=true;button.textContent='Бүртгэж байна...';}
@@ -319,9 +321,11 @@
       if(error)throw error;
       const row=Array.isArray(result)?result[0]:result;
       pendingPayment=null;close();
+      window.NayadInvoiceCart?.settled(payment.cartScope,payment.settledIds);
       notify(`Төлбөр бүртгэгдлээ. Үлдэгдэл: ${amount(row?.remaining_balance)}`);
       await window.__nayadStartCloudSync?.({reason:'payment-v11-posted',force:true});
       try{page='payments';render();}catch(_){ }
+      if(payment.cartScope&&window.NayadInvoiceCart?.scope()===payment.cartScope)window.NayadInvoiceCart.open();
     }catch(error){console.error('Payment center commit:',error);notify(error?.message||'Төлбөр бүртгэхэд алдаа гарлаа.');if(button){button.disabled=false;button.textContent='Баталгаажуулах';}}
     finally{if(window.__nayadCriticalOperation==='payment-v11')delete window.__nayadCriticalOperation;}
   };

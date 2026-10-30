@@ -42,3 +42,5 @@ jobs:
 
       - run: NODE_PATH="$PWD/tests/push-validation/node_modules" node tests/payment-selection.cjs
       - run: NODE_PATH="$PWD/tests/push-validation/node_modules" node tests/payment-selection-database.cjs
+
+      - run: NODE_PATH="$PWD/tests/push-validation/node_modules" node tests/invoice-cart.cjs

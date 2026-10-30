@@ -1,5 +1,5 @@
 // Refresh the per-store background picker and store-switch hooks.
-const CACHE = "nayad-v242";
+const CACHE = "nayad-v243";
 
 const ASSETS = [
   "./",
@@ -37,7 +37,8 @@ const ASSETS = [
   "./invoice-cloud.js?v=80",
   "./supplier-cloud.js?v=64",
   "./reports.js?v=4",
-  "./payment-center.js?v=34",
+  "./payment-center.js?v=35",
+  "./invoice-cart.js?v=1",
   "./statement-search.js?v=1",
   "./payment-statement.js?v=21",
   "./loans.js?v=13",
@@ -46,7 +47,7 @@ const ASSETS = [
   "./loan-contract-editor.css?v=7",
   "./loan-payment.js?v=3",
   "./loan-actions.js?v=1",
-  "./contact-types.js?v=32",
+  "./contact-types.js?v=33",
   "./company-label.js",
   "./member-permissions.js?v=2"
 ];
@@ -112,12 +113,12 @@ function patchDocument(html){
   patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=2");
   patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=5");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=80");
-  patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=34");
+  patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=35");
   patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=2");
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=64");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=13");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=80","./money-input.js?v=1");
-  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=32");
+  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=33");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=69","./registration-onboarding.js?v=2");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=69","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
@@ -134,13 +135,14 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./profile-menu.js?v=10","./notification-settings.js?v=1");
   patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
-  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=80","./payment-center.js?v=34");
-  patched=injectScriptAfter(patched,"./payment-center.js?v=34","./loans.js?v=13");
-  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=64","./contact-types.js?v=32");
+  patched=injectScriptAfter(patched,"./invoice-cloud.js?v=80","./payment-center.js?v=35");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=35","./loans.js?v=13");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=35","./invoice-cart.js?v=1");
+  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=64","./contact-types.js?v=33");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   patched=patched.replace(/payment-statement\.js\?v=\d+/g,'payment-statement.js?v=21');
-  patched=injectScriptBefore(patched,"./payment-center.js?v=34","./payment-statement.js?v=21");
+  patched=injectScriptBefore(patched,"./payment-center.js?v=35","./payment-statement.js?v=21");
   patched=injectScriptBefore(patched,"./payment-statement.js?v=21","./statement-search.js?v=1");
   patched=injectScriptBefore(patched,"./loans.js?v=13","./loan-contract-schedule.js?v=2");
   patched=patched.replace(/loan-contract-schedule\.js\?v=\d+/g,'loan-contract-schedule.js?v=2');
@@ -152,7 +154,7 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./loan-contract-editor.js?v=5","./loan-payment.js?v=3");
   patched=injectScriptAfter(patched,"./loan-payment.js?v=3","./loan-actions.js?v=1");
   patched=patched.replace(/\.\/render\.js(?:\?v=\d+)?(?=")/g,"./render.js?v=2");
-  patched=injectScriptBefore(patched,"./payment-center.js?v=34","./reports.js?v=4");
+  patched=injectScriptBefore(patched,"./payment-center.js?v=35","./reports.js?v=4");
   return patched;
 }
 
