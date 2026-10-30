@@ -99,6 +99,7 @@ function patchDocument(html){
   html=html.replace(/\.\/staff-hub\.js\?v=\d+/g,"./staff-hub.js?v=4");
   html=html.replace(/\.\/staff-time\.js\?v=\d+/g,"./staff-time.js?v=2");
   html=html.replace(/\.\/staff-payroll\.js\?v=\d+/g,"./staff-payroll.js?v=15");
+  html=html.replace(/\.\/invoice-cart\.js\?v=\d+/g,"./invoice-cart.js?v=2");
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=39");
   patched=patched.replace(/\.\/money-input\.js\?v=\d+/g,"./money-input.js?v=1");

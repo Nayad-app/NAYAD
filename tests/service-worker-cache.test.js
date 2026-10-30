@@ -138,3 +138,5 @@ assert.equal(patchedTwice.split('./loan-payment.js?v=3').length-1,1);
 const existingStaff=context.patchDocument('<body><script src="./staff-hub.js?v=3"></script><script src="./staff-payroll.js?v=4"></script></body>');
 assert.ok(!existingStaff.includes('staff-payroll.js?v=4'));
 assert.ok(existingStaff.indexOf('staff-time.js?v=2')<existingStaff.indexOf('staff-payroll.js?v=15'));
+
+assert.match(swSource,/invoice-cart\.js\?v=2/);
