@@ -1,5 +1,5 @@
 // Refresh the per-store background picker and store-switch hooks.
-const CACHE = "nayad-v245";
+const CACHE = "nayad-v246";
 
 const ASSETS = [
   "./",
@@ -38,7 +38,7 @@ const ASSETS = [
   "./supplier-cloud.js?v=64",
   "./reports.js?v=4",
   "./payment-center.js?v=35",
-  "./invoice-cart.js?v=2",
+  "./invoice-cart.js?v=3",
   "./statement-search.js?v=1",
   "./payment-statement.js?v=21",
   "./loans.js?v=13",
@@ -99,7 +99,7 @@ function patchDocument(html){
   html=html.replace(/\.\/staff-hub\.js\?v=\d+/g,"./staff-hub.js?v=4");
   html=html.replace(/\.\/staff-time\.js\?v=\d+/g,"./staff-time.js?v=2");
   html=html.replace(/\.\/staff-payroll\.js\?v=\d+/g,"./staff-payroll.js?v=15");
-  html=html.replace(/\.\/invoice-cart\.js\?v=\d+/g,"./invoice-cart.js?v=2");
+  html=html.replace(/\.\/invoice-cart\.js\?v=\d+/g,"./invoice-cart.js?v=3");
   let patched=html.replace(/\.\/oauth-fix\.js\?v=\d+/g,"./oauth-fix.js?v=45");
   patched=patched.replace(/\.\/app-state\.js\?v=\d+/g,"./app-state.js?v=39");
   patched=patched.replace(/\.\/money-input\.js\?v=\d+/g,"./money-input.js?v=1");
@@ -138,7 +138,7 @@ function patchDocument(html){
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=80","./payment-center.js?v=35");
   patched=injectScriptAfter(patched,"./payment-center.js?v=35","./loans.js?v=13");
-  patched=injectScriptAfter(patched,"./payment-center.js?v=35","./invoice-cart.js?v=2");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=35","./invoice-cart.js?v=3");
   patched=injectScriptBefore(patched,"./supplier-cloud.js?v=64","./contact-types.js?v=33");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
