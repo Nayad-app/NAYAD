@@ -1,5 +1,5 @@
 // Refresh the per-store background picker and store-switch hooks.
-const CACHE = "nayad-v244";
+const CACHE = "nayad-v245";
 
 const ASSETS = [
   "./",
@@ -38,7 +38,7 @@ const ASSETS = [
   "./supplier-cloud.js?v=64",
   "./reports.js?v=4",
   "./payment-center.js?v=35",
-  "./invoice-cart.js?v=1",
+  "./invoice-cart.js?v=2",
   "./statement-search.js?v=1",
   "./payment-statement.js?v=21",
   "./loans.js?v=13",
@@ -137,7 +137,7 @@ function patchDocument(html){
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=80","./payment-center.js?v=35");
   patched=injectScriptAfter(patched,"./payment-center.js?v=35","./loans.js?v=13");
-  patched=injectScriptAfter(patched,"./payment-center.js?v=35","./invoice-cart.js?v=1");
+  patched=injectScriptAfter(patched,"./payment-center.js?v=35","./invoice-cart.js?v=2");
   patched=injectScriptBefore(patched,"./supplier-cloud.js?v=64","./contact-types.js?v=33");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");

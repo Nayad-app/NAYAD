@@ -14,17 +14,29 @@
   function payable(i){return Math.round((window.__nayadInvoicePayable?.(i)??Math.max(Number(i.amount)-Number(i.paid||0),0))*100)/100;}
   function rows(){const selected=ids();return companies().flatMap(c=>(c.invoices||[]).filter(i=>selected.has(String(i.id))&&valid(i)).map(i=>({c,i,cash:payable(i)})));}
   function add(id){if(!scope()||!allowed())return;const item=find(id);if(!item||!valid(item.i))return;const set=ids();set.add(String(id));if(save(set)){window.toast?.('Падаан сагсанд орлоо.');refresh();}}
-  function remove(id){const set=ids();set.delete(String(id));if(save(set)){refresh();if(document.getElementById('invoiceCartView'))open();}}
+  function remove(id){if(!scope()||!allowed())return;const set=ids();set.delete(String(id));if(save(set))refresh();}
   function settled(key,completed){if(!key||key!==scope())return;const set=ids();for(const id of completed||[])set.delete(String(id));save(set);refresh();}
   function open(){
     if(!scope()||!allowed())return;
     const key=scope(),items=rows(),groups=new Map();
     for(const row of items){const id=String(row.c.id);if(!groups.has(id))groups.set(id,{c:row.c,rows:[]});groups.get(id).rows.push(row);}
     const total=items.reduce((s,r)=>s+Math.round(r.cash*100),0)/100;
-    window.sheet(`<div id="invoiceCartView"><div class="pcFormHeader"><h2>Падааны сагс</h2><button class="pcFormClose" type="button" aria-label="Хаах" id="cartClose">×</button></div><p class="sub">${groups.size} байгууллага · ${items.length} падаан</p>${[...groups.values()].map(g=>`<section class="card cartGroup"><h3>${esc(g.c.name)}</h3>${g.rows.map(r=>`<div class="cartItem"><div><b>${esc(r.i.no||'Дугааргүй')}</b><small>${esc(r.i.date||'')} · Төлөх ${esc(r.i.due_date||'—')}</small></div><strong>${money(r.cash)}</strong><button type="button" data-cart-remove="${esc(r.i.id)}" aria-label="Сагснаас хасах">×</button></div>`).join('')}<div class="cartSubtotal"><span>Дүн</span><b>${money(g.rows.reduce((s,r)=>s+Math.round(r.cash*100),0)/100)}</b></div><button type="button" class="primary full" data-cart-pay="${esc(g.c.id)}" ${window.__nayadCan?.('payments','edit')?'':'disabled'}>Төлбөр бүртгэх</button></section>`).join('')||'<div class="card sub">Сагс хоосон байна. Нийлүүлэгчийн падааныг зүүн тийш шударч сагслаарай.</div>'}<div class="cartFooter"><span>Нийт төлөх дүн</span><b>${money(total)}</b><small>Сагслахад өр хасагдахгүй.</small></div></div>`);
+    window.sheet(`<div id="invoiceCartView"><div class="pcFormHeader"><h2>Падааны сагс</h2><button class="pcFormClose" type="button" aria-label="Хаах" id="cartClose">×</button></div><p class="sub cartCount">${groups.size} байгууллага · ${items.length} падаан</p><div class="cartList">${[...groups.values()].map(g=>`<section class="cartGroup"><h3>${esc(g.c.name)}</h3>${g.rows.map(r=>`<div class="cartRemoveWrap"><div class="cartItem" tabindex="0" aria-label="Зүүн тийш шударч сагснаас хасах"><div><b>${esc(r.i.no||'Дугааргүй')}</b><small>${esc(r.i.date||'')} · Төлөх ${esc(r.i.due_date||'—')}</small></div><strong>${money(r.cash)}</strong></div><button type="button" class="cartRemoveAction" data-cart-remove="${esc(r.i.id)}" aria-label="Сагснаас хасах"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7M14 10v7"/></svg><span>Сагснаас<br>хасах</span></button></div>`).join('')}<div class="cartSubtotal"><span>Дүн: <b>${money(g.rows.reduce((s,r)=>s+Math.round(r.cash*100),0)/100)}</b></span><button type="button" class="primary" data-cart-pay="${esc(g.c.id)}" ${window.__nayadCan?.('payments','edit')?'':'disabled'}>Төлбөр бүртгэх</button></div></section>`).join('')||'<div class="card sub">Сагс хоосон байна. Нийлүүлэгчийн падааныг зүүн тийш шударч сагслаарай.</div>'}</div><div class="cartFooter"><span>Нийт</span><b>${money(total)}</b></div></div>`);
     const view=document.getElementById('invoiceCartView');view.dataset.scope=key;view.dataset.signature=signature();
     document.getElementById('cartClose').onclick=()=>window.closeSheet();
-    view.querySelectorAll('[data-cart-remove]').forEach(b=>b.onclick=()=>{if(key===scope())remove(b.dataset.cartRemove);});
+    view.querySelectorAll('[data-cart-remove]').forEach(b=>{
+      b.onclick=()=>{if(key===scope())remove(b.dataset.cartRemove);};
+      const wrap=b.parentElement,row=wrap.querySelector('.cartItem');let start=null;
+      const reveal=on=>{if(on)view.querySelectorAll('.cartRemoveWrap.revealed').forEach(el=>{if(el!==wrap)el.classList.remove('revealed');});wrap.classList.toggle('revealed',on);};
+      row.addEventListener('touchstart',e=>{const t=e.touches[0];start={x:t.clientX,y:t.clientY};},{passive:true});
+      row.addEventListener('touchmove',e=>{if(!start)return;const t=e.touches[0],dx=t.clientX-start.x,dy=t.clientY-start.y;if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>12){start=null;return;}if(Math.abs(dx)>28&&Math.abs(dx)>Math.abs(dy)*1.4)reveal(dx<0);},{passive:true});
+      row.addEventListener('touchcancel',()=>{start=null;reveal(false);});
+      row.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();reveal(true);b.focus();}if(e.key==='Escape'||e.key==='ArrowRight')reveal(false);});
+      b.addEventListener('focus',()=>reveal(true));
+      b.addEventListener('keydown',e=>{if(e.key==='Escape'){row.focus();reveal(false);}});
+      row.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')start={x:e.clientX,y:e.clientY};});
+      row.addEventListener('pointerup',e=>{if(e.pointerType==='mouse'&&start){if(Math.abs(e.clientX-start.x)>28)reveal(e.clientX<start.x);start=null;}});
+    });
     view.querySelectorAll('[data-cart-pay]').forEach(b=>b.onclick=()=>{
       if(key!==scope()||!window.__nayadCan?.('payments','edit'))return;
       const current=rows().filter(r=>String(r.c.id)===b.dataset.cartPay);if(!current.length){open();return;}
@@ -53,12 +65,33 @@
     const access=!!scope()&&allowed(),selected=ids();
     if(button){button.hidden=!access;const count=access?rows().length:0,label=`Падааны сагс, ${count} падаан`;if(button.getAttribute('aria-label')!==label)button.setAttribute('aria-label',label);const badge=button.querySelector('i');if(badge.textContent!==String(count))badge.textContent=String(count);badge.hidden=!count;}
     document.querySelectorAll('[data-cart-invoice]').forEach(row=>{if(access)decorate(row);const wrap=row.closest('.cartSwipe');if(wrap){wrap.classList.toggle('cartDisabled',!access);const badge=row.querySelector('.cartAdded');if(badge)badge.hidden=!access||!selected.has(row.dataset.cartInvoice);}});
-    const view=document.getElementById('invoiceCartView');if(view){if(!access||view.dataset.scope!==scope()){window.closeSheet();view.remove();}else if(view.dataset.signature!==signature()){const top=document.getElementById('sheet')?.scrollTop||0;open();document.getElementById('sheet').scrollTop=top;}}
+    const view=document.getElementById('invoiceCartView');if(view){if(!access||view.dataset.scope!==scope()){window.closeSheet();view.remove();}else if(view.dataset.signature!==signature()){const top=view.querySelector('.cartList')?.scrollTop||0;open();document.querySelector('#invoiceCartView .cartList').scrollTop=top;}}
   }
   const style=document.createElement('style');style.textContent=`
   #invoiceCartButton{margin-left:auto;position:relative;flex-shrink:0;width:40px;height:44px;padding:8px;background:transparent;color:var(--text,#171717);border:0}#invoiceCartButton[hidden]{display:none}#invoiceCartButton svg{width:24px;height:24px}#invoiceCartButton i{position:absolute;top:0;right:0;background:#ffc000;color:#111;border-radius:20px;min-width:17px;padding:2px;font:700 10px sans-serif}
   .cartSwipe{position:relative;overflow:hidden;border-bottom:1px solid var(--line,#ddd)}.cartSwipeFront{position:relative;z-index:1;background:var(--surface,#fff);transition:transform .18s ease;touch-action:pan-y;margin:0!important}.cartSwipe.revealed>.cartSwipeFront{transform:translateX(-84px)}.cartSwipeAction{position:absolute;right:0;top:0;bottom:0;width:84px;background:#ffc000;color:#111;border-radius:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;font-size:12px}.cartSwipeAction svg{width:24px;height:24px}.cartAdded{color:#278348;font-size:10px;position:absolute;bottom:3px;right:4px}.cartAdded[hidden]{display:none}.cartDisabled .cartSwipeAction{display:none}.cartDisabled>.cartSwipeFront{transform:none!important}
-  .cartGroup{margin:14px 0!important}.cartGroup h3{margin:0 0 8px;font-size:16px}.cartItem{display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid var(--line,#ddd);font-size:12px}.cartItem>div{flex:1;min-width:0}.cartItem b,.cartItem small{display:block;overflow-wrap:anywhere}.cartItem small{color:var(--muted);margin-top:4px}.cartItem strong{white-space:nowrap}.cartItem button{min-width:36px;min-height:40px;padding:5px;background:transparent;color:var(--muted);font-size:22px}.cartSubtotal{display:flex;justify-content:space-between;margin:14px 0}.cartFooter{position:sticky;bottom:0;background:var(--surface,#fff);border-top:1px solid var(--line,#ddd);padding:16px 0}.cartFooter span,.cartFooter b,.cartFooter small{display:block}.cartFooter b{font-size:24px;margin:5px 0}.cartFooter small{color:var(--muted);font-size:11px}.cartGroup button:disabled{opacity:.45}html.nightMode .cartSwipeFront{background:#1d1d1b}
+  #modal:has(#invoiceCartView){align-items:flex-end;padding:0!important}
+  #modal:has(#invoiceCartView) #sheet{height:min(90dvh,900px)!important;max-height:90dvh!important;width:min(100%,520px)!important;padding:0!important;overflow:hidden!important;border-radius:22px 22px 0 0!important;background:var(--surface,#fff)}
+  #invoiceCartView{height:100%;min-height:0;display:flex;flex-direction:column;color:var(--text,#171717);font-size:13px}
+  #invoiceCartView .pcFormHeader{flex-shrink:0;margin:0!important;padding:10px 16px 0!important;min-height:44px}
+  #invoiceCartView h2{font-size:22px!important;line-height:1.2;margin:0!important}
+  #invoiceCartView .pcFormClose{font-size:26px!important;width:40px!important;height:40px!important;padding:4px!important}
+  #invoiceCartView .cartCount{margin:0!important;padding:0 16px 8px;font-size:12px!important;flex-shrink:0}
+  #invoiceCartView .cartList{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:0 16px}
+  #invoiceCartView .cartGroup{margin:0!important;padding:9px 0!important;border:0;border-bottom:1px solid var(--line,#ddd);border-radius:0;background:transparent;box-shadow:none}
+  #invoiceCartView .cartGroup h3{margin:0 0 3px!important;font-size:14px!important;line-height:1.25;overflow-wrap:anywhere}
+  #invoiceCartView .cartItem{display:flex;align-items:center;gap:6px;padding:5px 0!important;min-height:42px;font-size:12px!important;background:var(--surface,#fff);position:relative;z-index:1;transition:transform .18s ease;touch-action:pan-y}
+  #invoiceCartView .cartItem>div{flex:1;min-width:0}#invoiceCartView .cartItem b,#invoiceCartView .cartItem small{display:block;overflow-wrap:anywhere}
+  #invoiceCartView .cartItem small{color:var(--muted);margin-top:3px;font-size:10px!important;line-height:1.3}
+  #invoiceCartView .cartItem strong{white-space:nowrap;font-size:13px!important}
+  #invoiceCartView .cartSubtotal{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 0!important;font-size:12px!important}
+  #invoiceCartView .cartSubtotal>span{min-width:0;overflow-wrap:anywhere}#invoiceCartView .cartSubtotal button{flex-shrink:0;min-height:34px;padding:7px 10px!important;border-radius:8px;font-size:11px!important;width:auto!important}
+  #invoiceCartView .cartFooter{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--line,#ddd);background:var(--surface,#fff);padding:12px 16px calc(12px + env(safe-area-inset-bottom))!important;font-size:14px!important;position:relative;z-index:2}
+  #invoiceCartView .cartFooter b{font-size:clamp(16px,4.7vw,21px)!important;white-space:nowrap;margin:0!important}
+  .cartRemoveWrap{position:relative;overflow:hidden}.cartRemoveWrap.revealed>.cartItem{transform:translateX(-88px)}
+  #invoiceCartView .cartRemoveAction{position:absolute;right:0;top:0;bottom:0;width:88px;min-height:44px;padding:3px!important;background:#dc3545;color:white;border-radius:0;display:flex;align-items:center;justify-content:center;gap:4px;font-size:10px!important;line-height:1.2}
+  .cartRemoveAction svg{width:18px;height:18px;flex-shrink:0}.cartGroup button:disabled{opacity:.45}
+  html.nightMode .cartSwipeFront,html.nightMode #invoiceCartView .cartItem{background:#1d1d1b}
   `;document.head.append(style);
   window.NayadInvoiceCart={open,add,remove,settled,scope,refresh};
   let timer;new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(refresh,50);}).observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
