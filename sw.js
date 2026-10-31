@@ -1,5 +1,5 @@
 // Refresh the per-store background picker and store-switch hooks.
-const CACHE = "nayad-v249";
+const CACHE = "nayad-v250";
 
 const ASSETS = [
   "./",

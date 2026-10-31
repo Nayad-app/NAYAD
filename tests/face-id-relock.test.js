@@ -117,3 +117,33 @@ test('passkey picker focus changes do not create a stale relock after success',(
   handlers.focus[0]();
   assert.equal(context.__nayadFaceIdLocked(),false);
 });
+
+for(const kind of ['email','phone','missing-password','wrong-password'])test('edited account uses entered credentials: '+kind,async()=>{
+  const {context,state,elements}=setup();context.requestFaceIdLock();
+  elements.faceIdLogin={checked:true};elements.rememberMe={checked:true};
+  elements.loginPhone={value:kind==='phone'?'99112233':'new@example.test'};
+  elements.loginPassword={value:kind==='missing-password'?'':'entered-password'};
+  context.localStorage.setItem=()=>{};context.REMEMBER_KEY='remember';context.FACE_ID_KEY='face';
+  context.normalizeMongolianPhone=v=>'+976'+v;context.isValidEmail=()=>true;
+  context.setAuthBusy=()=>{};let message='';context.authMessage=(id,m)=>message=m;context.toast=()=>{};
+  context.authFriendlyError=()=> 'Invalid credentials';context.console={...console,error:()=>{}};
+  context.registerRequestedFaceId=async()=>({enabled:true});
+  context.SUPABASE_URL='https://example.test';context.SUPABASE_PUBLISHABLE_KEY='public';
+  context.fetch=async(url,req)=>{assert.deepEqual(JSON.parse(req.body),{phone:'+97699112233',password:'entered-password'});return {ok:true,json:async()=>({email:'new@example.test',user_id:'new'})};};
+  context.sb=context.nayadSupabase;let passwordCalls=0;
+  context.sb.auth.signInWithPasskey=()=>{throw Error('Must not use saved passkey');};
+  context.sb.auth.signInWithPassword=async credentials=>{
+    passwordCalls++;assert.equal(credentials.email,'new@example.test');assert.equal(credentials.password,'entered-password');
+    if(kind==='wrong-password')return {error:new Error('Invalid credentials')};
+    state.session={user:{id:'new',user_metadata:{login_phone:'+97699112233'}}};
+    return {data:{session:state.session,user:state.session.user}};
+  };
+  vm.runInContext(html.slice(html.indexOf('async function phoneLogin(){'),html.indexOf('\nasync function registerUser')),context);
+  await context.phoneLogin();
+  assert.equal(passwordCalls,kind==='missing-password'?0:1);
+  if(kind==='missing-password'||kind==='wrong-password'){
+    assert.equal(state.opened,0);assert.equal(context.__nayadFaceIdLocked(),true);assert(message);
+  }else{
+    assert.equal(state.opened,1);assert.equal(context.__nayadUser.id,'new');assert.equal(elements.loginPassword.value,'');assert.equal(elements.loginPhone.value,'');
+  }
+});
