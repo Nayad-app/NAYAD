@@ -1,4 +1,4 @@
-/* Invoice planning cart: IDs only, isolated by signed-in account and store. */
+/* Invoice planning cart: Shared server-backed selection per store; signed-in account scopes pending requests. */
 (()=>{
   if(window.NayadInvoiceCart)return;
   const icon='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 3h3l3 12h11l3-9H6M9 19h.01M18 19h.01" stroke-linecap="round"/><circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/></svg>';
@@ -7,17 +7,61 @@
   const companies=()=>window.__nayadState?.read()?.companies||[];
   const allowed=()=>!!window.__nayadCan?.('invoices','view');
   function scope(){const user=window.__nayadUser?.id,store=window.__nayadActiveStoreId||window.__nayadActiveStore?.id;return user&&store&&String(window.__nayadStoresUserId)===String(user)?`NAYAD_INVOICE_CART:${user}:${store}`:null;}
-  function ids(){try{const v=JSON.parse(localStorage.getItem(scope())||'[]');return new Set(Array.isArray(v)?v.filter(x=>typeof x==='string'):[]);}catch(_){return new Set();}}
-  function save(set){const key=scope();if(!key)return false;try{localStorage.setItem(key,JSON.stringify([...set]));return true;}catch(_){window.toast?.('Сагсыг хадгалж чадсангүй.');return false;}}
+  const client=()=>window.nayadSupabase||window.sb;
+  let sharedKey=null,sharedIds=new Set(),lastLoad=0,loadTask=null,revision=0;
+  function ids(){return sharedKey===scope()?new Set(sharedIds):new Set();}
+  function currentStore(){return window.__nayadActiveStoreId||window.__nayadActiveStore?.id;}
+  function resetScope(){const key=scope();if(key!==sharedKey){sharedKey=key;sharedIds=new Set();lastLoad=0;loadTask=null;revision++;}return key;}
+  async function loadShared(force=false){
+    const key=resetScope(),store=currentStore(),c=client();
+    if(!key||!allowed()||!c?.from)return;
+    if(loadTask)return loadTask;
+    if(!force&&Date.now()-lastLoad<5000)return;
+    const version=revision;
+    const task=(async()=>{
+      try{
+        // Import this account/device's previous cart once, without replacing others' choices.
+        let legacy=[];try{legacy=JSON.parse(localStorage.getItem(key)||'[]');}catch(e){}
+        if(Array.isArray(legacy)&&legacy.length){
+          const candidates=legacy.map(String).filter(id=>{const item=find(id);return item&&valid(item.i);});
+          for(const id of candidates){
+            if(key!==scope())return;
+            const imported=await c.from('store_invoice_cart').upsert({store_id:store,invoice_id:id,created_by:window.__nayadUser.id},{onConflict:'invoice_id',ignoreDuplicates:true});
+            if(imported.error)throw imported.error;
+          }
+          if(key===scope()){
+            const unresolved=legacy.filter(id=>!find(id));
+            if(unresolved.length)localStorage.setItem(key,JSON.stringify(unresolved));else localStorage.removeItem(key);
+          }
+        }
+        const result=await c.from('store_invoice_cart').select('invoice_id').eq('store_id',store);
+        if(result.error)throw result.error;
+        if(key!==scope()||key!==sharedKey||version!==revision)return;
+        sharedIds=new Set((result.data||[]).map(r=>String(r.invoice_id)));lastLoad=Date.now();refresh();
+      }catch(e){if(key===scope()){lastLoad=Date.now();if(force)window.toast?.('Дундын сагсыг ачаалж чадсангүй. Дахин оролдоно уу.');}}
+    })();loadTask=task;try{await task;}finally{if(loadTask===task)loadTask=null;}
+  }
+  async function changeShared(id,adding){
+    const key=resetScope(),store=currentStore(),c=client();if(!key||!allowed()||!c?.from)return false;
+    revision++;
+    try{
+      const result=adding?await c.from('store_invoice_cart').upsert({store_id:store,invoice_id:String(id),created_by:window.__nayadUser.id},{onConflict:'invoice_id',ignoreDuplicates:true}):await c.from('store_invoice_cart').delete().eq('store_id',store).eq('invoice_id',String(id));
+      if(result.error)throw result.error;
+      if(key!==scope()||key!==sharedKey)return false;
+      if(adding)sharedIds.add(String(id));else sharedIds.delete(String(id));
+      lastLoad=0;refresh();return true;
+    }catch(e){if(key===scope())window.toast?.('Сагсны өөрчлөлт хадгалагдсангүй. Холболтоо шалгаад дахин оролдоно уу.');return false;}
+  }
   function valid(i){return (i.status||'confirmed')==='confirmed'&&Number(i.amount)>Number(i.paid||0);}
   function find(id){for(const c of companies()){const i=(c.invoices||[]).find(i=>String(i.id)===String(id));if(i)return {c,i};}return null;}
   function payable(i){return Math.round((window.__nayadInvoicePayable?.(i)??Math.max(Number(i.amount)-Number(i.paid||0),0))*100)/100;}
   function rows(){const selected=ids();return companies().flatMap(c=>(c.invoices||[]).filter(i=>selected.has(String(i.id))&&valid(i)).map(i=>({c,i,cash:payable(i)})));}
-  function add(id){if(!scope()||!allowed())return;const item=find(id);if(!item||!valid(item.i))return;const set=ids();set.add(String(id));if(save(set)){window.toast?.('Падаан сагсанд орлоо.');refresh();}}
-  function remove(id){if(!scope()||!allowed())return;const set=ids();set.delete(String(id));if(save(set))refresh();}
-  function settled(key,completed){if(!key||key!==scope())return;const set=ids();for(const id of completed||[])set.delete(String(id));save(set);refresh();}
+  async function add(id){if(!scope()||!allowed())return;const item=find(id);if(!item||!valid(item.i))return;if(await changeShared(id,true))window.toast?.('Падаан сагсанд орлоо.');}
+  async function remove(id){return changeShared(id,false);}
+  function settled(key,completed){if(!key||key!==scope())return;for(const id of completed||[])sharedIds.delete(String(id));lastLoad=0;refresh();loadShared(true);}
   function open(){
     if(!scope()||!allowed())return;
+    loadShared(true);
     const key=scope(),items=rows(),groups=new Map();
     for(const row of items){const id=String(row.c.id);if(!groups.has(id))groups.set(id,{c:row.c,rows:[]});groups.get(id).rows.push(row);}
     const total=items.reduce((s,r)=>s+Math.round(r.cash*100),0)/100;
@@ -64,6 +108,7 @@
     const badge=document.createElement('small');badge.className='cartAdded';badge.textContent='Сагсанд орсон';row.append(badge);
   }
   function refresh(){
+    resetScope();loadShared();
     const color=document.getElementById('storeBackgroundButton');let button=document.getElementById('invoiceCartButton');
     if(color&&!button){button=document.createElement('button');button.type='button';button.id='invoiceCartButton';button.innerHTML=icon+'<i></i>';button.onclick=open;color.before(button);}
     const access=!!scope()&&allowed(),selected=ids();
@@ -99,8 +144,8 @@
   .cartRemoveAction svg{width:18px;height:18px;flex-shrink:0}.cartGroup button:disabled{opacity:.45}
   html.nightMode .cartSwipeFront,html.nightMode #invoiceCartView .cartItem{background:#1d1d1b}
   `;document.head.append(style);
-  window.NayadInvoiceCart={open,add,remove,settled,scope,refresh};
+  window.NayadInvoiceCart={open,add,remove,settled,scope,refresh,sync:()=>loadShared(true)};
   let timer;new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(refresh,50);}).observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
   window.addEventListener('storage',refresh);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);
-  setInterval(refresh,30000);refresh();
+  setInterval(()=>{if(!document.hidden)refresh();},5000);refresh();
 })();

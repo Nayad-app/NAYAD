@@ -1,0 +1,27 @@
+const {PGlite}=require('@electric-sql/pglite'),fs=require('fs'),assert=require('node:assert/strict');
+(async()=>{
+const db=new PGlite();
+await db.exec(`create role anon;create role authenticated;create schema auth;create schema private;
+create function auth.uid() returns uuid language sql as $$select nullif(current_setting('test.uid',true),'')::uuid$$;
+create table stores(id uuid primary key);create table invoices(id uuid primary key,store_id uuid references stores,amount numeric,paid numeric default 0,status text default 'confirmed');
+create table members(store_id uuid,user_id uuid);
+create function private.has_store_permission(s uuid,m text,a text) returns boolean language sql security definer set search_path='' as $$select exists(select 1 from public.members where store_id=s and user_id=auth.uid())$$;
+grant usage on schema public,auth,private to authenticated;grant select on invoices to authenticated;`);
+await db.exec(fs.readFileSync(process.argv[2]||'supabase/migrations/20261031140714_shared_store_invoice_cart.sql','utf8'));
+const s='00000000-0000-0000-0000-000000000001',s2='00000000-0000-0000-0000-000000000002',i='10000000-0000-0000-0000-000000000001',j='10000000-0000-0000-0000-000000000002',owner='20000000-0000-0000-0000-000000000001',member='20000000-0000-0000-0000-000000000002',outsider='20000000-0000-0000-0000-000000000003';
+await db.query('insert into stores values ($1),($2)',[s,s2]);
+await db.query('insert into invoices(id,store_id,amount) values($1,$2,100),($3,$4,200)',[i,s,j,s2]);
+await db.query('insert into members values($1,$2),($1,$3),($4,$5)',[s,owner,member,s2,outsider]);
+const as=async u=>{await db.exec('reset role');await db.query("select set_config('test.uid',$1,false)",[u]);await db.exec('set role authenticated');};
+const add=()=>db.query('insert into store_invoice_cart(store_id,invoice_id) values($1,$2) on conflict do nothing',[s,i]);
+await as(owner);await add();await add();assert.equal((await db.query('select * from store_invoice_cart')).rows.length,1);
+await as(member);assert.equal((await db.query('select * from store_invoice_cart')).rows.length,1);
+await db.query('delete from store_invoice_cart where invoice_id=$1',[i]);
+await as(owner);assert.equal((await db.query('select * from store_invoice_cart')).rows.length,0);await add();
+await as(outsider);assert.equal((await db.query('select * from store_invoice_cart')).rows.length,0);await assert.rejects(add());
+await as(member);await assert.rejects(db.query('insert into store_invoice_cart(store_id,invoice_id) values($1,$2)',[s,j]));
+await db.exec('reset role');await db.query('update invoices set paid=100 where id=$1',[i]);assert.equal((await db.query('select * from store_invoice_cart')).rows.length,0);
+await as(owner);await assert.rejects(add());
+await db.exec('reset role');await db.query('update invoices set paid=0 where id=$1',[i]);await as(member);await add();await db.exec('reset role');await db.query("update invoices set status='cancelled' where id=$1",[i]);assert.equal((await db.query('select * from store_invoice_cart')).rows.length,0);
+await db.close();console.log('shared-cart database: PASS');
+})().catch(e=>{console.error(e);process.exit(1)});
