@@ -49,14 +49,18 @@
     const id=row.dataset.cartInvoice,item=find(id);if(!item||!valid(item.i))return;
     row.dataset.cartReady='1';const wrap=document.createElement('div');wrap.className='cartSwipe';row.before(wrap);wrap.append(row);row.classList.add('cartSwipeFront');
     const action=document.createElement('button');action.type='button';action.className='cartSwipeAction';action.innerHTML=icon+'<span>Сагслах</span>';action.setAttribute('aria-label','Падаан сагслах');wrap.append(action);
-    action.onclick=e=>{e.stopPropagation();add(id);wrap.classList.remove('revealed');};
+    const toggle=document.createElement('button');toggle.type='button';toggle.className='cartRevealToggle';toggle.setAttribute('aria-label','Сагслах товч харуулах');toggle.setAttribute('aria-expanded','false');toggle.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>';row.append(toggle);
+    const reveal=open=>{wrap.classList.toggle('revealed',open);toggle.setAttribute('aria-expanded',String(open));};
+    toggle.onclick=e=>{e.preventDefault();e.stopPropagation();if(!wrap.classList.contains('cartDisabled'))reveal(!wrap.classList.contains('revealed'));};
+    toggle.addEventListener('keydown',e=>e.stopPropagation());
+    action.onclick=e=>{e.stopPropagation();add(id);reveal(false);};
     // A keyboard-accessible action is reachable by Tab; touch reveal never blocks vertical scroll.
     let start=null,dragged=false;
     row.addEventListener('touchstart',e=>{const t=e.touches[0];start={x:t.clientX,y:t.clientY};dragged=false;},{passive:true});
-    row.addEventListener('touchmove',e=>{if(!start)return;const t=e.touches[0],dx=t.clientX-start.x,dy=t.clientY-start.y;if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>12){start=null;return;}if(Math.abs(dx)>28&&Math.abs(dx)>Math.abs(dy)*1.4){dragged=true;wrap.classList.toggle('revealed',dx<0);}},{passive:true});
-    row.addEventListener('click',e=>{if(dragged||wrap.classList.contains('revealed')){e.stopImmediatePropagation();e.preventDefault();wrap.classList.remove('revealed');dragged=false;}},true);
-    row.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();wrap.classList.add('revealed');action.focus();}});
-    action.addEventListener('focus',()=>wrap.classList.add('revealed'));
+    row.addEventListener('touchmove',e=>{if(!start)return;const t=e.touches[0],dx=t.clientX-start.x,dy=t.clientY-start.y;if(Math.abs(dy)>Math.abs(dx)&&Math.abs(dy)>12){start=null;return;}if(Math.abs(dx)>28&&Math.abs(dx)>Math.abs(dy)*1.4){dragged=true;reveal(dx<0);}},{passive:true});
+    row.addEventListener('click',e=>{if(e.target.closest?.('.cartRevealToggle'))return;if(dragged||wrap.classList.contains('revealed')){e.stopImmediatePropagation();e.preventDefault();reveal(false);dragged=false;}},true);
+    row.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();reveal(true);action.focus();}});
+    action.addEventListener('focus',()=>reveal(true));
     const badge=document.createElement('small');badge.className='cartAdded';badge.textContent='Сагсанд орсон';row.append(badge);
   }
   function refresh(){
@@ -69,7 +73,7 @@
   }
   const style=document.createElement('style');style.textContent=`
   #invoiceCartButton{margin-left:auto;position:relative;flex-shrink:0;width:40px;height:44px;padding:8px;background:transparent;color:var(--text,#171717);border:0}#invoiceCartButton[hidden]{display:none}#invoiceCartButton svg{width:24px;height:24px}#invoiceCartButton i{position:absolute;top:0;right:0;background:#ffc000;color:#111;border-radius:20px;min-width:17px;padding:2px;font:700 10px sans-serif}
-  .cartSwipe{position:relative;overflow:hidden;border-bottom:1px solid var(--line,#ddd)}.cartSwipeFront{position:relative;z-index:1;background:var(--surface,#fff);transition:transform .18s ease;touch-action:pan-y;margin:0!important}.cartSwipe.revealed>.cartSwipeFront{transform:translateX(-84px)}.cartSwipeAction{position:absolute;right:0;top:0;bottom:0;width:84px;background:#ffc000;color:#111;border-radius:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;font-size:12px}.cartSwipeAction svg{width:24px;height:24px}.cartAdded{color:#278348;font-size:10px;position:absolute;bottom:3px;right:4px}.cartAdded[hidden]{display:none}.cartDisabled .cartSwipeAction{display:none}.cartDisabled>.cartSwipeFront{transform:none!important}
+  .cartSwipe{position:relative;overflow:hidden;border-bottom:1px solid var(--line,#ddd)}.cartSwipeFront{position:relative;z-index:1;background:var(--surface,#fff);transition:transform .18s ease;touch-action:pan-y;margin:0!important}.cartSwipe.revealed>.cartSwipeFront{transform:translateX(-84px)}.cartSwipeAction{position:absolute;right:0;top:0;bottom:0;width:84px;background:#ffc000;color:#111;border-radius:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;font-size:12px}.cartSwipeAction svg{width:24px;height:24px}.cartSwipeFront{padding-right:44px!important}.cartRevealToggle{position:absolute;right:0;top:50%;transform:translateY(-50%);width:40px;height:44px;padding:10px!important;border:0;background:transparent!important;color:var(--muted,#777);display:flex;align-items:center;justify-content:center;cursor:pointer}.cartRevealToggle svg{width:20px;height:20px;pointer-events:none}.cartDisabled .cartRevealToggle{display:none}.cartAdded{color:#278348;font-size:10px;position:absolute;bottom:3px;right:44px}.cartAdded[hidden]{display:none}.cartDisabled .cartSwipeAction{display:none}.cartDisabled>.cartSwipeFront{transform:none!important}
   #modal:has(#invoiceCartView){align-items:flex-end;padding:0!important}
   #modal:has(#invoiceCartView) #sheet{height:min(90dvh,900px)!important;max-height:90dvh!important;width:min(100%,520px)!important;padding:0!important;overflow:hidden!important;border-radius:22px 22px 0 0!important;background:var(--surface,#fff)}
   #invoiceCartView{height:100%;min-height:0;display:flex;flex-direction:column;color:var(--text,#171717);font-size:13px}

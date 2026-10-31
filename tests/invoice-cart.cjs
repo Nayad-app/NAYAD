@@ -11,6 +11,11 @@ const front=w.document.querySelector('[data-cart-invoice]'),wrap=front.parentEle
 const touch=(type,x,y)=>{const e=new w.Event(type,{bubbles:true});Object.defineProperty(e,'touches',{value:[{clientX:x,clientY:y}]});front.dispatchEvent(e);};
 touch('touchstart',160,100);touch('touchmove',70,103);assert(wrap.classList.contains('revealed'));front.click();assert(!wrap.classList.contains('revealed'));
 touch('touchstart',160,100);touch('touchmove',155,160);assert(!wrap.classList.contains('revealed'));
+// Clicking the visible chevron must not open invoice details or add a payment.
+let detailClicks=0;front.addEventListener('click',()=>detailClicks++);
+const toggle=front.querySelector('.cartRevealToggle');assert(toggle);toggle.click();assert(wrap.classList.contains('revealed'));assert.equal(toggle.getAttribute('aria-expanded'),'true');assert.equal(detailClicks,0);assert.equal(stored().length,0);
+toggle.click();assert(!wrap.classList.contains('revealed'));assert.equal(toggle.getAttribute('aria-expanded'),'false');
+toggle.click();wrap.querySelector('.cartSwipeAction').click();assert(stored().includes('a'));assert(!wrap.classList.contains('revealed'));assert.equal(calls.length,0);assert.equal(detailClicks,0);
 cart.add('a');cart.add('a');cart.add('b');cart.add('c');cart.add('d');assert.equal(stored().length,3);assert.equal(calls.length,0);
 cart.open();assert.equal(w.document.querySelectorAll('.cartGroup').length,2);assert.match(w.document.querySelector('.cartFooter').textContent,/600/);
 // Cart removal requires an explicit action after swipe; original invoice stays unchanged.
