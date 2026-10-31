@@ -1,5 +1,5 @@
 // Refresh the per-store background picker and store-switch hooks.
-const CACHE = "nayad-v246";
+const CACHE = "nayad-v247";
 
 const ASSETS = [
   "./",
@@ -47,7 +47,7 @@ const ASSETS = [
   "./loan-contract-editor.css?v=7",
   "./loan-payment.js?v=3",
   "./loan-actions.js?v=1",
-  "./contact-types.js?v=33",
+  "./contact-types.js?v=34",
   "./company-label.js",
   "./member-permissions.js?v=2"
 ];
@@ -119,7 +119,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/supplier-cloud\.js\?v=\d+/g,"./supplier-cloud.js?v=64");
   patched=patched.replace(/\.\/loans\.js\?v=\d+/g,"./loans.js?v=13");
   patched=injectScriptBefore(patched,"./invoice-cloud.js?v=80","./money-input.js?v=1");
-  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=33");
+  patched=patched.replace(/\.\/contact-types\.js\?v=\d+/g,"./contact-types.js?v=34");
   patched=injectScriptBefore(patched,"./store-switcher.js?v=69","./registration-onboarding.js?v=2");
   patched=injectScriptAfter(patched,"./store-switcher.js?v=69","./store-recovery.js?v=57");
   patched=injectScriptAfter(patched,"./store-recovery.js?v=57","./registration-delete.js?v=2");
@@ -139,7 +139,7 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=80","./payment-center.js?v=35");
   patched=injectScriptAfter(patched,"./payment-center.js?v=35","./loans.js?v=13");
   patched=injectScriptAfter(patched,"./payment-center.js?v=35","./invoice-cart.js?v=3");
-  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=64","./contact-types.js?v=33");
+  patched=injectScriptBefore(patched,"./supplier-cloud.js?v=64","./contact-types.js?v=34");
   patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   patched=patched.replace(/payment-statement\.js\?v=\d+/g,'payment-statement.js?v=21');
