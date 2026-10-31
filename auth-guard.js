@@ -1,7 +1,7 @@
-/* NAYAD auth guard v58 — browser Supabase Auth owns session persistence. */
+/* NAYAD auth guard v59 — browser Supabase Auth owns session persistence. */
 (function(){
-  if(window.__nayadAuthGuardV58)return;
-  window.__nayadAuthGuardV58=true;
+  if(window.__nayadAuthGuardV59)return;
+  window.__nayadAuthGuardV59=true;
 
   const originalHandleAuthStateChange=window.handleAuthStateChange;
   const originalShowAuthenticatedApp=window.showAuthenticatedApp;
@@ -125,7 +125,7 @@
      the same account on other devices. */
   window.logoutNayad=async function(){
     const rememberKey=(typeof REMEMBER_KEY!=='undefined'?REMEMBER_KEY:'NAYAD_REMEMBER_ME');
-    localStorage.removeItem(rememberKey);
+    // Remembered account survives explicit logout; only the session is revoked.
     sessionStorage.removeItem('NAYAD_SESSION_ONLY');
     sessionStorage.removeItem('NAYAD_JUST_LOGGED_IN');
     try{
