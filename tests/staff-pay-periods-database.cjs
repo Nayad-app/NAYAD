@@ -1,0 +1,81 @@
+const {PGlite}=require('@electric-sql/pglite'),fs=require('fs'),assert=require('node:assert/strict');
+(async()=>{const db=new PGlite();await db.exec(`create role anon;create role authenticated;create schema auth;create schema extensions;
+create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+create table stores(id uuid primary key,name text);create table store_members(store_id uuid,user_id uuid,role text);
+grant usage on schema auth to authenticated;grant select on store_members to authenticated;
+-- Crypto shims only for local behavior tests; production keeps pgcrypto.
+create function extensions.crypt(text,text) returns text language sql as $$select $1$$;
+create function extensions.gen_salt(text,integer) returns text language sql as $$select 'test'::text$$;
+create function extensions.digest(text,text) returns bytea language sql as $$select convert_to($1,'UTF8')$$;
+create function extensions.gen_random_bytes(integer) returns bytea language sql as $$select convert_to(repeat('x',$1),'UTF8')$$;`);
+await db.exec(fs.readFileSync('supabase/migrations/20261015051454_employee_attendance.sql','utf8').replace('create extension if not exists pgcrypto with schema extensions;',''));
+await db.exec(fs.readFileSync('supabase/migrations/20261017055919_staff_schedule_approval.sql','utf8'));
+await db.exec(`create table private.staff_media(id uuid primary key default gen_random_uuid(),store_id uuid,actor text,kind text,image text,created_at timestamptz default now());`);
+await db.exec(fs.readFileSync('supabase/migrations/20261020120828_staff_employee_sections.sql','utf8'));
+await db.exec('create table public.profiles(id uuid primary key,full_name text)');
+await db.exec(fs.readFileSync('supabase/migrations/20261020134417_staff_salary_payouts.sql','utf8'));
+await db.exec(fs.readFileSync('supabase/migrations/20261105151822_staff_employee_pay_periods.sql','utf8'));
+const owner='11111111-1111-4111-8111-111111111111',manager='22222222-2222-4222-8222-222222222222',store='33333333-3333-4333-8333-333333333333',token='44444444-4444-4444-8444-444444444444';
+await db.exec(`insert into auth.users values('${owner}'),('${manager}');insert into profiles values('${owner}','Namka');insert into stores values('${store}','Synthetic');insert into store_members values('${store}','${owner}','owner'),('${store}','${manager}','manager');set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false)`);
+const input={name:'Test',phone:'12345678',pin:'123456',wage_type:'hourly',hourly_rate:7000,overtime_multiplier:1,start_time:'09:00',end_time:'18:00',effective_from:'2026-01-01',pay_days:[10,25]};
+const e=(await db.query('select * from staff_save_employee_v2($1,$2)',[store,JSON.stringify(input)])).rows[0];
+const review=(day,ci='09:00',co='17:00',rev=null)=>db.query('select * from staff_review_attendance($1,$2,$3,$4,$5,$6,$7,$8)',[store,e.id,day,ci,co,'test',false,rev]);
+const a=(await review('2026-01-10')).rows[0];
+const api=async(action,data={})=>(await db.query('select staff_salary($1,$2,$3,$4) as result',[store,action,e.id,JSON.stringify(data)])).rows[0].result;
+const bank=async(action,data={})=>(await db.query('select staff_bank_details($1,$2,$3,$4) as result',[action,store,e.id,JSON.stringify(data)])).rows[0].result;
+let b=await bank('save',{bank:'ХААН банк',account:'5000123456',holder:'Төрбат',updated_at:null});assert.equal(b.updated_by,'Namka');
+let p=await api('preview');assert.equal(p.quote.start,'2025-12-26');assert.equal(p.quote.end,'2026-01-10');assert.equal(p.quote.amount,56000);assert.equal(p.quote.pending,0);
+const data={id:'55555555-5555-4555-8555-555555555555',quote:p.quote,bank_updated_at:b.updated_at,bank:b.bank,account:b.account,reference:'Test salary'};
+const receipt=await api('confirm',data);assert.equal(receipt.paid_by,owner);assert.equal(receipt.paid_by_name,'Namka');assert.equal(receipt.amount,56000);assert.equal((await api('confirm',data)).id,receipt.id);
+assert.equal((await api('history')).length,1);await assert.rejects(()=>review('2026-01-10','09:00','18:00',a.updated_at),/Цалин олгосон/);
+p=await api('preview');assert.equal(p.quote.start,'2026-01-11');assert.equal(p.quote.end,'2026-01-25');
+await assert.rejects(()=>api('confirm',{...data,id:'66666666-6666-4666-8666-666666666666'}),/өөрчлөгдсөн/);
+const before=p.quote;await review('2026-01-25');await assert.rejects(()=>api('confirm',{...data,id:'66666666-6666-4666-8666-666666666666',quote:before}),/өөрчлөгдсөн/);
+await db.exec(`select set_config('request.jwt.claim.sub','${manager}',false)`);await assert.rejects(()=>api('list'),/Зөвхөн/);await assert.rejects(()=>bank('get'),/Зөвхөн/);
+await db.exec(`reset role;insert into staff_store_settings(store_id,attendance_token) values('${store}','${token}');update private.staff_credentials set device_hash=encode(extensions.digest('device','sha256'),'hex') where employee_id='${e.id}';set role anon`);
+const self=async(action,data={},device='device')=>(await db.query('select staff_bank_details($1,null,null,$2,$3,$4) as result',[action,JSON.stringify(data),token,device])).rows[0].result;
+assert.equal((await self('get')).account,'5000123456');await assert.rejects(()=>self('get',{},'wrong'),/нэвтэр/);await assert.rejects(()=>api('list'),/permission denied/);
+b=await self('save',{bank:'Голомт банк',account:'99999999',holder:'Төрбат',updated_at:b.updated_at});assert.equal(b.updated_by,'Test');
+await db.exec(`reset role;set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false)`);assert.equal((await api('history'))[0].bank,'ХААН банк');
+// A monthly salary is divided by distinct scheduled installments, including month-end clamping.
+input.id=e.id;input.updated_at=e.updated_at;input.wage_type='monthly';input.monthly_salary=1500000;input.pay_days=[15,0];await db.query('select * from staff_save_employee_v2($1,$2)',[store,JSON.stringify(input)]);
+p=await api('preview');assert.equal(p.quote.gross,750000);assert.equal(p.quote.end,'2026-01-15');assert.equal(p.quote.start,'2026-01-11');
+// Unapproved shifts block paying the period, even with an otherwise current quote.
+await db.exec('reset role');await db.query('insert into staff_attendance(store_id,employee_id,work_date,clock_in) values($1,$2,$3,$4)',[store,e.id,'2026-01-12','2026-01-12T01:00:00Z']);await db.exec('set role authenticated');
+p=await api('preview');assert.equal(p.quote.pending,1);await assert.rejects(()=>api('confirm',{...data,id:'77777777-7777-4777-8777-777777777777',quote:p.quote,bank_updated_at:b.updated_at}),/Хүлээгдэж/);
+
+// New employees have independent work periods; the original employee stays legacy.
+await db.exec('reset role');
+const periods=[{month_offset:0,start_day:1,end_day:15},{month_offset:-1,start_day:16,end_day:0}];
+await db.exec(`set role authenticated;select set_config('request.jwt.claim.sub','${owner}',false)`);
+const create=async(name,phone,extra={})=>(await db.query('select * from staff_save_employee_v2($1,$2)',[store,JSON.stringify({...input,id:null,updated_at:null,name,phone,wage_type:'hourly',hourly_rate:8000,pay_days:[20,5],pay_periods:periods,...extra})])).rows[0];
+const worker=await create('New','87654321');
+const quote=async(id)=>(await db.query("select staff_salary($1,'preview',$2) as result",[store,id])).rows[0].result.quote;
+const shift=async(id,date)=>db.query('select * from staff_review_attendance($1,$2,$3,$4,$5,$6,$7,$8)',[store,id,date,'09:00','17:00','test',false,null]);
+await shift(worker.id,'2024-02-16');await shift(worker.id,'2024-02-29');
+let q=await quote(worker.id);assert.equal(q.start,'2024-02-16');assert.equal(q.end,'2024-02-29');assert.equal(q.pay_date,'2024-03-05');assert.equal(q.amount,128000);
+const wb=(await db.query("select staff_bank_details('save',$1,$2,$3) as result",[store,worker.id,JSON.stringify({bank:'Test',account:'12345678',holder:'New'})])).rows[0].result;
+const paid=(await db.query("select staff_salary($1,'confirm',$2,$3) as result",[store,worker.id,JSON.stringify({id:'88888888-8888-4888-8888-888888888888',quote:q,bank_updated_at:wb.updated_at,bank:'Test',account:'12345678',reference:'Feb'})])).rows[0].result;
+assert.equal(paid.period_end,'2024-02-29');assert.equal(paid.receipt.pay_date,'2024-03-05');
+q=await quote(worker.id);assert.equal(q.start,'2024-03-01');assert.equal(q.end,'2024-03-15');assert.equal(q.pay_date,'2024-03-20');
+const common=await create('Common','87654322');await shift(common.id,'2025-02-28');q=await quote(common.id);assert.equal(q.end,'2025-02-28');assert.equal(q.pay_date,'2025-03-05');
+const year=await create('Year','87654323');await shift(year.id,'2025-12-31');q=await quote(year.id);assert.equal(q.end,'2025-12-31');assert.equal(q.pay_date,'2026-01-05');
+const first=await create('First','87654324');await shift(first.id,'2025-04-15');await shift(first.id,'2025-04-16');q=await quote(first.id);assert.equal(q.end,'2025-04-15');assert.equal(q.pay_date,'2025-04-20');assert.equal(q.amount,64000);
+await assert.rejects(()=>create('Overlap','87654325',{pay_periods:[{month_offset:-1,start_day:1,end_day:20},{month_offset:-1,start_day:16,end_day:0}]}),/Тооцох/);
+await assert.rejects(()=>create('Gap','87654325',{pay_periods:[{month_offset:-1,start_day:1,end_day:14},{month_offset:-1,start_day:16,end_day:0}]}),/Тооцох/);
+await assert.rejects(()=>create('Early','87654325',{pay_periods:[{month_offset:0,start_day:1,end_day:15},{month_offset:0,start_day:16,end_day:0}]}),/Тооцох/);
+assert.equal((await api('preview')).quote.end,'2026-01-15'); // another employee unaffected
+
+const monthly=await create('Monthly','87654326',{wage_type:'monthly',monthly_salary:1600000});await shift(monthly.id,'2025-01-01');q=await quote(monthly.id);assert.equal(q.gross,800000);assert.equal(q.pay_date,'2025-01-20');
+const future=await create('Future','87654327');await db.exec('reset role');await db.query('insert into staff_attendance(store_id,employee_id,work_date,clock_in) values($1,$2,$3,$4)',[store,future.id,'2099-01-15','2099-01-15T01:00Z']);await db.exec('set role authenticated');q=await quote(future.id);
+await assert.rejects(()=>db.query("select staff_salary($1,'confirm',$2,$3)",[store,future.id,JSON.stringify({id:'99999999-9999-4999-8999-999999999999',quote:q})]),/өдөр болоогүй/);
+await assert.rejects(()=>db.query('select * from staff_save_employee_v2($1,$2)',[store,JSON.stringify({...input,id:worker.id,updated_at:worker.updated_at,name:'New',phone:'87654321',pay_days:[21,6]})]),/хугацаатай хамт/);
+
+// A completed work period is not payable until its separate payday.
+const delayed=await create('Delayed','87654328',{pay_days:[0],pay_periods:[{month_offset:-1,start_day:1,end_day:0}]});
+const previous=(await db.query("select (date_trunc('month',now() at time zone 'Asia/Ulaanbaatar')-interval '1 day')::date::text d")).rows[0].d;
+await shift(delayed.id,previous);q=await quote(delayed.id);assert.equal(q.end,previous);
+const current=(await db.query("select (now() at time zone 'Asia/Ulaanbaatar')::date::text d")).rows[0].d;
+if(q.pay_date>current)await assert.rejects(()=>db.query("select staff_salary($1,'confirm',$2,$3)",[store,delayed.id,JSON.stringify({id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',quote:q})]),/өдөр болоогүй/);
+await db.close();console.log('staff-pay-periods: PASS legacy, employee isolation, boundaries, leap/common February, year rollover, hourly amounts, receipt work dates, overlap/gap/early-pay rejection');
+})().catch(e=>{console.error(e);process.exit(1)});
