@@ -30,7 +30,26 @@
  async function refreshMessages(g,scroll=false){if(document.hidden||g!==S.generation)return;try{const d=await api('messages',{peer:S.peer});if(g!==S.generation)return;const el=document.getElementById('hubMessages');if(!el)return;const near=root().scrollHeight-root().scrollTop-root().clientHeight<180;const msgs=[...new Map([...S.older,...d.messages].map(m=>[m.id,m])).values()].sort((a,b)=>a.created_at.localeCompare(b.created_at));const html=`${msgs.length>=50?'<button class="hubOlder" onclick="NayadHub.older()">Өмнөх мессежүүд</button>':''}${msgs.map(bubble).join('')||'<p class="staffHint">Эхний мессежээ бичээрэй.</p>'}`;if(el.dataset.ids!==msgs.map(m=>m.id).join(',')){el.innerHTML=html;el.dataset.ids=msgs.map(m=>m.id).join(',');images();if(scroll||near)root().scrollTop=root().scrollHeight;}S.visible=msgs;document.getElementById('hubStatus').textContent='';}catch(e){const el=document.getElementById('hubStatus');if(el)el.textContent=e.message;}}
  async function older(){try{const d=await api('messages',{peer:S.peer,before:S.visible?.[0]?.created_at});S.older=[...d.messages,...S.visible];await refreshMessages(S.generation);}catch(e){fail(e);}}
  async function send(){if(S.busy)return;const input=document.getElementById('hubText'),body=input.value.trim();if(!body&&!S.attachment)return;S.busy=true;document.getElementById('hubSend').disabled=true;try{S.pendingId||=crypto.randomUUID();await api('send',{id:S.pendingId,peer:S.peer,body,media_id:S.attachment});input.value='';S.attachment=null;S.pendingId=null;document.getElementById('hubAttachment').textContent='';await refreshMessages(S.generation,true);}catch(e){document.getElementById('hubStatus').textContent=e.message;}finally{S.busy=false;const b=document.getElementById('hubSend');if(b)b.disabled=false;}}
- function choose(kind,camera,done){const generation=S.generation;const input=document.createElement('input');input.type='file';input.accept='image/*';if(camera)input.capture=kind==='avatar'?'user':'environment';input.onchange=async()=>{const file=input.files?.[0];if(!file)return;try{const image=await compress(file,kind==='avatar'?400:1600);if(generation!==S.generation)return;const data=await api('upload',{kind,image});if(generation===S.generation)done(data.id);}catch(e){fail(e);}};input.click();}
+ function choose(kind,camera,done,options={}){
+  const generation=S.generation,input=document.createElement('input');
+  input.type='file';input.accept='image/*';input.style.cssText='position:fixed;left:-10000px;top:0';
+  if(camera)input.capture=kind==='avatar'?'user':'environment';
+  const cleanup=()=>input.remove();
+  input.oncancel=cleanup;
+  input.onchange=async()=>{
+   const file=input.files?.[0];cleanup();if(!file||generation!==S.generation)return;
+   try{
+    await options.beforeUpload?.();if(generation!==S.generation)return;
+    const image=await compress(file,kind==='avatar'?400:1600);if(generation!==S.generation)return;
+    const data=await api('upload',{kind,image});if(generation===S.generation)await done(data.id);
+   }catch(e){if(generation===S.generation)(options.onError||fail)(e);}
+   finally{options.onFinish?.();}
+  };
+  // Keep the native picker in the original user gesture, with a connected input.
+  document.body.appendChild(input);
+  try{input.click();}catch(e){cleanup();(options.onError||fail)(e);}
+ }
+
  async function compress(file,max){if(file.size>25*1024*1024)throw Error('25 MB-аас бага зураг сонгоно уу.');const url=URL.createObjectURL(file);try{const img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('Зургийг уншиж чадсангүй. JPEG зураг сонгоно уу.'));img.src=url;});const scale=Math.min(1,max/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));const ctx=c.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);ctx.drawImage(img,0,0,c.width,c.height);let data=c.toDataURL('image/jpeg',.8);if(data.length>1400000)data=c.toDataURL('image/jpeg',.55);if(data.length>1400000)throw Error('Зураг хэт том байна. Жижиг зураг сонгоно уу.');return data;}finally{URL.revokeObjectURL(url);}}
  function pickChat(){choose('chat',false,id=>{S.attachment=id;document.getElementById('hubAttachment').innerHTML='<span class="staffHint">Зураг хавсаргалаа</span> <button onclick="NayadHub.clearAttachment()">×</button>';});}
  function clearAttachment(){S.attachment=null;document.getElementById('hubAttachment').textContent='';}

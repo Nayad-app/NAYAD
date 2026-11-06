@@ -23,7 +23,24 @@
  function busy(on){S.busy=on;root()?.querySelectorAll('.selfFooter button,.hubPhotoActions button,.hubProfileGroup button,.hubBack').forEach(b=>b.disabled=on);}
  function error(e){const el=document.getElementById('selfError');if(el){el.textContent=e.message;el.scrollIntoView?.({block:'nearest'});}else window.alert(e.message);}
  async function save(submit){if(S.busy)return;const host=root()?.firstElementChild;busy(true);try{const d=await persist();if(!host?.isConnected)return;if(submit)await api('submit',{form:d.form,updated_at:d.updated_at},S.target);if(!host?.isConnected)return;busy(false);await profile(S.target);window.toast?.(submit?'Баталгаажуулж илгээлээ.':'Мэдээлэл хадгаллаа.');}catch(e){error(e);}finally{busy(false);}}
- async function pick(kind,camera){if(S.busy)return;const host=root()?.firstElementChild;busy(true);try{await persist();if(!host?.isConnected)return;busy(false);window.NayadHub.choose(kind,camera,()=>profile(S.target));}catch(e){error(e);}finally{busy(false);}}
+ function pick(kind,camera){
+  if(S.busy)return;
+  const host=root()?.firstElementChild,target=S.target;
+  window.NayadHub.choose(kind,camera,async()=>{
+   if(!host?.isConnected)return;
+   busy(false);await profile(target);window.toast?.('Зураг хадгаллаа.');
+  },{
+   beforeUpload:async()=>{
+    if(!host?.isConnected)throw Error('Дэлгэц өөрчлөгдсөн.');
+    busy(true);const status=document.getElementById('selfError');if(status)status.textContent='Зураг ачаалж байна…';
+    await persist();
+    if(!host?.isConnected)throw Error('Дэлгэц өөрчлөгдсөн.');
+   },
+   onError:e=>{if(host?.isConnected)error(e);},
+   onFinish:()=>busy(false)
+  });
+ }
+
  async function remove(id){if(S.busy)return;const host=root()?.firstElementChild;busy(true);try{await persist();if(!host?.isConnected)return;await window.NayadHub.api('remove_image',{id});if(!host?.isConnected)return;busy(false);await profile(S.target);}catch(e){error(e);}finally{busy(false);}}
  async function reminder(){install();const el=document.getElementById('staffProfileReminder');if(!el)return;try{const d=await api('get');if(!el.isConnected)return;el.innerHTML=(d.submitted_at?'':notice(d).replace('</div>','<button class="staffSave" onclick="NayadSelf.profile()">Мэдээлэл нөхөх →</button></div>'));}catch(e){if(el.isConnected)el.innerHTML=`<p class="selfError">Мэдээллийн төлөв ачаалсангүй. <button onclick="NayadSelf.reminder()">Дахин оролдох</button></p>`;}}
  async function statuses(){install();const host=document.getElementById('staffProfileSummary');if(!host)return;const sid=store();try{const list=await api('list');if(!host.isConnected||sid!==store())return;const incomplete=list.filter(d=>d.active&&(!d.submitted_at||d.missing.length));host.innerHTML=incomplete.length?`<div class="selfNotice">${incomplete.length} ажилтны мэдээлэл дутуу эсвэл баталгаажуулаагүй.</div>`:'';for(const d of list){const el=document.querySelector(`[data-profile-status="${d.id}"]`);if(el)el.innerHTML=`<button class="selfLink" onclick="NayadSelf.profile('${d.id}')">${d.missing.length?'⚠ Дутуу: '+esc(missingText(d)):d.submitted_at?'✓ Баталгаажуулж илгээсэн':'Баталгаажуулж илгээгээгүй'} →</button>`;}const inactive=list.filter(d=>!d.active);if(inactive.length)host.innerHTML+=`<details><summary>Ажлаас гарсан ажилтнууд (${inactive.length})</summary>${inactive.map(d=>`<button class="selfLink" style="display:block" onclick="NayadSelf.profile('${d.id}')">${esc(d.name)} · Мэдээлэл үзэх →</button>`).join('')}</details>`;}catch(e){if(host.isConnected)host.innerHTML='<p class="selfError">Мэдээллийн төлөв ачаалсангүй. <button onclick="NayadSelf.statuses()">Дахин оролдох</button></p>';}}
