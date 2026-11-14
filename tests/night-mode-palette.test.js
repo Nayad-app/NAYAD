@@ -12,10 +12,10 @@ assert.doesNotMatch(source,/html\.nightMode\{--bg:#141413/);
 console.log('night-mode-palette: PASS — approved low-glare charcoal surfaces are wired globally');
 
 const palette=fs.readFileSync(path.join(__dirname,'..','night-mode.css'),'utf8');
-assert.match(source,/night-mode\.css\?v=1/);
+assert.match(source,/night-mode\.css\?v=2/);
 assert.match(palette,/--text:#E5E7E2/);
 assert.match(palette,/--yellow:#D9B34C/);
 assert.match(palette,/color-scheme:dark/);
 assert.doesNotMatch(palette,/filter:\s*(invert|brightness)/);
 const worker=fs.readFileSync(path.join(__dirname,'..','sw.js'),'utf8');
-assert.match(worker,/night-mode\.css\?v=1/);
+assert.match(worker,/night-mode\.css\?v=2/);

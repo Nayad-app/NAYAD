@@ -358,7 +358,7 @@
     const dueInfo=pay&&nextDue?`<span class="homeDebtDue${overdue?' overdue':''}">${overdue?'Хугацаа хэтэрсэн':'Төлөх өдөр'} <time datetime="${esc(nextDue)}">${esc(homeDate(nextDue))}</time></span>`:'';
     const chevron=pay?'<svg class="homeDebtChevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>':'';
     const subline=pay?`${homeOpenInvoices(c).length} падаан`:`${typeLabel(type)}<span class="contactTypeText">· ${c.invoices?.length||0} падаан</span>`;
-    return `<div class="card ${pay?'homeDebtCard':''}" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(c)}<div><b>${esc(c.name)}</b><span>${subline}</span></div></div><div class="homeDebtAmount"><div class="homeDebtValue"><div class="amount" style="color:${risk.color}">${window.money(homePayable(c))}</div>${dueInfo}</div>${chevron}</div></div></div>`;
+    return `<div class="card ${pay?'homeDebtCard':''}" onclick="company(${c.id})"><div class="row"><div class="company">${avatar(c)}<div><b>${esc(c.name)}</b><span>${subline}</span></div></div><div class="homeDebtAmount"><div class="homeDebtValue"><div class="amount" style="--home-risk-color:${risk.color};color:${risk.color}">${window.money(homePayable(c))}</div>${dueInfo}</div>${chevron}</div></div></div>`;
   }
   const contactCallPhone=contact=>validType(contact?.contactType)===PERSON?contact?.phone:contact?.directorPhone;
   const contactCallHref=value=>{
