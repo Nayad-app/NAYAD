@@ -48,6 +48,12 @@ html.nightMode:root {
   html.nightMode:root :is(.homeInvoiceAdd,.contactHeaderAddButton,.contactLogoCamera,#staffChatShortcut,.cartSwipeAction,#invoiceCartButton i){background:var(--yellow);color:#171B18}
   html.nightMode:root :is(.contactCallButton,.hubCall){background:#286A43;color:#E5F5EB}
   html.nightMode:root .nayadRegistrationKicker{color:#E3C375}
+  html.nightMode:root .pcModes button.active{background:var(--yellow);color:#171B18}
+  html.nightMode:root .pcPickRow.selected{background:var(--yellow-soft);color:var(--text)}
+  html.nightMode:root :is(.dueMoney>span,.allocationRow span em,.confirmPay .discountLine b){color:var(--green)}
+  html.nightMode:root :is(.invoiceDeleteWarning,.invoiceDeleteIrreversible){color:var(--red)}
+  html.nightMode:root .invoiceViewerScroll{background:var(--surface-2)}
+  html.nightMode:root .invoiceDeleteConfirmButton{background:#843B43;color:#FFF0F0}
   /* QR codes, uploaded documents and brand logos retain their original pixels. */
   html.nightMode:root :is(.staffQrCode,.staffQr svg,.nayadSubscriptionQrImage){background:#fff;color:#111;color-scheme:light}
 }

@@ -15,6 +15,7 @@ const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?process.
  }
  const samples=[
  ['Хуулга','<div class="statement"><div class="row"><button class="primary">Бүгд</button><button class="secondary">Төлбөр</button><button class="secondary">Падаан</button><button class="secondary">☷</button></div><div class="statementTotal statementTotal-payment"><b>467,639,204 ₮</b></div><div class="statementTotal statementTotal-invoice"><b>536,237,564 ₮</b></div></div>'],
+ ['Төлбөр бүртгэх','<div class="pcModes"><button class="active">Сонгож төлөх</button></div><label class="pcPickRow selected"><span>Падаан 100,000 ₮</span></label><div class="confirmPay"><div class="discountLine"><b>Хөнгөлөлт 5,000 ₮</b></div></div><button class="invoiceDeleteConfirmButton">Устгах</button>'],
  ['Шүүлтүүр','<div class="field"><label>Хайх</label><input value="Нийлүүлэгч"></div><div class="field"><input type="date" value="2026-11-15"></div><button class="primary">Хэрэглэх</button>'],
  ['Ажилтан, цалин','<div class="staffShell"><div class="staffTabs"><button class="active">Ажилтан</button><button>Цаг</button><button>Цалин</button><button>Чат</button></div><div class="staffCard">Ажилтан</div><div class="selfNotice">Мэдээллээ гүйцээнэ үү</div><div class="salaryPaid">Олгосон цалин<small>Өмнөх хугацаа</small></div><button class="staffSave">Хадгалах</button></div>'],
  ['Чат','<div class="hubMessage">Сайн байна уу?<small>09:00</small></div><div class="hubMessage mine">Сайн, ажилдаа ирлээ.<small>09:01</small></div>'],
@@ -31,7 +32,7 @@ const {chromium}=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES?process.
    await page.evaluate(bg=>document.body.style.background=bg,bg);
    const failures=await page.evaluate(()=>{
     const lum=c=>{const n=c.match(/[\d.]+/g).slice(0,3).map(Number).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4});return n[0]*.2126+n[1]*.7152+n[2]*.0722};
-    return [...document.querySelectorAll('.fixture button,.fixture input,.fixture select,.fixture small,.fixture b,.selfNotice,.salaryPaid,.hubMessage,.nrGreen,.nrRed,.nrAmber,.shareRole,.nayadAdminPill,.nayadSubscriptionBenefits')].filter(e=>e.getBoundingClientRect().height).flatMap(e=>{let node=e,bg;while(node){bg=getComputedStyle(node).backgroundColor;if(bg!=='rgba(0, 0, 0, 0)')break;node=node.parentElement;}const fg=getComputedStyle(e).color,a=lum(fg),b=lum(bg),ratio=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);return ratio<4.5?[{text:e.textContent.slice(0,40),class:e.className,fg,bg,ratio}]:[]});
+    return [...document.querySelectorAll('.fixture button,.fixture input,.fixture select,.fixture small,.fixture b,.selfNotice,.salaryPaid,.hubMessage,.nrGreen,.nrRed,.nrAmber,.shareRole,.nayadAdminPill,.nayadSubscriptionBenefits,.pcPickRow.selected')].filter(e=>e.getBoundingClientRect().height).flatMap(e=>{let node=e,bg;while(node){bg=getComputedStyle(node).backgroundColor;if(bg!=='rgba(0, 0, 0, 0)')break;node=node.parentElement;}const fg=getComputedStyle(e).color,a=lum(fg),b=lum(bg),ratio=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);return ratio<4.5?[{text:e.textContent.slice(0,40),class:e.className,fg,bg,ratio}]:[]});
    });assert.deepEqual(failures,[],JSON.stringify({width,bg,failures}));
   }
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal viewport overflow');
