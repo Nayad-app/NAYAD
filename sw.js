@@ -1,5 +1,5 @@
-// Refresh the per-store background picker and store-switch hooks.
-const CACHE = "nayad-v255";
+// Refresh Plus pricing and the subscription bundle.
+const CACHE = "nayad-v256";
 
 const ASSETS = [
   "./night-mode.css?v=2",
@@ -35,7 +35,7 @@ const ASSETS = [
   "./profile-menu.js?v=11",
   "./notification-settings.js?v=1",
   "./admin-dashboard.js?v=2",
-  "./subscription.js?v=5",
+  "./subscription.js?v=6",
   "./invoice-cloud.js?v=80",
   "./supplier-cloud.js?v=64",
   "./reports.js?v=4",
@@ -117,7 +117,7 @@ function patchDocument(html){
   patched=patched.replace(/\.\/share\.js\?v=\d+/g,"./share.js?v=41");
   patched=patched.replace(/\.\/profile-menu\.js\?v=\d+/g,"./profile-menu.js?v=11");
   patched=patched.replace(/\.\/admin-dashboard\.js\?v=\d+/g,"./admin-dashboard.js?v=2");
-  patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=5");
+  patched=patched.replace(/\.\/subscription\.js\?v=\d+/g,"./subscription.js?v=6");
   patched=patched.replace(/\.\/invoice-cloud\.js\?v=\d+/g,"./invoice-cloud.js?v=80");
   patched=patched.replace(/\.\/payment-center\.js\?v=\d+/g,"./payment-center.js?v=35");
   patched=patched.replace(/\.\/member-permissions\.js\?v=\d+/g,"./member-permissions.js?v=2");
@@ -140,13 +140,13 @@ function patchDocument(html){
   patched=injectScriptAfter(patched,"./staff-applications.js?v=1","./profile-menu.js?v=11");
   patched=injectScriptAfter(patched,"./profile-menu.js?v=11","./admin-dashboard.js?v=2");
   patched=injectScriptAfter(patched,"./profile-menu.js?v=11","./notification-settings.js?v=1");
-  patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=5");
+  patched=injectScriptAfter(patched,"./company-label.js","./subscription.js?v=6");
   patched=injectCloudRuntimeBeforeCloudModules(patched);
   patched=injectScriptAfter(patched,"./invoice-cloud.js?v=80","./payment-center.js?v=35");
   patched=injectScriptAfter(patched,"./payment-center.js?v=35","./loans.js?v=13");
   patched=injectScriptAfter(patched,"./payment-center.js?v=35","./invoice-cart.js?v=5");
   patched=injectScriptBefore(patched,"./supplier-cloud.js?v=64","./contact-types.js?v=35");
-  patched=injectScriptAfter(patched,"./subscription.js?v=5","./member-permissions.js?v=2");
+  patched=injectScriptAfter(patched,"./subscription.js?v=6","./member-permissions.js?v=2");
   patched=injectScript(patched,"./mobile-fix.js?v=46");
   patched=patched.replace(/payment-statement\.js\?v=\d+/g,'payment-statement.js?v=21');
   patched=injectScriptBefore(patched,"./payment-center.js?v=35","./payment-statement.js?v=21");
