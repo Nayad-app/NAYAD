@@ -119,14 +119,14 @@ assert.match(context.card(countedContact,true),/<span>2 падаан<\/span>/,'r
 assert.doesNotMatch(homeCard,/Төлөх<\/button>|Байгууллага|Дугааргүй|13 хоногийн дараа/,'home cards must keep only the compact approved content');
 assert.match(homeCard,/homeDebtChevron/,'the whole compact card must advertise navigation');
 const colorCard=(id,date,due)=>context.card({id,name:`Color ${id}`,contactType:'organization',debt:100,invoices:[invoice(id,due,'confirmed',date)]},true);
-assert.match(colorCard('GREEN',addDays(0),addDays(30)),/style="color:#16A34A"/,'the first day must be green');
-assert.match(colorCard('YELLOW',addDays(-30),addDays(30)),/style="color:#EAB308"/,'the midpoint of any invoice term must be yellow');
-assert.match(colorCard('RED',addDays(-30),addDays(0)),/style="color:#DC2626"/,'the due date must be red');
+assert.match(colorCard('GREEN',addDays(0),addDays(30)),/color:#16A34A"/,'the first day must be green');
+assert.match(colorCard('YELLOW',addDays(-30),addDays(30)),/color:#EAB308"/,'the midpoint of any invoice term must be yellow');
+assert.match(colorCard('RED',addDays(-30),addDays(0)),/color:#DC2626"/,'the due date must be red');
 const overdueColorCard=colorCard('BROWN',addDays(-31),addDays(-1));
-assert.match(overdueColorCard,/style="color:#8B2B22"/,'the day after the due date must be dark red-brown');
+assert.match(overdueColorCard,/color:#8B2B22"/,'the day after the due date must be dark red-brown');
 assert.match(overdueColorCard,new RegExp(`Хугацаа хэтэрсэн <time datetime="${addDays(-1)}">${addDays(-1).replaceAll('-','\\.')}`),'overdue cards must label their due date clearly');
 const mixedRiskCard=context.card({id:99,name:'Mixed',contactType:'organization',debt:200,invoices:[invoice('SAFE',addDays(30),'confirmed',addDays(0)),invoice('LATE',addDays(-1),'confirmed',addDays(-31))]},true);
-assert.match(mixedRiskCard,/style="color:#8B2B22"/,'a contact total must use the riskiest unpaid invoice color');
+assert.match(mixedRiskCard,/color:#8B2B22"/,'a contact total must use the riskiest unpaid invoice color');
 assert.equal(renders,14);
 const sortedInvoices=[
   {...invoice('PAID-OLD',addDays(1),'confirmed','2026-07-01'),paid:100},

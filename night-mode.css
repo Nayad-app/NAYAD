@@ -5,6 +5,7 @@ html.nightMode:root {
   --text:#E5E7E2;--muted:#ADB5AD;--line:#465149;
   --yellow:#D9B34C;--yellow-soft:#3B321C;
   --green:#79C99B;--green-soft:#203C2C;
+  --soft-yellow:var(--yellow-soft);--soft-red:var(--red-soft);
   --red:#F29B9B;--red-soft:#442A2D;--blue:#9ABCF5;
 }
 @media screen {
@@ -56,4 +57,11 @@ html.nightMode:root {
   html.nightMode:root .invoiceDeleteConfirmButton{background:#843B43;color:#FFF0F0}
   /* QR codes, uploaded documents and brand logos retain their original pixels. */
   html.nightMode:root :is(.staffQrCode,.staffQr svg,.nayadSubscriptionQrImage){background:#fff;color:#111;color-scheme:light}
+}
+
+@media screen {
+  html.nightMode:root #app .homeStats .statIcon{stroke:var(--muted)}
+  html.nightMode:root #app .homeStats .warn b{color:#E3C375}
+  html.nightMode:root #app .homeStats .red b{color:var(--red)}
+  html.nightMode:root .homeDebtCard .amount{color:color-mix(in srgb,var(--home-risk-color,var(--text)) 55%,white 45%)!important}
 }

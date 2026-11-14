@@ -107,7 +107,7 @@ const dueCard=vm.runInContext('card({id:4,name:"Due customer",contactType:"organ
 assert.doesNotMatch(dueCard,/INV-2045|Байгууллага|>Төлөх<\/button>/,'Home debt cards must omit invoice number, type text and pay button');
 assert.match(dueCard,/Төлөх өдөр <time datetime="2099-09-01">2099\.09\.01<\/time>/,'future cards must always show their due date');
 const overdueCard=vm.runInContext('card({id:6,name:"Overdue customer",contactType:"organization",invoices:[{id:"i2",date:"2000-01-01",due_date:"2000-01-31",amount:1000,paid:0}],debt:1000},true)',context);
-assert.match(overdueCard,/style="color:#8B2B22"/,'overdue totals must use the approved dark red-brown');
+assert.match(overdueCard,/color:#8B2B22"/,'overdue totals must use the approved dark red-brown');
 assert.match(overdueCard,/homeDebtDue overdue">Хугацаа хэтэрсэн <time datetime="2000-01-31">2000\.01\.31<\/time>/,'overdue dates must be clearly labelled');
 data.companies.push({id:3,name:'Minimal',contactType:'organization',phone:'99112233',director:'Бат',sales:'Сараа',directorPhone:'88112233',salesPhone:'77112233',status:'active',invoices:[],debt:0});
 const companiesHtml=context.companies();
