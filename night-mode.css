@@ -1,0 +1,51 @@
+/* Shared night palette. Only colors change; layout and store canvas remain owned by modules. */
+html.nightMode {
+  color-scheme:dark;
+  --bg:#1A1D1B;--surface:#252B27;--surface-2:#303732;
+  --text:#E5E7E2;--muted:#ADB5AD;--line:#465149;
+  --yellow:#D9B34C;--yellow-soft:#3B321C;
+  --green:#79C99B;--green-soft:#203C2C;
+  --red:#F29B9B;--red-soft:#442A2D;--blue:#9ABCF5;
+}
+@media screen {
+  html.nightMode body{background:var(--bg);color:var(--text)}
+  html.nightMode button{color:var(--text);-webkit-text-fill-color:currentColor}
+  html.nightMode :is(input,select,textarea){color:var(--text);caret-color:var(--text);accent-color:var(--yellow)}
+  html.nightMode :is(input,textarea)::placeholder{color:var(--muted);opacity:1}
+  html.nightMode :is(button,a,input,select,textarea):focus-visible{outline:2px solid var(--yellow);outline-offset:3px}
+  html.nightMode :is(.secondary,.profileHeaderButton,.passwordToggle,.bankChevron,.rememberRow,.authBack,.authLink,.shareCloseIcon,.storePickerClose,.staffHead button,.staffShell button,.hubBack,.hubPhotoActions button,.salaryActions button,.appNav button){color:var(--text)}
+  html.nightMode :is(.staffRoot,.staffShell,.staffPublic,.staffPublic .staffShell,.nayadAdminShell){background:var(--bg);color:var(--text)}
+  html.nightMode :is(.staffStore,.staffCard,.staffSearch,.staffLocation,.staffToolbar button,.staffMonthNav button,.staffMonthNav input,.staffForm input,.staffForm select,.staffMediaTile button,.staffDutyRow button,.shareStoreCard,.shareMembers,.shareInviteField input,.sharePermissionBox,.sharePermissionRow select,.storePickerItem,.appForm input,.appForm select,.appForm textarea,.appNav,.appNav button,.hubComposer textarea,.nayadAdminStat,.nayadAdminNav,.nayadAdminCard,.nayadAdminSearch input,.nayadAdminChip,.nayadAdminRevenue,.nayadAdminDateFilter,.nayadAdminEmpty,.nayadAdminLoading){background:var(--surface);color:var(--text);border-color:var(--line)}
+  html.nightMode :is(.staffTabs,.staffWageSwitch,.staffHead button,.staffAvatar,.hubAvatar,.staffBadge,.shareCloseIcon,.shareLinkBox,.nayadAdminBack,.nayadAdminRegistration,.nayadAdminNavIcon,.nayadAdminAvatar,.nayadAdminStoreIcon,.nayadAdminStatIcon){background:var(--surface-2);color:var(--text);border-color:var(--line)}
+  html.nightMode :is(.staffTabs button,.staffWageSwitch button,.staffForm label,.staffUnit span,.staffDetailSummary small,.hubMessage small,.appReview span,.salaryPaid small,.shareLinkBox,.nayadAdminLead,.nayadAdminSecure,.nayadAdminStat small,.nayadAdminNavText span,.nayadAdminCardMeta span,.nayadAdminCount,.nayadAdminRegistrationLabel,.nayadAdminRegistration span,.nayadAdminPackageMain span,.nayadAdminRevenue small,.nayadAdminPaymentTime){color:var(--muted)}
+  html.nightMode :is(.staffCalc,.staffDetailSummary,.selfNotice,.staffBadge.pending,.staffApprovalIcon.pending,.shareRole,.shareMemberEdit,.storePickerItem.active,.homePeriodOption.selected,.contactEditTypeOption.selected,.contactFilterMenu button.active,.salaryModal .salaryAmount input,.nayadSubscriptionBenefits,.nayadSubscriptionDialogIcon,.nayadPlanLimitIcon,.loanMethodCards button.active,.loanDetailHero,.loanEditNotice,.loanHistoryNotice,.loanPdfTile){background:var(--yellow-soft);color:#E3C375;border-color:#786735}
+  html.nightMode :is(.hubMessage){background:var(--surface-2);color:var(--text)}
+  html.nightMode .hubMessage.mine{background:var(--yellow-soft)}
+  html.nightMode :is(.selfNotice.good,.staffPlace,.staffBadge.on,.salaryPaid){background:var(--green-soft);color:var(--green)}
+  html.nightMode :is(.staffError,.homePeriodError,.shareMemberRemove){background:var(--red-soft);color:var(--red)}
+  html.nightMode .shareDanger{background:var(--red-soft)!important;color:var(--red)!important;border-color:#805156!important}
+  html.nightMode :is(.selfError,.appError,.appForm .required,.salaryError,.nrRed,.contactListDebt,.redText){color:var(--red)}
+  html.nightMode :is(.staffLocation span,.staffTimePerson small.working,.nrGreen,.contractPaid,.cartAdded,.greenText,.statementType.statementTypePayment,.statementRow small.activity-payment){color:var(--green)}
+  html.nightMode .statement .statementTotal-payment b{color:var(--green)}
+  html.nightMode .statement .statementTotal-invoice b{color:#E3C375}
+  html.nightMode :is(.statementType.statementTypeInvoice,.statementRow small.activity-invoice,.nrAmber,.salaryDue,.homeQuickFilter.active,.homeDebtMenu button.active .homeDebtMenuIcon,.homePeriodOption.selected .homePeriodOptionIcon,.homePeriodCheck,.contactLogoAction,.contactFilterMenu button.active .contactFilterMenuIcon,.contactFilterCheck,.shareStoreIcon,.loanFileAdd){color:#E3C375}
+  html.nightMode .statementRow small.activity-change{color:var(--blue)}
+  html.nightMode :is(.contactAvatar.organization,.loanFileTile img){background:var(--surface-2);color:var(--muted)}
+  html.nightMode :is(.primary,.staffSave,.staffShell .staffSave,.staffShell .primaryMini,.staffTabs button.active,.staffWageSwitch button.active,.staffShell .staffAddTime,.staffPublicBtn.in,.staffPayChoices button.active,.hubComposer button,.hubUnread,.salaryActions .primary,.salaryModal .staffSave,.selfNotice .staffSave,.appNav .next,.nayadAdminChip.active,.nayadAdminRetry,.loanSegment button.active,.pushChoices button[aria-pressed=true]){background:var(--yellow);color:#171B18;border-color:var(--yellow)}
+  html.nightMode :is(.statementTabs button.active,.statementKinds input:checked+span){background:var(--yellow);color:#171B18}
+  html.nightMode :is(.storePickerCheck,.storePickerAdd span,.contactTypeOption.selected .contactTypeIcon){color:#171B18}
+  html.nightMode .pushWheel button[aria-selected=true]{background:var(--yellow-soft);color:#E3C375}
+  html.nightMode .staffPublicBtn.out{border-color:var(--muted)}
+  html.nightMode .nayadSubscriptionQrFallback{background:var(--surface-2);color:var(--muted)}
+  html.nightMode .nayadAdminPill{background:var(--surface-2);color:var(--muted)!important}
+  html.nightMode :is(.nayadAdminPill.green,.nayadAdminStatIcon.green){background:var(--green-soft);color:var(--green)!important}
+  html.nightMode :is(.nayadAdminPill.red,.nayadAdminStatIcon.red){background:var(--red-soft);color:var(--red)!important}
+  html.nightMode :is(.nayadAdminPill.orange,.nayadAdminPill.yellow,.nayadAdminStatIcon.orange,.nayadAdminStatIcon.yellow,.nayadAdminNavIcon.yellow,.nayadAdminStoreIcon.plus){background:var(--yellow-soft);color:#E3C375!important}
+  html.nightMode .profileMenuUpgrade{background:var(--yellow);color:#171B18;box-shadow:none}
+  html.nightMode :is(.profileMenuDrawer,.profileMenuUser,.profileMenuClose,.salaryModal,.sheet,.loanContractOverlay>div){color:var(--text)}
+  html.nightMode :is(.nav.active,.profileMenuAction,.profileMenuTheme,.profileMenuSupport){color:var(--text)}
+  html.nightMode :is(.authRegisterPrompt button,a[href^="tel:"]){color:var(--blue)}
+  html.nightMode :is(.homeInvoiceAdd,.contactHeaderAddButton,.contactLogoCamera,#staffChatShortcut,.cartSwipeAction,#invoiceCartButton i){background:var(--yellow);color:#171B18}
+  /* QR codes, uploaded documents and brand logos retain their original pixels. */
+  html.nightMode :is(.staffQrCode,.staffQr svg,.nayadSubscriptionQrImage){background:#fff;color:#111;color-scheme:light}
+}

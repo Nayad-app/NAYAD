@@ -1,7 +1,8 @@
 // Refresh the per-store background picker and store-switch hooks.
-const CACHE = "nayad-v253";
+const CACHE = "nayad-v254";
 
 const ASSETS = [
+  "./night-mode.css?v=1",
   "./",
   "./section-router.js?v=4",
   "./manifest.webmanifest",
@@ -95,6 +96,7 @@ function injectCloudRuntimeBeforeCloudModules(html){
 }
 
 function patchDocument(html){
+  if(!html.includes('./night-mode.css'))html=html.replace(/<\/head>/i,'<link rel="stylesheet" href="./night-mode.css?v=1"></head>');
   html=html.replace(/\.\/staff-salary\.js\?v=\d+/g,"./staff-salary.js?v=2");
   html=html.replace(/\.\/staff-self-service\.js\?v=\d+/g,"./staff-self-service.js?v=4");
   html=html.includes('<base href="/">')?html:html.replace('<head>','<head><base href="/">');
